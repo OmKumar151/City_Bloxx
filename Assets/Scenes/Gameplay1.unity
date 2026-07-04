@@ -1862,11 +1862,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!1 &697755651 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5049433852762119126, guid: fb6a1fee186477146aefb93070f8b315, type: 3}
-  m_PrefabInstance: {fileID: 624075556}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1139151830
 GameObject:
   m_ObjectHideFlags: 0
@@ -2428,7 +2423,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1834082809}
-  - component: {fileID: 1834082808}
+  - component: {fileID: 1834082810}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -2436,26 +2431,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1834082808
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1834082807}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4e2f9d02cefee544934871a3e046914, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  blockPrefab: {fileID: 630172780}
-  roofPrefab: {fileID: 697755651}
-  cameraFollow: {fileID: 519420033}
-  lives: 3
-  score: 0
-  floorsBuilt: 0
-  targetFloors: 10
-  isGameOver: 0
 --- !u!4 &1834082809
 Transform:
   m_ObjectHideFlags: 0
@@ -2471,6 +2446,26 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1834082810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834082807}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0e13b343fef69d4198aa3476268d2d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameManager
+  blockPrefab: {fileID: 4873505803641195100, guid: 81b159bc9a7f05449aa3c0d960e70698, type: 3}
+  roofPrefab: {fileID: 5049433852762119126, guid: fb6a1fee186477146aefb93070f8b315, type: 3}
+  cameraFollow: {fileID: 519420033}
+  lives: 3
+  score: 0
+  floorsBuilt: 0
+  targetFloors: 10
+  isGameOver: 0
 --- !u!1 &2083341182
 GameObject:
   m_ObjectHideFlags: 0
@@ -2563,10 +2558,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b794ea0548664145af2fd56ef537688, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HangingBlockSwing
-  swingAngle: 30
-  swingSpeed: 2
-  startRotation: {x: 0, y: 0, z: 0, w: 0}
-  released: 0
 --- !u!1001 &5800055272890387056
 PrefabInstance:
   m_ObjectHideFlags: 0
