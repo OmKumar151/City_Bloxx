@@ -431,7 +431,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -1
+  m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 5088316998373936774, guid: 8fbfea4d81583c149a2a21acd228f512, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -1862,6 +1862,11 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!1 &697755651 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5049433852762119126, guid: fb6a1fee186477146aefb93070f8b315, type: 3}
+  m_PrefabInstance: {fileID: 624075556}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1139151830
 GameObject:
   m_ObjectHideFlags: 0
@@ -2444,7 +2449,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   blockPrefab: {fileID: 4873505803641195100, guid: 81b159bc9a7f05449aa3c0d960e70698, type: 3}
-  roofPrefab: {fileID: 5049433852762119126, guid: fb6a1fee186477146aefb93070f8b315, type: 3}
+  roofPrefab: {fileID: 697755651}
   cameraFollow: {fileID: 519420033}
   lives: 3
   score: 0
