@@ -10,6 +10,7 @@ public class NavigationManager : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private BuildingSelectionUI buildingSelectionUI;
+    [SerializeField] private BoardManager boardManager;
 
     [Header("Building Selection")]
     [SerializeField] private int numberOfBuildings = 4;
@@ -26,11 +27,8 @@ public class NavigationManager : MonoBehaviour
     private NavigationMode currentMode = NavigationMode.BuildingSelection;
 
     public int SelectedBuilding => selectedBuilding;
-
     public int BoardX => boardX;
-
     public int BoardY => boardY;
-
     public NavigationMode CurrentMode => currentMode;
 
 
@@ -51,7 +49,7 @@ public class NavigationManager : MonoBehaviour
 
 
     // =========================================================
-    // BUILDING SELECTION
+    // D-PAD
     // =========================================================
 
     public void Up()
@@ -105,6 +103,10 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
+
+    // =========================================================
+    // BUILDING SELECTION
+    // =========================================================
 
     private void SelectPreviousBuilding()
     {
@@ -172,18 +174,14 @@ public class NavigationManager : MonoBehaviour
     {
         currentMode = NavigationMode.BoardPlacement;
 
-        // Start the board cursor at the first cell.
         boardX = 0;
         boardY = 0;
 
+        UpdateBoardCursor();
+
         Debug.Log("Entered Board Placement Mode");
 
-        Debug.Log(
-            "Board Position: " +
-            boardX +
-            ", " +
-            boardY
-        );
+        LogBoardPosition();
     }
 
 
@@ -201,9 +199,7 @@ public class NavigationManager : MonoBehaviour
             selectedBuilding
         );
 
-        // Placement rules will be connected here later.
-        //
-        // For now we only report the position.
+        // Actual building placement will be added later.
     }
 
 
@@ -218,6 +214,7 @@ public class NavigationManager : MonoBehaviour
             boardY++;
         }
 
+        UpdateBoardCursor();
         LogBoardPosition();
     }
 
@@ -229,6 +226,7 @@ public class NavigationManager : MonoBehaviour
             boardY--;
         }
 
+        UpdateBoardCursor();
         LogBoardPosition();
     }
 
@@ -240,6 +238,7 @@ public class NavigationManager : MonoBehaviour
             boardX--;
         }
 
+        UpdateBoardCursor();
         LogBoardPosition();
     }
 
@@ -251,7 +250,23 @@ public class NavigationManager : MonoBehaviour
             boardX++;
         }
 
+        UpdateBoardCursor();
         LogBoardPosition();
+    }
+
+
+    private void UpdateBoardCursor()
+    {
+        if (boardManager != null)
+        {
+            boardManager.SetSelectedCell(boardX, boardY);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "NavigationManager: BoardManager is not assigned."
+            );
+        }
     }
 
 
@@ -267,7 +282,7 @@ public class NavigationManager : MonoBehaviour
 
 
     // =========================================================
-    // DISCARD / CANCEL
+    // DISCARD
     // =========================================================
 
     public void CancelPlacement()

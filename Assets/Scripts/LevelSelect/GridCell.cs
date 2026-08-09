@@ -1,45 +1,28 @@
 using UnityEngine;
-using UnityEngine.UI;
-
-public enum BuildingType
-{
-    Empty,
-    Blue,
-    Red,
-    Green,
-    Yellow
-}
 
 public class GridCell : MonoBehaviour
 {
     [Header("Grid Position")]
-    public int x;
-    public int y;
+    [SerializeField] private int x;
+    [SerializeField] private int y;
 
-    [Header("Can this tile be used?")]
-    public bool isBuildable = true;
+    [Header("Selection")]
+    [SerializeField] private GameObject highlight;
 
-    [Header("Current Building")]
-    public BuildingType currentBuilding = BuildingType.Empty;
+    public int X => x;
+    public int Y => y;
 
-    [Header("References")]
-    public Image tileImage;
-    public Image highlight;
-    public Transform buildingAnchor;
-
-    public bool IsEmpty()
+    private void Awake()
     {
-        return currentBuilding == BuildingType.Empty;
+        // Every cell starts unselected.
+        SetHighlight(false);
     }
 
-    public void SetHighlight(Color color)
+    public void SetHighlight(bool selected)
     {
-        highlight.gameObject.SetActive(true);
-        highlight.color = color;
-    }
-
-    public void HideHighlight()
-    {
-        highlight.gameObject.SetActive(false);
+        if (highlight != null)
+        {
+            highlight.SetActive(selected);
+        }
     }
 }
