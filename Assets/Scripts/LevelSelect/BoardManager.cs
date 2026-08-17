@@ -9,6 +9,12 @@ public class BoardManager : MonoBehaviour
     [Header("Prebuilt Grid")]
     [SerializeField] private GridCell[] gridCells;
 
+    [Header("Building Sprites")]
+    [SerializeField] private Sprite blueBuildingSprite;
+    [SerializeField] private Sprite redBuildingSprite;
+    [SerializeField] private Sprite greenBuildingSprite;
+    [SerializeField] private Sprite yellowBuildingSprite;
+
     private GridCell[,] grid;
 
     private GridCell currentlySelectedCell;
@@ -20,13 +26,20 @@ public class BoardManager : MonoBehaviour
     }
 
 
+    // =========================================================
+    // GRID SETUP
+    // =========================================================
+
     private void BuildGridReference()
     {
         grid = new GridCell[boardWidth, boardHeight];
 
         if (gridCells == null || gridCells.Length == 0)
         {
-            Debug.LogWarning("BoardManager: No GridCells have been assigned.");
+            Debug.LogWarning(
+                "BoardManager: No GridCells have been assigned."
+            );
+
             return;
         }
 
@@ -61,11 +74,18 @@ public class BoardManager : MonoBehaviour
     }
 
 
+    // =========================================================
+    // CELL SELECTION
+    // =========================================================
+
     public void SetSelectedCell(int x, int y)
     {
         if (grid == null)
         {
-            Debug.LogWarning("BoardManager: Grid has not been initialized.");
+            Debug.LogWarning(
+                "BoardManager: Grid has not been initialized."
+            );
+
             return;
         }
 
@@ -102,6 +122,93 @@ public class BoardManager : MonoBehaviour
         currentlySelectedCell.SetHighlight(true);
     }
 
+
+    // =========================================================
+    // BUILDING PLACEMENT
+    // =========================================================
+
+    public bool PlaceBuilding(int buildingIndex)
+    {
+        if (currentlySelectedCell == null)
+        {
+            Debug.LogWarning(
+                "BoardManager: No cell is currently selected."
+            );
+
+            return false;
+        }
+
+        if (currentlySelectedCell.IsOccupied)
+        {
+            Debug.Log(
+                "Cannot place building. Cell (" +
+                currentlySelectedCell.X +
+                ", " +
+                currentlySelectedCell.Y +
+                ") is already occupied."
+            );
+
+            return false;
+        }
+
+        Sprite spriteToPlace = GetBuildingSprite(buildingIndex);
+
+        if (spriteToPlace == null)
+        {
+            Debug.LogWarning(
+                "BoardManager: No sprite assigned for building index " +
+                buildingIndex
+            );
+
+            return false;
+        }
+
+        currentlySelectedCell.SetBuilding(spriteToPlace);
+
+        Debug.Log(
+            "Placed building " +
+            buildingIndex +
+            " at (" +
+            currentlySelectedCell.X +
+            ", " +
+            currentlySelectedCell.Y +
+            ")"
+        );
+
+        return true;
+    }
+
+
+    private Sprite GetBuildingSprite(int buildingIndex)
+    {
+        switch (buildingIndex)
+        {
+            case 0:
+                return blueBuildingSprite;
+
+            case 1:
+                return redBuildingSprite;
+
+            case 2:
+                return greenBuildingSprite;
+
+            case 3:
+                return yellowBuildingSprite;
+
+            default:
+                Debug.LogWarning(
+                    "BoardManager: Invalid building index " +
+                    buildingIndex
+                );
+
+                return null;
+        }
+    }
+
+
+    // =========================================================
+    // GETTERS
+    // =========================================================
 
     public GridCell GetCell(int x, int y)
     {

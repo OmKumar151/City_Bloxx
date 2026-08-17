@@ -179,7 +179,7 @@ public class NavigationManager : MonoBehaviour
 
         UpdateBoardCursor();
 
-        Debug.Log("Entered Board Placement Mode");
+        Debug.Log("Entered Board Placement Mode.");
 
         LogBoardPosition();
     }
@@ -199,7 +199,36 @@ public class NavigationManager : MonoBehaviour
             selectedBuilding
         );
 
-        // Actual building placement will be added later.
+        if (boardManager == null)
+        {
+            Debug.LogWarning(
+                "NavigationManager: BoardManager is not assigned."
+            );
+
+            return;
+        }
+
+        bool placementSuccessful =
+            boardManager.PlaceBuilding(selectedBuilding);
+
+        if (placementSuccessful)
+        {
+            currentMode = NavigationMode.BuildingSelection;
+
+            Debug.Log(
+                "Building placed successfully. " +
+                "Returned to Building Selection Mode."
+            );
+
+            UpdateBuildingSelectionVisual();
+        }
+        else
+        {
+            Debug.Log(
+                "Building placement failed. " +
+                "Remaining in Board Placement Mode."
+            );
+        }
     }
 
 
@@ -209,9 +238,9 @@ public class NavigationManager : MonoBehaviour
 
     private void MoveBoardUp()
     {
-        if (boardY < boardHeight - 1)
+        if (boardY > 0)
         {
-            boardY++;
+            boardY--;
         }
 
         UpdateBoardCursor();
@@ -221,9 +250,9 @@ public class NavigationManager : MonoBehaviour
 
     private void MoveBoardDown()
     {
-        if (boardY > 0)
+        if (boardY < boardHeight - 1)
         {
-            boardY--;
+            boardY++;
         }
 
         UpdateBoardCursor();
@@ -294,7 +323,9 @@ public class NavigationManager : MonoBehaviour
 
         currentMode = NavigationMode.BuildingSelection;
 
-        Debug.Log("Returned to Building Selection Mode");
+        Debug.Log(
+            "Returned to Building Selection Mode."
+        );
 
         UpdateBuildingSelectionVisual();
     }

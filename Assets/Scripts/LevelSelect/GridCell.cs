@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GridCell : MonoBehaviour
 {
@@ -9,14 +10,29 @@ public class GridCell : MonoBehaviour
     [Header("Selection")]
     [SerializeField] private GameObject highlight;
 
+    [Header("Building")]
+    [SerializeField] private GameObject buildingHolder;
+    [SerializeField] private Image buildingImage;
+
     public int X => x;
     public int Y => y;
+
+    public bool IsOccupied { get; private set; }
+
 
     private void Awake()
     {
         // Every cell starts unselected.
         SetHighlight(false);
+
+        // Every cell starts without a building.
+        ClearBuilding();
     }
+
+
+    // =========================================================
+    // SELECTION
+    // =========================================================
 
     public void SetHighlight(bool selected)
     {
@@ -24,5 +40,66 @@ public class GridCell : MonoBehaviour
         {
             highlight.SetActive(selected);
         }
+    }
+
+
+    // =========================================================
+    // BUILDING
+    // =========================================================
+
+    public void SetBuilding(Sprite buildingSprite)
+    {
+        if (buildingHolder == null)
+        {
+            Debug.LogWarning(
+                "GridCell " + name +
+                ": Building Holder is not assigned."
+            );
+
+            return;
+        }
+
+        if (buildingImage == null)
+        {
+            Debug.LogWarning(
+                "GridCell " + name +
+                ": Building Image is not assigned."
+            );
+
+            return;
+        }
+
+        if (buildingSprite == null)
+        {
+            Debug.LogWarning(
+                "GridCell " + name +
+                ": Building sprite is null."
+            );
+
+            return;
+        }
+
+        buildingImage.sprite = buildingSprite;
+
+        buildingHolder.SetActive(true);
+
+        IsOccupied = true;
+
+        Debug.Log(
+            "Building placed on Cell (" +
+            x + ", " +
+            y + ")"
+        );
+    }
+
+
+    public void ClearBuilding()
+    {
+        if (buildingHolder != null)
+        {
+            buildingHolder.SetActive(false);
+        }
+
+        IsOccupied = false;
     }
 }
