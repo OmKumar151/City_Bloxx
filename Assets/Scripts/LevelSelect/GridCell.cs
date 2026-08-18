@@ -79,10 +79,17 @@ public class GridCell : MonoBehaviour
             return;
         }
 
+
+        // Assign the correct building sprite.
         buildingImage.sprite = buildingSprite;
 
+        // Make sure the Image itself is enabled.
+        buildingImage.enabled = true;
+
+        // Show the building holder.
         buildingHolder.SetActive(true);
 
+        // Mark this cell as occupied.
         IsOccupied = true;
 
         Debug.Log(

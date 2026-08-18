@@ -112,13 +112,18 @@ public class BoardManager : MonoBehaviour
             return;
         }
 
+
+        // Turn off the previous cell's highlight.
         if (currentlySelectedCell != null)
         {
             currentlySelectedCell.SetHighlight(false);
         }
 
+
+        // Set the new selected cell.
         currentlySelectedCell = newSelectedCell;
 
+        // Turn on its highlight.
         currentlySelectedCell.SetHighlight(true);
     }
 
@@ -138,6 +143,8 @@ public class BoardManager : MonoBehaviour
             return false;
         }
 
+
+        // Do not allow another building on an occupied cell.
         if (currentlySelectedCell.IsOccupied)
         {
             Debug.Log(
@@ -151,6 +158,8 @@ public class BoardManager : MonoBehaviour
             return false;
         }
 
+
+        // Get the sprite corresponding to the selected building.
         Sprite spriteToPlace = GetBuildingSprite(buildingIndex);
 
         if (spriteToPlace == null)
@@ -163,7 +172,15 @@ public class BoardManager : MonoBehaviour
             return false;
         }
 
+
+        // Place the building.
         currentlySelectedCell.SetBuilding(spriteToPlace);
+
+
+        // IMPORTANT:
+        // Remove the selection highlight after placement.
+        currentlySelectedCell.SetHighlight(false);
+
 
         Debug.Log(
             "Placed building " +
@@ -175,9 +192,14 @@ public class BoardManager : MonoBehaviour
             ")"
         );
 
+
         return true;
     }
 
+
+    // =========================================================
+    // BUILDING SPRITE SELECTION
+    // =========================================================
 
     private Sprite GetBuildingSprite(int buildingIndex)
     {
