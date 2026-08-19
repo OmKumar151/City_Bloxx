@@ -3,21 +3,37 @@ using UnityEngine.UI;
 
 public class GridCell : MonoBehaviour
 {
+    public enum BuildingType
+    {
+        None,
+        Blue,
+        Red,
+        Green,
+        Yellow
+    }
+
+
     [Header("Grid Position")]
     [SerializeField] private int x;
     [SerializeField] private int y;
 
+
     [Header("Selection")]
     [SerializeField] private GameObject highlight;
+
 
     [Header("Building")]
     [SerializeField] private GameObject buildingHolder;
     [SerializeField] private Image buildingImage;
 
+
     public int X => x;
     public int Y => y;
 
     public bool IsOccupied { get; private set; }
+
+    public BuildingType CurrentBuilding { get; private set; } =
+        BuildingType.None;
 
 
     private void Awake()
@@ -47,7 +63,9 @@ public class GridCell : MonoBehaviour
     // BUILDING
     // =========================================================
 
-    public void SetBuilding(Sprite buildingSprite)
+    public void SetBuilding(
+        Sprite buildingSprite,
+        BuildingType buildingType)
     {
         if (buildingHolder == null)
         {
@@ -59,6 +77,7 @@ public class GridCell : MonoBehaviour
             return;
         }
 
+
         if (buildingImage == null)
         {
             Debug.LogWarning(
@@ -68,6 +87,7 @@ public class GridCell : MonoBehaviour
 
             return;
         }
+
 
         if (buildingSprite == null)
         {
@@ -83,19 +103,25 @@ public class GridCell : MonoBehaviour
         // Assign the correct building sprite.
         buildingImage.sprite = buildingSprite;
 
-        // Make sure the Image itself is enabled.
+        // Make sure the Image is visible.
         buildingImage.enabled = true;
 
-        // Show the building holder.
+        // Show the building.
         buildingHolder.SetActive(true);
 
-        // Mark this cell as occupied.
+        // Store the building information.
+        CurrentBuilding = buildingType;
+
         IsOccupied = true;
+
 
         Debug.Log(
             "Building placed on Cell (" +
-            x + ", " +
-            y + ")"
+            x +
+            ", " +
+            y +
+            "): " +
+            buildingType
         );
     }
 
@@ -108,5 +134,7 @@ public class GridCell : MonoBehaviour
         }
 
         IsOccupied = false;
+
+        CurrentBuilding = BuildingType.None;
     }
 }
