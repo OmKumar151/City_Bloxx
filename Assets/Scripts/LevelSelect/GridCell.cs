@@ -3,6 +3,10 @@ using UnityEngine.UI;
 
 public class GridCell : MonoBehaviour
 {
+    // =========================================================
+    // BUILDING TYPES
+    // =========================================================
+
     public enum BuildingType
     {
         None,
@@ -13,35 +17,55 @@ public class GridCell : MonoBehaviour
     }
 
 
+    // =========================================================
+    // GRID POSITION
+    // =========================================================
+
     [Header("Grid Position")]
     [SerializeField] private int x;
     [SerializeField] private int y;
 
 
+    // =========================================================
+    // SELECTION
+    // =========================================================
+
     [Header("Selection")]
     [SerializeField] private GameObject highlight;
 
+
+    // =========================================================
+    // BUILDING
+    // =========================================================
 
     [Header("Building")]
     [SerializeField] private GameObject buildingHolder;
     [SerializeField] private Image buildingImage;
 
 
+    // =========================================================
+    // PUBLIC PROPERTIES
+    // =========================================================
+
     public int X => x;
     public int Y => y;
 
     public bool IsOccupied { get; private set; }
 
-    public BuildingType CurrentBuilding { get; private set; } =
-        BuildingType.None;
+    public BuildingType CurrentBuilding { get; private set; }
+        = BuildingType.None;
 
+
+    // =========================================================
+    // INITIALIZATION
+    // =========================================================
 
     private void Awake()
     {
         // Every cell starts unselected.
         SetHighlight(false);
 
-        // Every cell starts without a building.
+        // Every cell starts empty.
         ClearBuilding();
     }
 
@@ -100,16 +124,23 @@ public class GridCell : MonoBehaviour
         }
 
 
-        // Assign the correct building sprite.
+        // -----------------------------------------------------
+        // Assign the building sprite
+        // -----------------------------------------------------
+
         buildingImage.sprite = buildingSprite;
 
-        // Make sure the Image is visible.
+        // Make sure the Image component is enabled.
         buildingImage.enabled = true;
 
-        // Show the building.
+        // Make the building visible.
         buildingHolder.SetActive(true);
 
-        // Store the building information.
+
+        // -----------------------------------------------------
+        // Store building information
+        // -----------------------------------------------------
+
         CurrentBuilding = buildingType;
 
         IsOccupied = true;
@@ -126,6 +157,10 @@ public class GridCell : MonoBehaviour
     }
 
 
+    // =========================================================
+    // CLEAR BUILDING
+    // =========================================================
+
     public void ClearBuilding()
     {
         if (buildingHolder != null)
@@ -133,8 +168,28 @@ public class GridCell : MonoBehaviour
             buildingHolder.SetActive(false);
         }
 
+        if (buildingImage != null)
+        {
+            buildingImage.sprite = null;
+        }
+
         IsOccupied = false;
 
         CurrentBuilding = BuildingType.None;
+    }
+
+
+    // =========================================================
+    // DEBUG INFORMATION
+    // =========================================================
+
+    public override string ToString()
+    {
+        return "GridCell (" +
+               x +
+               ", " +
+               y +
+               ") - " +
+               CurrentBuilding;
     }
 }
