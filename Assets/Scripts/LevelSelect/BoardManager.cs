@@ -171,8 +171,6 @@ public class BoardManager : MonoBehaviour
         // Select new cell.
         currentlySelectedCell = newSelectedCell;
 
-
-        // Turn on new highlight.
         currentlySelectedCell.SetHighlight(true);
     }
 
@@ -287,7 +285,7 @@ public class BoardManager : MonoBehaviour
         );
 
 
-        // Remove the selection highlight after placement.
+        // Remove selection highlight.
         currentlySelectedCell.SetHighlight(false);
 
 
@@ -307,6 +305,96 @@ public class BoardManager : MonoBehaviour
 
 
     // =========================================================
+    // NEW: CHECK SPECIFIC PLACEMENT
+    // =========================================================
+
+    public bool CanPlaceBuildingAt(
+        int x,
+        int y,
+        int buildingIndex)
+    {
+        // Make sure coordinates are inside the board.
+        if (x < 0 || x >= boardWidth ||
+            y < 0 || y >= boardHeight)
+        {
+            return false;
+        }
+
+
+        if (grid == null)
+        {
+            return false;
+        }
+
+
+        GridCell cell = grid[x, y];
+
+
+        // This coordinate may not actually have a cell.
+        // This is important for future non-rectangular maps.
+        if (cell == null)
+        {
+            return false;
+        }
+
+
+        // An occupied cell cannot be used.
+        if (cell.IsOccupied)
+        {
+            return false;
+        }
+
+
+        GridCell.BuildingType buildingType =
+            GetBuildingType(buildingIndex);
+
+
+        if (buildingType == GridCell.BuildingType.None)
+        {
+            return false;
+        }
+
+
+        return CanPlaceBuilding(
+            x,
+            y,
+            buildingType
+        );
+    }
+
+
+    // =========================================================
+    // NEW: CHECK WHETHER ANY VALID POSITION EXISTS
+    // =========================================================
+
+    public bool HasValidPlacement(int buildingIndex)
+    {
+        if (grid == null)
+        {
+            return false;
+        }
+
+
+        for (int x = 0; x < boardWidth; x++)
+        {
+            for (int y = 0; y < boardHeight; y++)
+            {
+                if (CanPlaceBuildingAt(
+                        x,
+                        y,
+                        buildingIndex))
+                {
+                    return true;
+                }
+            }
+        }
+
+
+        return false;
+    }
+
+
+    // =========================================================
     // PLACEMENT RULES
     // =========================================================
 
@@ -318,9 +406,8 @@ public class BoardManager : MonoBehaviour
         // =====================================================
         // BLUE
         // =====================================================
-        //
+
         // Blue can be placed anywhere.
-        //
 
         if (buildingType == GridCell.BuildingType.Blue)
         {
@@ -331,9 +418,8 @@ public class BoardManager : MonoBehaviour
         // =====================================================
         // RED
         // =====================================================
-        //
+
         // Red requires at least one Blue neighbour.
-        //
 
         if (buildingType == GridCell.BuildingType.Red)
         {
@@ -348,10 +434,8 @@ public class BoardManager : MonoBehaviour
         // =====================================================
         // GREEN
         // =====================================================
-        //
-        // Green requires:
-        // Blue + Red
-        //
+
+        // Green requires Blue + Red.
 
         if (buildingType == GridCell.BuildingType.Green)
         {
@@ -378,10 +462,8 @@ public class BoardManager : MonoBehaviour
         // =====================================================
         // YELLOW
         // =====================================================
-        //
-        // Yellow requires:
-        // Blue + Red + Green
-        //
+
+        // Yellow requires Blue + Red + Green.
 
         if (buildingType == GridCell.BuildingType.Yellow)
         {
@@ -429,10 +511,7 @@ public class BoardManager : MonoBehaviour
         int y,
         GridCell.BuildingType requiredType)
     {
-        // -----------------------------------------------------
         // ABOVE
-        // -----------------------------------------------------
-
         if (IsBuildingAt(
                 x,
                 y + 1,
@@ -442,10 +521,7 @@ public class BoardManager : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
         // BELOW
-        // -----------------------------------------------------
-
         if (IsBuildingAt(
                 x,
                 y - 1,
@@ -455,10 +531,7 @@ public class BoardManager : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
         // LEFT
-        // -----------------------------------------------------
-
         if (IsBuildingAt(
                 x - 1,
                 y,
@@ -468,10 +541,7 @@ public class BoardManager : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
         // RIGHT
-        // -----------------------------------------------------
-
         if (IsBuildingAt(
                 x + 1,
                 y,

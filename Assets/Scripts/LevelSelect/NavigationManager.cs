@@ -24,13 +24,18 @@ public class NavigationManager : MonoBehaviour
     private int boardX = 0;
     private int boardY = 0;
 
-    private NavigationMode currentMode = NavigationMode.BuildingSelection;
+    private NavigationMode currentMode =
+        NavigationMode.BuildingSelection;
 
     public int SelectedBuilding => selectedBuilding;
     public int BoardX => boardX;
     public int BoardY => boardY;
     public NavigationMode CurrentMode => currentMode;
 
+
+    // =========================================================
+    // START
+    // =========================================================
 
     private void Start()
     {
@@ -43,8 +48,14 @@ public class NavigationManager : MonoBehaviour
 
         UpdateBuildingSelectionVisual();
 
-        Debug.Log("Navigation started. Building Selection Mode.");
-        Debug.Log("Selected Building: " + selectedBuilding);
+        Debug.Log(
+            "Navigation started. Building Selection Mode."
+        );
+
+        Debug.Log(
+            "Selected Building: " +
+            selectedBuilding
+        );
     }
 
 
@@ -117,7 +128,10 @@ public class NavigationManager : MonoBehaviour
             selectedBuilding = 0;
         }
 
-        Debug.Log("Selected Building: " + selectedBuilding);
+        Debug.Log(
+            "Selected Building: " +
+            selectedBuilding
+        );
 
         UpdateBuildingSelectionVisual();
     }
@@ -129,10 +143,14 @@ public class NavigationManager : MonoBehaviour
 
         if (selectedBuilding >= numberOfBuildings)
         {
-            selectedBuilding = numberOfBuildings - 1;
+            selectedBuilding =
+                numberOfBuildings - 1;
         }
 
-        Debug.Log("Selected Building: " + selectedBuilding);
+        Debug.Log(
+            "Selected Building: " +
+            selectedBuilding
+        );
 
         UpdateBuildingSelectionVisual();
     }
@@ -142,7 +160,9 @@ public class NavigationManager : MonoBehaviour
     {
         if (buildingSelectionUI != null)
         {
-            buildingSelectionUI.SetSelectedBuilding(selectedBuilding);
+            buildingSelectionUI.SetSelectedBuilding(
+                selectedBuilding
+            );
         }
         else
         {
@@ -159,31 +179,87 @@ public class NavigationManager : MonoBehaviour
 
     public void OK()
     {
-        if (currentMode == NavigationMode.BuildingSelection)
+        if (currentMode ==
+            NavigationMode.BuildingSelection)
         {
             EnterBoardPlacementMode();
         }
-        else if (currentMode == NavigationMode.BoardPlacement)
+        else if (currentMode ==
+                 NavigationMode.BoardPlacement)
         {
             ConfirmBoardPosition();
         }
     }
 
 
+    // =========================================================
+    // ENTER BOARD PLACEMENT
+    // =========================================================
+
     private void EnterBoardPlacementMode()
     {
-        currentMode = NavigationMode.BoardPlacement;
+        if (boardManager == null)
+        {
+            Debug.LogWarning(
+                "NavigationManager: BoardManager is not assigned."
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // NEW:
+        // Check whether the selected building has ANY
+        // valid position on the board.
+        // -----------------------------------------------------
+
+        bool hasValidPlacement =
+            boardManager.HasValidPlacement(
+                selectedBuilding
+            );
+
+
+        if (!hasValidPlacement)
+        {
+            Debug.Log(
+                "No valid placement exists for building " +
+                selectedBuilding +
+                ". Remaining in Building Selection Mode."
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // Valid placement exists.
+        // Enter Board Placement Mode.
+        // -----------------------------------------------------
+
+        currentMode =
+            NavigationMode.BoardPlacement;
+
 
         boardX = 0;
         boardY = 0;
 
+
         UpdateBoardCursor();
 
-        Debug.Log("Entered Board Placement Mode.");
+
+        Debug.Log(
+            "Entered Board Placement Mode."
+        );
+
 
         LogBoardPosition();
     }
 
+
+    // =========================================================
+    // CONFIRM BOARD POSITION
+    // =========================================================
 
     private void ConfirmBoardPosition()
     {
@@ -194,10 +270,12 @@ public class NavigationManager : MonoBehaviour
             boardY
         );
 
+
         Debug.Log(
             "Selected Building: " +
             selectedBuilding
         );
+
 
         if (boardManager == null)
         {
@@ -208,17 +286,24 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+
         bool placementSuccessful =
-            boardManager.PlaceBuilding(selectedBuilding);
+            boardManager.PlaceBuilding(
+                selectedBuilding
+            );
+
 
         if (placementSuccessful)
         {
-            currentMode = NavigationMode.BuildingSelection;
+            currentMode =
+                NavigationMode.BuildingSelection;
+
 
             Debug.Log(
                 "Building placed successfully. " +
                 "Returned to Building Selection Mode."
             );
+
 
             UpdateBuildingSelectionVisual();
         }
@@ -244,6 +329,7 @@ public class NavigationManager : MonoBehaviour
         }
 
         UpdateBoardCursor();
+
         LogBoardPosition();
     }
 
@@ -256,6 +342,7 @@ public class NavigationManager : MonoBehaviour
         }
 
         UpdateBoardCursor();
+
         LogBoardPosition();
     }
 
@@ -268,6 +355,7 @@ public class NavigationManager : MonoBehaviour
         }
 
         UpdateBoardCursor();
+
         LogBoardPosition();
     }
 
@@ -280,15 +368,23 @@ public class NavigationManager : MonoBehaviour
         }
 
         UpdateBoardCursor();
+
         LogBoardPosition();
     }
 
+
+    // =========================================================
+    // UPDATE BOARD CURSOR
+    // =========================================================
 
     private void UpdateBoardCursor()
     {
         if (boardManager != null)
         {
-            boardManager.SetSelectedCell(boardX, boardY);
+            boardManager.SetSelectedCell(
+                boardX,
+                boardY
+            );
         }
         else
         {
@@ -298,6 +394,10 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
+
+    // =========================================================
+    // DEBUG
+    // =========================================================
 
     private void LogBoardPosition()
     {
@@ -311,21 +411,26 @@ public class NavigationManager : MonoBehaviour
 
 
     // =========================================================
-    // DISCARD
+    // DISCARD / CANCEL
     // =========================================================
 
     public void CancelPlacement()
     {
-        if (currentMode != NavigationMode.BoardPlacement)
+        if (currentMode !=
+            NavigationMode.BoardPlacement)
         {
             return;
         }
 
-        currentMode = NavigationMode.BuildingSelection;
+
+        currentMode =
+            NavigationMode.BuildingSelection;
+
 
         Debug.Log(
             "Returned to Building Selection Mode."
         );
+
 
         UpdateBuildingSelectionVisual();
     }
