@@ -2,26 +2,12 @@ using UnityEngine;
 
 public class BoardManager : MonoBehaviour
 {
-    // =========================================================
-    // BOARD SETTINGS
-    // =========================================================
-
     [Header("Board Settings")]
     [SerializeField] private int boardWidth = 5;
     [SerializeField] private int boardHeight = 5;
 
-
-    // =========================================================
-    // GRID
-    // =========================================================
-
     [Header("Prebuilt Grid")]
     [SerializeField] private GridCell[] gridCells;
-
-
-    // =========================================================
-    // BUILDING SPRITES
-    // =========================================================
 
     [Header("Building Sprites")]
     [SerializeField] private Sprite blueBuildingSprite;
@@ -29,18 +15,13 @@ public class BoardManager : MonoBehaviour
     [SerializeField] private Sprite greenBuildingSprite;
     [SerializeField] private Sprite yellowBuildingSprite;
 
-
-    // =========================================================
-    // INTERNAL GRID
-    // =========================================================
-
     private GridCell[,] grid;
 
     private GridCell currentlySelectedCell;
 
 
     // =========================================================
-    // INITIALIZATION
+    // AWAKE
     // =========================================================
 
     private void Awake()
@@ -66,18 +47,14 @@ public class BoardManager : MonoBehaviour
             return;
         }
 
-
         foreach (GridCell cell in gridCells)
         {
             if (cell == null)
                 continue;
 
-
             int x = cell.X;
             int y = cell.Y;
 
-
-            // Make sure the cell coordinates are valid.
             if (x < 0 || x >= boardWidth ||
                 y < 0 || y >= boardHeight)
             {
@@ -90,24 +67,18 @@ public class BoardManager : MonoBehaviour
                 continue;
             }
 
-
-            // Check for duplicate coordinates.
             if (grid[x, y] != null)
             {
                 Debug.LogWarning(
-                    "BoardManager: Multiple GridCells exist at (" +
-                    x + ", " +
-                    y +
-                    ")."
+                    "BoardManager: Duplicate GridCell at (" +
+                    x + ", " + y + ")"
                 );
 
                 continue;
             }
 
-
             grid[x, y] = cell;
         }
-
 
         Debug.Log(
             "BoardManager: " +
@@ -132,29 +103,24 @@ public class BoardManager : MonoBehaviour
             return;
         }
 
-
         if (x < 0 || x >= boardWidth ||
             y < 0 || y >= boardHeight)
         {
             Debug.LogWarning(
                 "Invalid board position: " +
-                x + ", " +
-                y
+                x + ", " + y
             );
 
             return;
         }
 
-
         GridCell newSelectedCell = grid[x, y];
-
 
         if (newSelectedCell == null)
         {
             Debug.LogWarning(
                 "No GridCell assigned at position: " +
-                x + ", " +
-                y
+                x + ", " + y
             );
 
             return;
@@ -171,9 +137,223 @@ public class BoardManager : MonoBehaviour
         // Select new cell.
         currentlySelectedCell = newSelectedCell;
 
-
-        // Turn on new highlight.
         currentlySelectedCell.SetHighlight(true);
+
+
+        Debug.Log(
+            "Selected Cell: (" +
+            x +
+            ", " +
+            y +
+            ")"
+        );
+    }
+
+
+    // =========================================================
+    // CHECK CURRENT POSITION
+    // =========================================================
+
+    public bool CanPlaceCurrentBuilding(int buildingIndex)
+    {
+        if (currentlySelectedCell == null)
+        {
+            return false;
+        }
+
+        if (currentlySelectedCell.IsOccupied)
+        {
+            return false;
+        }
+
+        return CanPlaceBuildingAt(
+            buildingIndex,
+            currentlySelectedCell.X,
+            currentlySelectedCell.Y
+        );
+    }
+
+
+    // =========================================================
+    // CHECK ANY VALID POSITION
+    // =========================================================
+
+    public bool HasValidPlacement(int buildingIndex)
+    {
+        if (grid == null)
+            return false;
+
+        for (int x = 0; x < boardWidth; x++)
+        {
+            for (int y = 0; y < boardHeight; y++)
+            {
+                if (grid[x, y] == null)
+                    continue;
+
+                if (CanPlaceBuildingAt(
+                    buildingIndex,
+                    x,
+                    y))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+
+    // =========================================================
+    // PLACEMENT RULES
+    // =========================================================
+
+    private bool CanPlaceBuildingAt(
+        int buildingIndex,
+        int x,
+        int y)
+    {
+        GridCell cell = GetCell(x, y);
+
+        if (cell == null)
+            return false;
+
+        if (cell.IsOccupied)
+            return false;
+
+
+        // -----------------------------------------------------
+        // BLUE
+        // -----------------------------------------------------
+
+        if (buildingIndex == 0)
+        {
+            return true;
+        }
+
+
+        // -----------------------------------------------------
+        // RED
+        // Must have BLUE neighbour.
+        // -----------------------------------------------------
+
+        if (buildingIndex == 1)
+        {
+            return HasNeighbour(
+                x,
+                y,
+                GridCell.BuildingType.Blue
+            );
+        }
+
+
+        // -----------------------------------------------------
+        // GREEN
+        // Must have BLUE AND RED neighbours.
+        // -----------------------------------------------------
+
+        if (buildingIndex == 2)
+        {
+            return
+                HasNeighbour(
+                    x,
+                    y,
+                    GridCell.BuildingType.Blue
+                )
+                &&
+                HasNeighbour(
+                    x,
+                    y,
+                    GridCell.BuildingType.Red
+                );
+        }
+
+
+        // -----------------------------------------------------
+        // YELLOW
+        // Must have BLUE, RED AND GREEN neighbours.
+        // -----------------------------------------------------
+
+        if (buildingIndex == 3)
+        {
+            return
+                HasNeighbour(
+                    x,
+                    y,
+                    GridCell.BuildingType.Blue
+                )
+                &&
+                HasNeighbour(
+                    x,
+                    y,
+                    GridCell.BuildingType.Red
+                )
+                &&
+                HasNeighbour(
+                    x,
+                    y,
+                    GridCell.BuildingType.Green
+                );
+        }
+
+
+        return false;
+    }
+
+
+    // =========================================================
+    // NEIGHBOUR CHECK
+    // =========================================================
+
+    private bool HasNeighbour(
+        int x,
+        int y,
+        GridCell.BuildingType requiredType)
+    {
+        GridCell neighbour;
+
+
+        // UP
+        neighbour = GetCell(x, y - 1);
+
+        if (neighbour != null &&
+            neighbour.CurrentBuilding == requiredType)
+        {
+            return true;
+        }
+
+
+        // DOWN
+        neighbour = GetCell(x, y + 1);
+
+        if (neighbour != null &&
+            neighbour.CurrentBuilding == requiredType)
+        {
+            return true;
+        }
+
+
+        // LEFT
+        neighbour = GetCell(x - 1, y);
+
+        if (neighbour != null &&
+            neighbour.CurrentBuilding == requiredType)
+        {
+            return true;
+        }
+
+
+        // RIGHT
+        neighbour = GetCell(x + 1, y);
+
+        if (neighbour != null &&
+            neighbour.CurrentBuilding == requiredType)
+        {
+            return true;
+        }
+
+
+        return false;
     }
 
 
@@ -183,10 +363,6 @@ public class BoardManager : MonoBehaviour
 
     public bool PlaceBuilding(int buildingIndex)
     {
-        // -----------------------------------------------------
-        // CHECK 1: Do we have a selected cell?
-        // -----------------------------------------------------
-
         if (currentlySelectedCell == null)
         {
             Debug.LogWarning(
@@ -197,74 +373,24 @@ public class BoardManager : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
-        // CHECK 2: Is the cell already occupied?
-        // -----------------------------------------------------
-
-        if (currentlySelectedCell.IsOccupied)
+        if (!CanPlaceCurrentBuilding(buildingIndex))
         {
             Debug.Log(
-                "Cannot place building. Cell (" +
-                currentlySelectedCell.X +
-                ", " +
-                currentlySelectedCell.Y +
-                ") is already occupied."
-            );
-
-            return false;
-        }
-
-
-        // -----------------------------------------------------
-        // CHECK 3: Determine building type
-        // -----------------------------------------------------
-
-        GridCell.BuildingType buildingType =
-            GetBuildingType(buildingIndex);
-
-
-        if (buildingType == GridCell.BuildingType.None)
-        {
-            Debug.LogWarning(
-                "BoardManager: Invalid building index " +
-                buildingIndex
-            );
-
-            return false;
-        }
-
-
-        // -----------------------------------------------------
-        // CHECK 4: Placement rules
-        // -----------------------------------------------------
-
-        if (!CanPlaceBuilding(
-                currentlySelectedCell.X,
-                currentlySelectedCell.Y,
-                buildingType))
-        {
-            Debug.Log(
-                "Cannot place " +
-                buildingType +
+                "Cannot place building " +
+                buildingIndex +
                 " at (" +
                 currentlySelectedCell.X +
                 ", " +
                 currentlySelectedCell.Y +
-                "). " +
-                "Placement rules not satisfied."
+                ")."
             );
 
             return false;
         }
 
 
-        // -----------------------------------------------------
-        // CHECK 5: Get building sprite
-        // -----------------------------------------------------
-
         Sprite spriteToPlace =
             GetBuildingSprite(buildingIndex);
-
 
         if (spriteToPlace == null)
         {
@@ -277,9 +403,9 @@ public class BoardManager : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
-        // PLACE BUILDING
-        // -----------------------------------------------------
+        GridCell.BuildingType buildingType =
+            GetBuildingType(buildingIndex);
+
 
         currentlySelectedCell.SetBuilding(
             spriteToPlace,
@@ -287,12 +413,12 @@ public class BoardManager : MonoBehaviour
         );
 
 
-        // Remove the selection highlight after placement.
+        // Remove selection highlight.
         currentlySelectedCell.SetHighlight(false);
 
 
         Debug.Log(
-            "Placed " +
+            "Placed building " +
             buildingType +
             " at (" +
             currentlySelectedCell.X +
@@ -307,218 +433,34 @@ public class BoardManager : MonoBehaviour
 
 
     // =========================================================
-    // PLACEMENT RULES
+    // SPRITE SELECTION
     // =========================================================
 
-    private bool CanPlaceBuilding(
-        int x,
-        int y,
-        GridCell.BuildingType buildingType)
+    private Sprite GetBuildingSprite(
+        int buildingIndex)
     {
-        // =====================================================
-        // BLUE
-        // =====================================================
-        //
-        // Blue can be placed anywhere.
-        //
-
-        if (buildingType == GridCell.BuildingType.Blue)
+        switch (buildingIndex)
         {
-            return true;
-        }
+            case 0:
+                return blueBuildingSprite;
 
+            case 1:
+                return redBuildingSprite;
 
-        // =====================================================
-        // RED
-        // =====================================================
-        //
-        // Red requires at least one Blue neighbour.
-        //
+            case 2:
+                return greenBuildingSprite;
 
-        if (buildingType == GridCell.BuildingType.Red)
-        {
-            return HasNeighbour(
-                x,
-                y,
-                GridCell.BuildingType.Blue
-            );
-        }
+            case 3:
+                return yellowBuildingSprite;
 
-
-        // =====================================================
-        // GREEN
-        // =====================================================
-        //
-        // Green requires:
-        // Blue + Red
-        //
-
-        if (buildingType == GridCell.BuildingType.Green)
-        {
-            bool hasBlue =
-                HasNeighbour(
-                    x,
-                    y,
-                    GridCell.BuildingType.Blue
+            default:
+                Debug.LogWarning(
+                    "BoardManager: Invalid building index " +
+                    buildingIndex
                 );
 
-
-            bool hasRed =
-                HasNeighbour(
-                    x,
-                    y,
-                    GridCell.BuildingType.Red
-                );
-
-
-            return hasBlue && hasRed;
+                return null;
         }
-
-
-        // =====================================================
-        // YELLOW
-        // =====================================================
-        //
-        // Yellow requires:
-        // Blue + Red + Green
-        //
-
-        if (buildingType == GridCell.BuildingType.Yellow)
-        {
-            bool hasBlue =
-                HasNeighbour(
-                    x,
-                    y,
-                    GridCell.BuildingType.Blue
-                );
-
-
-            bool hasRed =
-                HasNeighbour(
-                    x,
-                    y,
-                    GridCell.BuildingType.Red
-                );
-
-
-            bool hasGreen =
-                HasNeighbour(
-                    x,
-                    y,
-                    GridCell.BuildingType.Green
-                );
-
-
-            return hasBlue &&
-                   hasRed &&
-                   hasGreen;
-        }
-
-
-        // Unknown building type.
-        return false;
-    }
-
-
-    // =========================================================
-    // NEIGHBOUR CHECKING
-    // =========================================================
-
-    private bool HasNeighbour(
-        int x,
-        int y,
-        GridCell.BuildingType requiredType)
-    {
-        // -----------------------------------------------------
-        // ABOVE
-        // -----------------------------------------------------
-
-        if (IsBuildingAt(
-                x,
-                y + 1,
-                requiredType))
-        {
-            return true;
-        }
-
-
-        // -----------------------------------------------------
-        // BELOW
-        // -----------------------------------------------------
-
-        if (IsBuildingAt(
-                x,
-                y - 1,
-                requiredType))
-        {
-            return true;
-        }
-
-
-        // -----------------------------------------------------
-        // LEFT
-        // -----------------------------------------------------
-
-        if (IsBuildingAt(
-                x - 1,
-                y,
-                requiredType))
-        {
-            return true;
-        }
-
-
-        // -----------------------------------------------------
-        // RIGHT
-        // -----------------------------------------------------
-
-        if (IsBuildingAt(
-                x + 1,
-                y,
-                requiredType))
-        {
-            return true;
-        }
-
-
-        return false;
-    }
-
-
-    // =========================================================
-    // CHECK SPECIFIC CELL
-    // =========================================================
-
-    private bool IsBuildingAt(
-        int x,
-        int y,
-        GridCell.BuildingType requiredType)
-    {
-        // Outside the board means there is no building.
-        if (x < 0 || x >= boardWidth ||
-            y < 0 || y >= boardHeight)
-        {
-            return false;
-        }
-
-
-        if (grid == null)
-        {
-            return false;
-        }
-
-
-        GridCell cell = grid[x, y];
-
-
-        // There may be no cell at these coordinates.
-        if (cell == null)
-        {
-            return false;
-        }
-
-
-        return cell.CurrentBuilding == requiredType;
     }
 
 
@@ -550,32 +492,27 @@ public class BoardManager : MonoBehaviour
 
 
     // =========================================================
-    // BUILDING SPRITE
+    // BUILDING NAME
     // =========================================================
 
-    private Sprite GetBuildingSprite(int buildingIndex)
+    public string GetBuildingName(int buildingIndex)
     {
         switch (buildingIndex)
         {
             case 0:
-                return blueBuildingSprite;
+                return "Blue Building";
 
             case 1:
-                return redBuildingSprite;
+                return "Red Building";
 
             case 2:
-                return greenBuildingSprite;
+                return "Green Building";
 
             case 3:
-                return yellowBuildingSprite;
+                return "Yellow Building";
 
             default:
-                Debug.LogWarning(
-                    "BoardManager: Invalid building index " +
-                    buildingIndex
-                );
-
-                return null;
+                return "Unknown Building";
         }
     }
 
@@ -589,13 +526,11 @@ public class BoardManager : MonoBehaviour
         if (grid == null)
             return null;
 
-
         if (x < 0 || x >= boardWidth ||
             y < 0 || y >= boardHeight)
         {
             return null;
         }
-
 
         return grid[x, y];
     }

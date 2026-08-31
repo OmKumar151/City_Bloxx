@@ -51,8 +51,8 @@ public class LevelSelectManager : MonoBehaviour
             currentPopulation,
             totalPopulation);
 
-        infoPanel.Show(
-            levels[currentIndex].levelData);
+        infoPanel.ShowMessage(
+            levels[currentIndex].levelData.levelName);
     }
 
     public void PlaySelectedLevel()
