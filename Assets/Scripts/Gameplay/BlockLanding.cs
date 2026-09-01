@@ -2,93 +2,54 @@ using UnityEngine;
 
 public class BlockLanding : MonoBehaviour
 {
-    private bool landed = false;
+    private bool hasLanded = false;
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (landed)
-            return;
-
+        // Only react to building/foundation objects
         if (!collision.gameObject.CompareTag("Building"))
             return;
 
-        landed = true;
+        // Prevent this block from being processed multiple times
+        if (hasLanded)
+            return;
 
-        SpriteRenderer currentRenderer = GetComponent<SpriteRenderer>();
-        SpriteRenderer belowRenderer = collision.gameObject.GetComponent<SpriteRenderer>();
+        hasLanded = true;
 
-        float currentWidth = currentRenderer.bounds.size.x;
-        float belowWidth = belowRenderer.bounds.size.x;
+        Debug.Log("BLOCK LANDED: " + gameObject.name);
 
-        float left = Mathf.Max(
-            transform.position.x - currentWidth / 2,
-            collision.transform.position.x - belowWidth / 2);
-
-        float right = Mathf.Min(
-            transform.position.x + currentWidth / 2,
-            collision.transform.position.x + belowWidth / 2);
-
-        float overlap = right - left;
-        float overlapPercent = overlap / currentWidth;
-
-        Debug.Log("Overlap: " + overlapPercent);
-
-        // PERFECT
-        if (overlapPercent >= 0.8f)
-        {
-            GameManager.Instance.AddScore(100);
-
-            PlaceBlock();
-
-            if (CompareTag("Roof"))
-            {
-                GameManager.Instance.BuildingComplete();
-                return;
-            }
-
-            GameManager.Instance.AddFloor();
-
-            CraneController.Instance.PrepareNextBlock();
-        }
-        // GOOD
-        else if (overlapPercent >= 0.5f)
-        {
-            GameManager.Instance.AddScore(50);
-
-            PlaceBlock();
-
-            if (CompareTag("Roof"))
-            {
-                GameManager.Instance.BuildingComplete();
-                return;
-            }
-
-            GameManager.Instance.AddFloor();
-
-            CraneController.Instance.PrepareNextBlock();
-        }
-        // MISS
-        else
-        {
-            GameManager.Instance.LoseLife();
-
-            Destroy(gameObject);
-
-            if (GameManager.Instance.lives > 0)
-            {
-                CraneController.Instance.PrepareNextBlock();
-            }
-        }
-    }
-
-    private void PlaceBlock()
-    {
+        // Stop the block
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
 
-        rb.linearVelocity = Vector2.zero;
-        rb.gravityScale = 0;
-        rb.bodyType = RigidbodyType2D.Kinematic;
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
 
-        GameManager.Instance.SetLastPlacedBlock(gameObject);
+            rb.bodyType = RigidbodyType2D.Kinematic;
+            rb.freezeRotation = true;
+        }
+
+        // Make sure the block stays in the building
+        gameObject.tag = "Building";
+
+        // Tell GameManager this is now the highest placed floor
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.SetLastPlacedBlock(gameObject);
+            GameManager.Instance.AddFloor();
+            GameManager.Instance.AddScore(50);
+
+            Debug.Log(
+                "Camera target changed to: " +
+                gameObject.name
+            );
+        }
+
+        // Ask crane for next block
+        if (CraneController.Instance != null)
+        {
+            CraneController.Instance.PrepareNextBlock();
+        }
     }
 }
