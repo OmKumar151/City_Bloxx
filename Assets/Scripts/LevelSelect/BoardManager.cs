@@ -71,7 +71,8 @@ public class BoardManager : MonoBehaviour
             {
                 Debug.LogWarning(
                     "BoardManager: Duplicate GridCell at (" +
-                    x + ", " + y + ")"
+                    x + ", " +
+                    y + ")"
                 );
 
                 continue;
@@ -151,6 +152,47 @@ public class BoardManager : MonoBehaviour
 
 
     // =========================================================
+    // IRREGULAR MAP NAVIGATION
+    // =========================================================
+
+    public GridCell GetNeighbour(
+        GridCell currentCell,
+        int directionX,
+        int directionY)
+    {
+        if (currentCell == null)
+        {
+            return null;
+        }
+
+        int targetX =
+            currentCell.X + directionX;
+
+        int targetY =
+            currentCell.Y + directionY;
+
+        return GetCell(targetX, targetY);
+    }
+
+
+    public bool HasCell(int x, int y)
+    {
+        if (grid == null)
+        {
+            return false;
+        }
+
+        if (x < 0 || x >= boardWidth ||
+            y < 0 || y >= boardHeight)
+        {
+            return false;
+        }
+
+        return grid[x, y] != null;
+    }
+
+
+    // =========================================================
     // CHECK CURRENT POSITION
     // =========================================================
 
@@ -224,6 +266,7 @@ public class BoardManager : MonoBehaviour
 
         // -----------------------------------------------------
         // BLUE
+        // Blue can be placed anywhere.
         // -----------------------------------------------------
 
         if (buildingIndex == 0)
@@ -234,7 +277,7 @@ public class BoardManager : MonoBehaviour
 
         // -----------------------------------------------------
         // RED
-        // Must have BLUE neighbour.
+        // Red requires a Blue neighbour.
         // -----------------------------------------------------
 
         if (buildingIndex == 1)
@@ -249,7 +292,7 @@ public class BoardManager : MonoBehaviour
 
         // -----------------------------------------------------
         // GREEN
-        // Must have BLUE AND RED neighbours.
+        // Green requires Blue AND Red neighbours.
         // -----------------------------------------------------
 
         if (buildingIndex == 2)
@@ -271,7 +314,7 @@ public class BoardManager : MonoBehaviour
 
         // -----------------------------------------------------
         // YELLOW
-        // Must have BLUE, RED AND GREEN neighbours.
+        // Yellow requires Blue, Red AND Green neighbours.
         // -----------------------------------------------------
 
         if (buildingIndex == 3)
@@ -413,7 +456,7 @@ public class BoardManager : MonoBehaviour
         );
 
 
-        // Remove selection highlight.
+        // Remove selection highlight after placement.
         currentlySelectedCell.SetHighlight(false);
 
 
@@ -429,6 +472,73 @@ public class BoardManager : MonoBehaviour
 
 
         return true;
+    }
+
+
+    // =========================================================
+    // FIND VALID PLACEMENT
+    // =========================================================
+
+    public bool FindValidPlacement(
+        int buildingIndex,
+        out int validX,
+        out int validY)
+    {
+        validX = -1;
+        validY = -1;
+
+        if (grid == null)
+        {
+            Debug.LogWarning(
+                "BoardManager: Grid has not been initialized."
+            );
+
+            return false;
+        }
+
+
+        for (int y = 0; y < boardHeight; y++)
+        {
+            for (int x = 0; x < boardWidth; x++)
+            {
+                GridCell cell = grid[x, y];
+
+                if (cell == null)
+                    continue;
+
+
+                if (CanPlaceBuildingAt(
+                    buildingIndex,
+                    x,
+                    y))
+                {
+                    validX = x;
+                    validY = y;
+
+
+                    Debug.Log(
+                        "Valid placement found for building " +
+                        buildingIndex +
+                        " at (" +
+                        validX +
+                        ", " +
+                        validY +
+                        ")"
+                    );
+
+
+                    return true;
+                }
+            }
+        }
+
+
+        Debug.Log(
+            "No valid placement found for building " +
+            buildingIndex
+        );
+
+        return false;
     }
 
 
