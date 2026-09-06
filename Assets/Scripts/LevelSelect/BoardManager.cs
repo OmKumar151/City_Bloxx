@@ -317,7 +317,8 @@ public class BoardManager : MonoBehaviour
 
         cell.SetBuilding(
             spriteToPlace,
-            buildingType
+            buildingType,
+            0
         );
 
         cell.SetHighlight(false);
