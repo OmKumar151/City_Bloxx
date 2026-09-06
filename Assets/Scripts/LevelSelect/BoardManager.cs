@@ -3,148 +3,77 @@ using UnityEngine;
 
 public class BoardManager : MonoBehaviour
 {
+    [Header("Board")]
+    [SerializeField] private Transform gridRoot;
+
     [Header("Building Sprites")]
     [SerializeField] private Sprite blueBuildingSprite;
     [SerializeField] private Sprite redBuildingSprite;
     [SerializeField] private Sprite greenBuildingSprite;
     [SerializeField] private Sprite yellowBuildingSprite;
 
-    [Header("Placement Rules")]
-    [SerializeField] private bool usePlacementRules = true;
-
-    // All actual GridCells found in the scene.
-    private Dictionary<Vector2Int, GridCell> grid =
+    private Dictionary<Vector2Int, GridCell> gridCells =
         new Dictionary<Vector2Int, GridCell>();
 
     private GridCell currentlySelectedCell;
-
-
-    // =========================================================
-    // INITIALIZATION
-    // =========================================================
 
     private void Awake()
     {
         BuildGridReference();
     }
 
-
     private void BuildGridReference()
     {
-        grid.Clear();
+        gridCells.Clear();
 
-        GridCell[] cells =
-            FindObjectsByType<GridCell>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+        GridCell[] discoveredCells;
 
-        if (cells == null || cells.Length == 0)
+        if (gridRoot != null)
         {
-            Debug.LogWarning(
-                "BoardManager: No GridCells were found in the scene."
-            );
-
-            return;
+            discoveredCells =
+                gridRoot.GetComponentsInChildren<GridCell>(true);
+        }
+        else
+        {
+            discoveredCells =
+                GetComponentsInChildren<GridCell>(true);
         }
 
-        foreach (GridCell cell in cells)
+        foreach (GridCell cell in discoveredCells)
         {
             if (cell == null)
+            {
                 continue;
+            }
 
             Vector2Int position =
                 new Vector2Int(cell.X, cell.Y);
 
-            if (grid.ContainsKey(position))
+            if (gridCells.ContainsKey(position))
             {
                 Debug.LogWarning(
-                    "BoardManager: Duplicate GridCell coordinates found at (" +
-                    cell.X +
-                    ", " +
-                    cell.Y +
-                    "). Object: " +
-                    cell.name
+                    "BoardManager: Multiple GridCells use coordinates " +
+                    position +
+                    ". Cell " +
+                    cell.name +
+                    " will be ignored."
                 );
 
                 continue;
             }
 
-            grid.Add(position, cell);
+            gridCells.Add(position, cell);
         }
 
         Debug.Log(
-            "BoardManager: Automatically found " +
-            grid.Count +
+            "BoardManager: Found " +
+            gridCells.Count +
             " GridCells."
         );
     }
 
-
     // =========================================================
-    // CELL SELECTION
-    // =========================================================
-
-    public void SetSelectedCell(int x, int y)
-    {
-        GridCell cell = GetCell(x, y);
-
-        if (cell == null)
-        {
-            Debug.LogWarning(
-                "BoardManager: No GridCell exists at (" +
-                x +
-                ", " +
-                y +
-                ")."
-            );
-
-            return;
-        }
-
-        SetSelectedCell(cell);
-    }
-
-
-    public void SetSelectedCell(GridCell cell)
-    {
-        if (cell == null)
-        {
-            Debug.LogWarning(
-                "BoardManager: Tried to select a null GridCell."
-            );
-
-            return;
-        }
-
-        if (currentlySelectedCell != null &&
-            currentlySelectedCell != cell)
-        {
-            currentlySelectedCell.SetHighlight(false);
-        }
-
-        currentlySelectedCell = cell;
-
-        currentlySelectedCell.SetHighlight(true);
-
-        Debug.Log(
-            "Selected Cell: (" +
-            cell.X +
-            ", " +
-            cell.Y +
-            ")"
-        );
-    }
-
-
-    public GridCell GetSelectedCell()
-    {
-        return currentlySelectedCell;
-    }
-
-
-    // =========================================================
-    // GET CELL
+    // CELL ACCESS
     // =========================================================
 
     public GridCell GetCell(int x, int y)
@@ -152,23 +81,38 @@ public class BoardManager : MonoBehaviour
         Vector2Int position =
             new Vector2Int(x, y);
 
-        if (grid.TryGetValue(position, out GridCell cell))
+        if (!gridCells.TryGetValue(
+            position,
+            out GridCell cell))
         {
-            return cell;
+            return null;
         }
 
-        return null;
+        if (cell == null)
+        {
+            return null;
+        }
+
+        if (!cell.gameObject.activeInHierarchy)
+        {
+            return null;
+        }
+
+        return cell;
     }
 
+    public GridCell GetSelectedCell()
+    {
+        return currentlySelectedCell;
+    }
 
     public bool HasCell(int x, int y)
     {
         return GetCell(x, y) != null;
     }
 
-
     // =========================================================
-    // NEIGHBOUR NAVIGATION
+    // NAVIGATION
     // =========================================================
 
     public GridCell GetNeighbour(
@@ -190,221 +134,137 @@ public class BoardManager : MonoBehaviour
         return GetCell(targetX, targetY);
     }
 
+    public void SetSelectedCell(
+        int x,
+        int y)
+    {
+        GridCell cell =
+            GetCell(x, y);
 
-    // =========================================================
-    // FIND FIRST AVAILABLE CELL
-    // =========================================================
+        if (cell == null)
+        {
+            Debug.Log(
+                "BoardManager: No active GridCell at (" +
+                x +
+                ", " +
+                y +
+                ")."
+            );
+
+            return;
+        }
+
+        SetSelectedCell(cell);
+    }
+
+    public void SetSelectedCell(GridCell cell)
+    {
+        if (cell == null)
+        {
+            return;
+        }
+
+        if (!cell.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        if (currentlySelectedCell != null)
+        {
+            currentlySelectedCell.SetHighlight(false);
+        }
+
+        currentlySelectedCell = cell;
+
+        currentlySelectedCell.SetHighlight(true);
+    }
 
     public GridCell GetFirstAvailableCell()
     {
-        GridCell[] cells =
-            FindObjectsByType<GridCell>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+        GridCell cellAtOrigin =
+            GetCell(0, 0);
 
-        GridCell firstAvailable = null;
-
-        foreach (GridCell cell in cells)
+        if (cellAtOrigin != null)
         {
-            if (cell == null)
-                continue;
+            return cellAtOrigin;
+        }
 
-            if (cell.IsOccupied)
-                continue;
-
-            if (firstAvailable == null)
+        foreach (GridCell cell in gridCells.Values)
+        {
+            if (cell != null &&
+                cell.gameObject.activeInHierarchy)
             {
-                firstAvailable = cell;
-                continue;
-            }
-
-            // Prefer lower Y first.
-            if (cell.Y < firstAvailable.Y)
-            {
-                firstAvailable = cell;
-            }
-            else if (
-                cell.Y == firstAvailable.Y &&
-                cell.X < firstAvailable.X)
-            {
-                firstAvailable = cell;
+                return cell;
             }
         }
 
-        return firstAvailable;
+        return null;
     }
-
 
     // =========================================================
     // BUILDING PLACEMENT
     // =========================================================
 
-    public bool PlaceBuilding(int buildingIndex)
+    public bool CanPlaceBuilding(int buildingIndex)
     {
         if (currentlySelectedCell == null)
         {
-            Debug.LogWarning(
-                "BoardManager: No cell is currently selected."
-            );
-
             return false;
         }
 
-        return PlaceBuilding(
-            currentlySelectedCell,
-            buildingIndex
-        );
-    }
-
-
-    public bool PlaceBuilding(
-        GridCell cell,
-        int buildingIndex)
-    {
-        if (cell == null)
+        if (!currentlySelectedCell.gameObject.activeInHierarchy)
         {
-            Debug.LogWarning(
-                "BoardManager: Cannot place building on null cell."
-            );
-
             return false;
         }
 
-        if (cell.IsOccupied)
+        if (currentlySelectedCell.IsOccupied)
         {
-            Debug.Log(
-                "Cannot place building. Cell (" +
-                cell.X +
-                ", " +
-                cell.Y +
-                ") is already occupied."
-            );
-
-            return false;
-        }
-
-        if (!CanPlaceBuilding(cell, buildingIndex))
-        {
-            Debug.Log(
-                "Building " +
-                GetBuildingName(buildingIndex) +
-                " cannot be placed on Cell (" +
-                cell.X +
-                ", " +
-                cell.Y +
-                ")."
-            );
-
-            return false;
-        }
-
-        Sprite spriteToPlace =
-            GetBuildingSprite(buildingIndex);
-
-        if (spriteToPlace == null)
-        {
-            Debug.LogWarning(
-                "BoardManager: No sprite assigned for building index " +
-                buildingIndex
-            );
-
             return false;
         }
 
         GridCell.BuildingType buildingType =
             GetBuildingType(buildingIndex);
 
-        cell.SetBuilding(
-            spriteToPlace,
-            buildingType,
-            0
+        return CanPlaceBuilding(
+            currentlySelectedCell,
+            buildingType
         );
-
-        cell.SetHighlight(false);
-
-        Debug.Log(
-            "Placed " +
-            GetBuildingName(buildingIndex) +
-            " at (" +
-            cell.X +
-            ", " +
-            cell.Y +
-            ")"
-        );
-
-        return true;
     }
 
-
-    // =========================================================
-    // PLACEMENT VALIDATION
-    // =========================================================
-
-    public bool CanPlaceBuilding(int buildingIndex)
-    {
-        if (!usePlacementRules)
-        {
-            return GetFirstAvailableCell() != null;
-        }
-
-        foreach (GridCell cell in grid.Values)
-        {
-            if (cell == null)
-                continue;
-
-            if (CanPlaceBuilding(cell, buildingIndex))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-
-    public bool CanPlaceBuilding(
+    private bool CanPlaceBuilding(
         GridCell cell,
-        int buildingIndex)
+        GridCell.BuildingType buildingType)
     {
         if (cell == null)
+        {
             return false;
+        }
+
+        if (!cell.gameObject.activeInHierarchy)
+        {
+            return false;
+        }
 
         if (cell.IsOccupied)
-            return false;
-
-        if (!usePlacementRules)
-            return true;
-
-        switch (buildingIndex)
         {
-            // -------------------------------------------------
-            // BLUE
-            // -------------------------------------------------
+            return false;
+        }
 
-            case 0:
-                // Blue can be placed anywhere.
+        switch (buildingType)
+        {
+            case GridCell.BuildingType.Blue:
+
                 return true;
 
+            case GridCell.BuildingType.Red:
 
-            // -------------------------------------------------
-            // RED
-            // -------------------------------------------------
-
-            case 1:
-                // Red requires a Blue neighbour.
                 return HasNeighbourBuilding(
                     cell,
                     GridCell.BuildingType.Blue
                 );
 
+            case GridCell.BuildingType.Green:
 
-            // -------------------------------------------------
-            // GREEN
-            // -------------------------------------------------
-
-            case 2:
-                // Green requires BOTH Blue and Red neighbours.
                 return
                     HasNeighbourBuilding(
                         cell,
@@ -416,13 +276,8 @@ public class BoardManager : MonoBehaviour
                         GridCell.BuildingType.Red
                     );
 
+            case GridCell.BuildingType.Yellow:
 
-            // -------------------------------------------------
-            // YELLOW
-            // -------------------------------------------------
-
-            case 3:
-                // Yellow requires Blue, Red and Green neighbours.
                 return
                     HasNeighbourBuilding(
                         cell,
@@ -439,114 +294,309 @@ public class BoardManager : MonoBehaviour
                         GridCell.BuildingType.Green
                     );
 
-
             default:
-                Debug.LogWarning(
-                    "BoardManager: Invalid building index " +
-                    buildingIndex
-                );
 
                 return false;
         }
     }
 
+    public bool HasValidPlacement(int buildingIndex)
+    {
+        GridCell.BuildingType buildingType =
+            GetBuildingType(buildingIndex);
+
+        foreach (GridCell cell in gridCells.Values)
+        {
+            if (cell == null)
+            {
+                continue;
+            }
+
+            if (!cell.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (CanPlaceBuilding(
+                cell,
+                buildingType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public bool PlaceBuilding(
+        int buildingIndex,
+        int population)
+    {
+        if (currentlySelectedCell == null)
+        {
+            Debug.LogWarning(
+                "BoardManager: No cell is currently selected."
+            );
+
+            return false;
+        }
+
+        if (!CanPlaceBuilding(buildingIndex))
+        {
+            Debug.Log(
+                "BoardManager: Building cannot be placed here."
+            );
+
+            return false;
+        }
+
+        Sprite spriteToPlace =
+            GetBuildingSprite(buildingIndex);
+
+        if (spriteToPlace == null)
+        {
+            Debug.LogWarning(
+                "BoardManager: Building sprite is missing."
+            );
+
+            return false;
+        }
+
+        GridCell.BuildingType buildingType =
+            GetBuildingType(buildingIndex);
+
+        currentlySelectedCell.SetBuilding(
+            spriteToPlace,
+            buildingType,
+            population
+        );
+
+        currentlySelectedCell.SetHighlight(false);
+
+        Debug.Log(
+            "BoardManager: " +
+            buildingType +
+            " placed at (" +
+            currentlySelectedCell.X +
+            ", " +
+            currentlySelectedCell.Y +
+            ")" +
+            " | Population: " +
+            population
+        );
+
+        return true;
+    }
 
     // =========================================================
-    // NEIGHBOUR BUILDING CHECK
+    // BUILDING COUNTS
+    // =========================================================
+
+    public int GetBuildingCount(
+        GridCell.BuildingType buildingType)
+    {
+        int count = 0;
+
+        foreach (GridCell cell in gridCells.Values)
+        {
+            if (cell == null)
+            {
+                continue;
+            }
+
+            if (!cell.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (cell.CurrentBuilding ==
+                buildingType)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    public int GetBlueCount()
+    {
+        return GetBuildingCount(
+            GridCell.BuildingType.Blue
+        );
+    }
+
+    public int GetRedCount()
+    {
+        return GetBuildingCount(
+            GridCell.BuildingType.Red
+        );
+    }
+
+    public int GetGreenCount()
+    {
+        return GetBuildingCount(
+            GridCell.BuildingType.Green
+        );
+    }
+
+    public int GetYellowCount()
+    {
+        return GetBuildingCount(
+            GridCell.BuildingType.Yellow
+        );
+    }
+
+    public int GetTotalBuildingCount()
+    {
+        return
+            GetBlueCount() +
+            GetRedCount() +
+            GetGreenCount() +
+            GetYellowCount();
+    }
+
+    // =========================================================
+    // POPULATION
+    // =========================================================
+
+    public int GetPopulation(
+        GridCell.BuildingType buildingType)
+    {
+        int population = 0;
+
+        foreach (GridCell cell in gridCells.Values)
+        {
+            if (cell == null)
+            {
+                continue;
+            }
+
+            if (!cell.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (cell.CurrentBuilding ==
+                buildingType)
+            {
+                population +=
+                    cell.BuildingPopulation;
+            }
+        }
+
+        return population;
+    }
+
+    public int GetBluePopulation()
+    {
+        return GetPopulation(
+            GridCell.BuildingType.Blue
+        );
+    }
+
+    public int GetRedPopulation()
+    {
+        return GetPopulation(
+            GridCell.BuildingType.Red
+        );
+    }
+
+    public int GetGreenPopulation()
+    {
+        return GetPopulation(
+            GridCell.BuildingType.Green
+        );
+    }
+
+    public int GetYellowPopulation()
+    {
+        return GetPopulation(
+            GridCell.BuildingType.Yellow
+        );
+    }
+
+    public int GetTotalPopulation()
+    {
+        return
+            GetBluePopulation() +
+            GetRedPopulation() +
+            GetGreenPopulation() +
+            GetYellowPopulation();
+    }
+
+    // =========================================================
+    // RESET / CLEAR
+    // =========================================================
+
+    public void ClearAllBuildings()
+    {
+        foreach (GridCell cell in gridCells.Values)
+        {
+            if (cell == null)
+            {
+                continue;
+            }
+
+            cell.ClearBuilding();
+            cell.SetHighlight(false);
+        }
+
+        currentlySelectedCell = null;
+
+        Debug.Log(
+            "BoardManager: All buildings cleared."
+        );
+    }
+
+    // =========================================================
+    // HELPERS
     // =========================================================
 
     private bool HasNeighbourBuilding(
         GridCell cell,
         GridCell.BuildingType buildingType)
     {
-        if (cell == null)
-            return false;
+        GridCell neighbour;
 
-        // UP
-        GridCell up =
-            GetCell(
-                cell.X,
-                cell.Y - 1
-            );
+        neighbour =
+            GetCell(cell.X + 1, cell.Y);
 
-        if (up != null &&
-            up.CurrentBuilding == buildingType)
+        if (neighbour != null &&
+            neighbour.CurrentBuilding == buildingType)
         {
             return true;
         }
 
+        neighbour =
+            GetCell(cell.X - 1, cell.Y);
 
-        // DOWN
-        GridCell down =
-            GetCell(
-                cell.X,
-                cell.Y + 1
-            );
-
-        if (down != null &&
-            down.CurrentBuilding == buildingType)
+        if (neighbour != null &&
+            neighbour.CurrentBuilding == buildingType)
         {
             return true;
         }
 
+        neighbour =
+            GetCell(cell.X, cell.Y + 1);
 
-        // LEFT
-        GridCell left =
-            GetCell(
-                cell.X - 1,
-                cell.Y
-            );
-
-        if (left != null &&
-            left.CurrentBuilding == buildingType)
+        if (neighbour != null &&
+            neighbour.CurrentBuilding == buildingType)
         {
             return true;
         }
 
+        neighbour =
+            GetCell(cell.X, cell.Y - 1);
 
-        // RIGHT
-        GridCell right =
-            GetCell(
-                cell.X + 1,
-                cell.Y
-            );
-
-        if (right != null &&
-            right.CurrentBuilding == buildingType)
+        if (neighbour != null &&
+            neighbour.CurrentBuilding == buildingType)
         {
             return true;
         }
-
 
         return false;
     }
-
-
-    // =========================================================
-    // BUILDING INFORMATION
-    // =========================================================
-
-    private Sprite GetBuildingSprite(int buildingIndex)
-    {
-        switch (buildingIndex)
-        {
-            case 0:
-                return blueBuildingSprite;
-
-            case 1:
-                return redBuildingSprite;
-
-            case 2:
-                return greenBuildingSprite;
-
-            case 3:
-                return yellowBuildingSprite;
-
-            default:
-                return null;
-        }
-    }
-
 
     private GridCell.BuildingType GetBuildingType(
         int buildingIndex)
@@ -570,25 +620,47 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-
-    public string GetBuildingName(int buildingIndex)
+    private Sprite GetBuildingSprite(
+        int buildingIndex)
     {
         switch (buildingIndex)
         {
             case 0:
-                return "Blue Building";
+                return blueBuildingSprite;
 
             case 1:
-                return "Red Building";
+                return redBuildingSprite;
 
             case 2:
-                return "Green Building";
+                return greenBuildingSprite;
 
             case 3:
-                return "Yellow Building";
+                return yellowBuildingSprite;
 
             default:
-                return "Unknown Building";
+                return null;
         }
+    }
+
+    [ContextMenu("Print Building Counts")]
+    private void PrintBuildingCounts()
+    {
+        Debug.Log(
+            "BUILDINGS | " +
+            "Blue: " + GetBlueCount() +
+            " | Red: " + GetRedCount() +
+            " | Green: " + GetGreenCount() +
+            " | Yellow: " + GetYellowCount() +
+            " | Total: " + GetTotalBuildingCount()
+        );
+
+        Debug.Log(
+            "POPULATION | " +
+            "Blue: " + GetBluePopulation() +
+            " | Red: " + GetRedPopulation() +
+            " | Green: " + GetGreenPopulation() +
+            " | Yellow: " + GetYellowPopulation() +
+            " | Total: " + GetTotalPopulation()
+        );
     }
 }
