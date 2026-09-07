@@ -19,7 +19,36 @@ public class BoardManager : MonoBehaviour
 
     private void Awake()
     {
+        FindGridRoot();
         BuildGridReference();
+    }
+
+    private void FindGridRoot()
+    {
+        if (gridRoot != null)
+        {
+            return;
+        }
+
+        GameObject gridObject =
+            GameObject.Find("Grid");
+
+        if (gridObject != null)
+        {
+            gridRoot = gridObject.transform;
+
+            Debug.Log(
+                "BoardManager: Automatically found Grid object."
+            );
+        }
+        else
+        {
+            Debug.LogError(
+                "BoardManager: Could not find a Grid object. " +
+                "Make sure your board parent is named 'Grid' " +
+                "or assign Grid Root manually in the Inspector."
+            );
+        }
     }
 
     private void BuildGridReference()
@@ -184,7 +213,8 @@ public class BoardManager : MonoBehaviour
         GridCell cellAtOrigin =
             GetCell(0, 0);
 
-        if (cellAtOrigin != null)
+        if (cellAtOrigin != null &&
+            !cellAtOrigin.IsOccupied)
         {
             return cellAtOrigin;
         }
@@ -192,7 +222,8 @@ public class BoardManager : MonoBehaviour
         foreach (GridCell cell in gridCells.Values)
         {
             if (cell != null &&
-                cell.gameObject.activeInHierarchy)
+                cell.gameObject.activeInHierarchy &&
+                !cell.IsOccupied)
             {
                 return cell;
             }
