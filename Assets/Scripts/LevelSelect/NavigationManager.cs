@@ -185,7 +185,7 @@ public class NavigationManager : MonoBehaviour
     }
 
     // =========================================================
-    // ENTER BOARD PLACEMENT
+    // ENTER BOARD MODE
     // =========================================================
 
     private void EnterBoardPlacementMode()
@@ -201,16 +201,23 @@ public class NavigationManager : MonoBehaviour
         }
 
         /*
-         * Check whether this building can be placed
-         * anywhere on the board.
+         * The selected building must have at least one
+         * legal operation somewhere on the board.
+         *
+         * This can be:
+         *
+         * 1. Normal placement on an empty cell.
+         * 2. Replacement of an existing building.
+         *
+         * BoardManager performs the complete validation.
          */
-        if (!boardManager.HasValidPlacement(
+        if (!boardManager.HasValidPlacementOrReplacement(
             selectedBuilding))
         {
             ShowNoValidPlacement();
 
             Debug.Log(
-                "No valid placement exists for " +
+                "No valid placement or replacement exists for " +
                 GetBuildingName(selectedBuilding)
             );
 
@@ -218,13 +225,12 @@ public class NavigationManager : MonoBehaviour
         }
 
         /*
-         * Start the cursor at the first active cell.
+         * Start at the first actual GridCell.
          *
-         * The player can then navigate through the actual
-         * irregular board using BoardManager.GetNeighbour().
+         * It may be occupied because replacement is allowed.
          */
         currentBoardCell =
-            boardManager.GetFirstAvailableCell();
+            boardManager.GetFirstBoardCell();
 
         if (currentBoardCell == null)
         {
@@ -248,7 +254,7 @@ public class NavigationManager : MonoBehaviour
         ShowPlacementStatus();
 
         Debug.Log(
-            "Entered Board Placement Mode at (" +
+            "Entered Board Mode at (" +
             currentBoardCell.X +
             ", " +
             currentBoardCell.Y +
@@ -277,7 +283,7 @@ public class NavigationManager : MonoBehaviour
         if (currentBoardCell == null)
         {
             currentBoardCell =
-                boardManager.GetFirstAvailableCell();
+                boardManager.GetFirstBoardCell();
 
             if (currentBoardCell == null)
             {
@@ -298,6 +304,13 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+        /*
+         * Only an actual neighbouring GridCell can be
+         * selected.
+         *
+         * This means gaps in an irregular board cannot
+         * be skipped.
+         */
         GridCell nextCell =
             boardManager.GetNeighbour(
                 currentBoardCell,
@@ -305,12 +318,6 @@ public class NavigationManager : MonoBehaviour
                 directionY
             );
 
-        /*
-         * No cell exists in that direction.
-         *
-         * This is expected on an irregular map.
-         * Simply remain on the current cell.
-         */
         if (nextCell == null)
         {
             Debug.Log(
@@ -364,63 +371,160 @@ public class NavigationManager : MonoBehaviour
         }
 
         /*
-         * Population is temporarily 0.
+         * TEMPORARY POPULATION
          *
-         * Later this value will come from the gameplay
-         * scene after the player completes the building level.
+         * This will eventually come from the completed
+         * building gameplay level.
          */
-        // TEMPORARY: This will eventually come from the gameplay scene.
         int population = 100;
 
-        bool placementSuccessful =
-            boardManager.PlaceBuilding(
-                selectedBuilding,
-                population
-            );
+        // =====================================================
+        // EMPTY CELL
+        // NORMAL PLACEMENT
+        // =====================================================
 
-        if (placementSuccessful)
+        if (!currentBoardCell.IsOccupied)
         {
-            if (PopulationManager.Instance != null)
-            {
-                PopulationManager.Instance.AddPopulation(
+            bool placementSuccessful =
+                boardManager.PlaceBuilding(
+                    selectedBuilding,
                     population
+                );
+
+            if (placementSuccessful)
+            {
+                AddPopulation(population);
+
+                ShowBuildingPlaced();
+
+                ReturnToBuildingSelection();
+
+                Debug.Log(
+                    "Building placed successfully. " +
+                    "Returned to Building Selection Mode."
                 );
             }
             else
             {
-                Debug.LogWarning(
-                    "NavigationManager: PopulationManager instance was not found."
+                ShowBuildingCannotBePlaced();
+
+                Debug.Log(
+                    "Building placement failed. " +
+                    "Remaining in Board Mode."
                 );
             }
 
+            return;
+        }
+
+        // =====================================================
+        // OCCUPIED CELL
+        // REPLACEMENT
+        // =====================================================
+
+        int oldPopulation =
+            currentBoardCell.BuildingPopulation;
+
+        GridCell.BuildingType oldBuilding =
+            currentBoardCell.CurrentBuilding;
+
+        bool replacementSuccessful =
+            boardManager.ReplaceBuilding(
+                selectedBuilding,
+                population
+            );
+
+        if (replacementSuccessful)
+        {
+            /*
+             * Remove the population belonging to the old
+             * building, then add the new building's population.
+             */
+            RemovePopulation(oldPopulation);
+
+            AddPopulation(population);
+
             ShowBuildingPlaced();
 
-            currentMode =
-                NavigationMode.BuildingSelection;
-
-            currentBoardCell = null;
-
-            UpdateBuildingSelectionVisual();
+            ReturnToBuildingSelection();
 
             Debug.Log(
-                "Building placed successfully. " +
-                "Returned to Building Selection Mode."
+                "Building replaced successfully. " +
+                "Old Building: " +
+                oldBuilding +
+                " | Old Population: " +
+                oldPopulation +
+                " | New Population: " +
+                population
             );
         }
         else
         {
+            /*
+             * Replacement failed because the resulting
+             * board would violate one or more building rules.
+             */
             ShowBuildingCannotBePlaced();
 
-            /*
-             * Stay in Board Placement Mode.
-             *
-             * The player can move to another cell.
-             */
             Debug.Log(
-                "Building placement failed. " +
-                "Remaining in Board Placement Mode."
+                "Building replacement failed. " +
+                "Remaining in Board Mode."
             );
         }
+    }
+
+    // =========================================================
+    // POPULATION
+    // =========================================================
+
+    private void AddPopulation(
+        int amount)
+    {
+        if (PopulationManager.Instance != null)
+        {
+            PopulationManager.Instance.AddPopulation(
+                amount
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "NavigationManager: PopulationManager " +
+                "instance was not found."
+            );
+        }
+    }
+
+    private void RemovePopulation(
+        int amount)
+    {
+        if (PopulationManager.Instance != null)
+        {
+            PopulationManager.Instance.RemovePopulation(
+                amount
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "NavigationManager: PopulationManager " +
+                "instance was not found."
+            );
+        }
+    }
+
+    // =========================================================
+    // RETURN TO BUILDING SELECTION
+    // =========================================================
+
+    private void ReturnToBuildingSelection()
+    {
+        currentMode =
+            NavigationMode.BuildingSelection;
+
+        currentBoardCell = null;
+
+        UpdateBuildingSelectionVisual();
     }
 
     // =========================================================
@@ -436,12 +540,19 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        bool canPlace =
-            boardManager.CanPlaceBuilding(
+        /*
+         * Empty cell:
+         *     Checks normal placement rules.
+         *
+         * Occupied cell:
+         *     Checks complete-board replacement rules.
+         */
+        bool canOperate =
+            boardManager.CanPlaceOrReplaceBuilding(
                 selectedBuilding
             );
 
-        if (canPlace)
+        if (canOperate)
         {
             infoPanel.ShowBuildingCanBePlaced();
         }

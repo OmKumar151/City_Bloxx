@@ -140,6 +140,21 @@ public class BoardManager : MonoBehaviour
         return GetCell(x, y) != null;
     }
 
+    /*
+     * Returns every active GridCell on the board.
+     */
+    public IEnumerable<GridCell> GetAllActiveCells()
+    {
+        foreach (GridCell cell in gridCells.Values)
+        {
+            if (cell != null &&
+                cell.gameObject.activeInHierarchy)
+            {
+                yield return cell;
+            }
+        }
+    }
+
     // =========================================================
     // NAVIGATION
     // =========================================================
@@ -208,6 +223,10 @@ public class BoardManager : MonoBehaviour
         currentlySelectedCell.SetHighlight(true);
     }
 
+    /*
+     * Used when normal placement specifically needs
+     * an empty cell.
+     */
     public GridCell GetFirstAvailableCell()
     {
         GridCell cellAtOrigin =
@@ -224,6 +243,34 @@ public class BoardManager : MonoBehaviour
             if (cell != null &&
                 cell.gameObject.activeInHierarchy &&
                 !cell.IsOccupied)
+            {
+                return cell;
+            }
+        }
+
+        return null;
+    }
+
+    /*
+     * Used when entering board mode for both placement
+     * and replacement.
+     *
+     * This can return an occupied cell.
+     */
+    public GridCell GetFirstBoardCell()
+    {
+        GridCell cellAtOrigin =
+            GetCell(0, 0);
+
+        if (cellAtOrigin != null)
+        {
+            return cellAtOrigin;
+        }
+
+        foreach (GridCell cell in gridCells.Values)
+        {
+            if (cell != null &&
+                cell.gameObject.activeInHierarchy)
             {
                 return cell;
             }
@@ -281,6 +328,24 @@ public class BoardManager : MonoBehaviour
             return false;
         }
 
+        return CanBuildingExistAtCell(
+            cell,
+            buildingType
+        );
+    }
+
+    /*
+     * Checks normal placement rules.
+     */
+    private bool CanBuildingExistAtCell(
+        GridCell cell,
+        GridCell.BuildingType buildingType)
+    {
+        if (cell == null)
+        {
+            return false;
+        }
+
         switch (buildingType)
         {
             case GridCell.BuildingType.Blue:
@@ -331,6 +396,10 @@ public class BoardManager : MonoBehaviour
         }
     }
 
+    /*
+     * Checks whether there is at least one empty cell
+     * where the selected building can normally be placed.
+     */
     public bool HasValidPlacement(int buildingIndex)
     {
         GridCell.BuildingType buildingType =
@@ -359,6 +428,64 @@ public class BoardManager : MonoBehaviour
         return false;
     }
 
+    /*
+     * Checks whether this building can either:
+     *
+     * 1. Be placed on an empty cell
+     * OR
+     * 2. Replace an existing building somewhere on the board.
+     *
+     * This method does NOT change the selected cell.
+     */
+    public bool HasValidPlacementOrReplacement(
+        int buildingIndex)
+    {
+        GridCell.BuildingType buildingType =
+            GetBuildingType(buildingIndex);
+
+        if (buildingType == GridCell.BuildingType.None)
+        {
+            return false;
+        }
+
+        // First check normal placement.
+        if (HasValidPlacement(buildingIndex))
+        {
+            return true;
+        }
+
+        // Then check every occupied cell for replacement.
+        foreach (GridCell cell in gridCells.Values)
+        {
+            if (cell == null)
+            {
+                continue;
+            }
+
+            if (!cell.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (!cell.IsOccupied)
+            {
+                continue;
+            }
+
+            if (IsBoardValidAfterReplacement(
+                cell,
+                buildingType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /*
+     * Actually places a new building on an empty cell.
+     */
     public bool PlaceBuilding(
         int buildingIndex,
         int population)
@@ -417,6 +544,414 @@ public class BoardManager : MonoBehaviour
         );
 
         return true;
+    }
+
+    // =========================================================
+    // REPLACEMENT
+    // =========================================================
+
+    /*
+     * Determines whether the selected occupied cell can
+     * be replaced by the selected building.
+     *
+     * The entire resulting board is checked.
+     */
+    public bool CanReplaceBuilding(
+        int buildingIndex)
+    {
+        if (currentlySelectedCell == null)
+        {
+            return false;
+        }
+
+        if (!currentlySelectedCell.gameObject.activeInHierarchy)
+        {
+            return false;
+        }
+
+        if (!currentlySelectedCell.IsOccupied)
+        {
+            return false;
+        }
+
+        GridCell.BuildingType replacementType =
+            GetBuildingType(buildingIndex);
+
+        if (replacementType ==
+            GridCell.BuildingType.None)
+        {
+            return false;
+        }
+
+        return IsBoardValidAfterReplacement(
+            currentlySelectedCell,
+            replacementType
+        );
+    }
+
+    /*
+     * Determines whether the selected cell can either
+     * receive a new building or replace its current one.
+     */
+    public bool CanPlaceOrReplaceBuilding(
+        int buildingIndex)
+    {
+        if (currentlySelectedCell == null)
+        {
+            return false;
+        }
+
+        if (!currentlySelectedCell.IsOccupied)
+        {
+            return CanPlaceBuilding(buildingIndex);
+        }
+
+        return CanReplaceBuilding(buildingIndex);
+    }
+
+    /*
+     * Checks the entire board as if replacementCell
+     * contained replacementType.
+     */
+    private bool IsBoardValidAfterReplacement(
+        GridCell replacementCell,
+        GridCell.BuildingType replacementType)
+    {
+        if (replacementCell == null)
+        {
+            return false;
+        }
+
+        if (!replacementCell.IsOccupied)
+        {
+            return false;
+        }
+
+        foreach (GridCell cell in gridCells.Values)
+        {
+            if (cell == null)
+            {
+                continue;
+            }
+
+            if (!cell.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            GridCell.BuildingType resultingBuilding;
+
+            if (cell == replacementCell)
+            {
+                resultingBuilding =
+                    replacementType;
+            }
+            else
+            {
+                resultingBuilding =
+                    cell.CurrentBuilding;
+            }
+
+            /*
+             * Empty cells do not need to satisfy
+             * building requirements.
+             */
+            if (resultingBuilding ==
+                GridCell.BuildingType.None)
+            {
+                continue;
+            }
+
+            if (!CanBuildingExistAfterReplacement(
+                cell,
+                resultingBuilding,
+                replacementCell,
+                replacementType))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /*
+     * Checks one building against the hypothetical
+     * resulting board.
+     */
+    private bool CanBuildingExistAfterReplacement(
+        GridCell cell,
+        GridCell.BuildingType buildingType,
+        GridCell replacementCell,
+        GridCell.BuildingType replacementType)
+    {
+        if (cell == null)
+        {
+            return false;
+        }
+
+        switch (buildingType)
+        {
+            case GridCell.BuildingType.Blue:
+
+                return true;
+
+            case GridCell.BuildingType.Red:
+
+                return HasNeighbourBuildingAfterReplacement(
+                    cell,
+                    GridCell.BuildingType.Blue,
+                    replacementCell,
+                    replacementType
+                );
+
+            case GridCell.BuildingType.Green:
+
+                return
+                    HasNeighbourBuildingAfterReplacement(
+                        cell,
+                        GridCell.BuildingType.Blue,
+                        replacementCell,
+                        replacementType
+                    )
+                    &&
+                    HasNeighbourBuildingAfterReplacement(
+                        cell,
+                        GridCell.BuildingType.Red,
+                        replacementCell,
+                        replacementType
+                    );
+
+            case GridCell.BuildingType.Yellow:
+
+                return
+                    HasNeighbourBuildingAfterReplacement(
+                        cell,
+                        GridCell.BuildingType.Blue,
+                        replacementCell,
+                        replacementType
+                    )
+                    &&
+                    HasNeighbourBuildingAfterReplacement(
+                        cell,
+                        GridCell.BuildingType.Red,
+                        replacementCell,
+                        replacementType
+                    )
+                    &&
+                    HasNeighbourBuildingAfterReplacement(
+                        cell,
+                        GridCell.BuildingType.Green,
+                        replacementCell,
+                        replacementType
+                    );
+
+            default:
+
+                return false;
+        }
+    }
+
+    /*
+     * Checks the four orthogonal neighbours using the
+     * hypothetical replacement state.
+     */
+    private bool HasNeighbourBuildingAfterReplacement(
+        GridCell cell,
+        GridCell.BuildingType requiredBuilding,
+        GridCell replacementCell,
+        GridCell.BuildingType replacementType)
+    {
+        if (cell == null)
+        {
+            return false;
+        }
+
+        GridCell neighbour;
+
+        // Right
+        neighbour =
+            GetCell(
+                cell.X + 1,
+                cell.Y
+            );
+
+        if (IsNeighbourBuildingTypeAfterReplacement(
+            neighbour,
+            requiredBuilding,
+            replacementCell,
+            replacementType))
+        {
+            return true;
+        }
+
+        // Left
+        neighbour =
+            GetCell(
+                cell.X - 1,
+                cell.Y
+            );
+
+        if (IsNeighbourBuildingTypeAfterReplacement(
+            neighbour,
+            requiredBuilding,
+            replacementCell,
+            replacementType))
+        {
+            return true;
+        }
+
+        // Up
+        neighbour =
+            GetCell(
+                cell.X,
+                cell.Y + 1
+            );
+
+        if (IsNeighbourBuildingTypeAfterReplacement(
+            neighbour,
+            requiredBuilding,
+            replacementCell,
+            replacementType))
+        {
+            return true;
+        }
+
+        // Down
+        neighbour =
+            GetCell(
+                cell.X,
+                cell.Y - 1
+            );
+
+        if (IsNeighbourBuildingTypeAfterReplacement(
+            neighbour,
+            requiredBuilding,
+            replacementCell,
+            replacementType))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool IsNeighbourBuildingTypeAfterReplacement(
+        GridCell neighbour,
+        GridCell.BuildingType requiredBuilding,
+        GridCell replacementCell,
+        GridCell.BuildingType replacementType)
+    {
+        if (neighbour == null)
+        {
+            return false;
+        }
+
+        if (!neighbour.gameObject.activeInHierarchy)
+        {
+            return false;
+        }
+
+        if (neighbour == replacementCell)
+        {
+            return replacementType ==
+                   requiredBuilding;
+        }
+
+        return neighbour.CurrentBuilding ==
+               requiredBuilding;
+    }
+
+    /*
+     * Actually performs the replacement.
+     */
+    public bool ReplaceBuilding(
+        int buildingIndex,
+        int population)
+    {
+        if (!CanReplaceBuilding(buildingIndex))
+        {
+            Debug.Log(
+                "BoardManager: Building cannot replace " +
+                "the building at the selected cell."
+            );
+
+            return false;
+        }
+
+        Sprite spriteToPlace =
+            GetBuildingSprite(buildingIndex);
+
+        if (spriteToPlace == null)
+        {
+            Debug.LogWarning(
+                "BoardManager: Building sprite is missing."
+            );
+
+            return false;
+        }
+
+        GridCell.BuildingType buildingType =
+            GetBuildingType(buildingIndex);
+
+        GridCell.BuildingType oldBuildingType =
+            currentlySelectedCell.CurrentBuilding;
+
+        int oldPopulation =
+            currentlySelectedCell.BuildingPopulation;
+
+        currentlySelectedCell.SetBuilding(
+            spriteToPlace,
+            buildingType,
+            population
+        );
+
+        currentlySelectedCell.SetHighlight(false);
+
+        Debug.Log(
+            "BoardManager: Replaced " +
+            oldBuildingType +
+            " with " +
+            buildingType +
+            " at (" +
+            currentlySelectedCell.X +
+            ", " +
+            currentlySelectedCell.Y +
+            ")" +
+            " | Old Population: " +
+            oldPopulation +
+            " | New Population: " +
+            population
+        );
+
+        return true;
+    }
+
+    public int GetSelectedCellPopulation()
+    {
+        if (currentlySelectedCell == null)
+        {
+            return 0;
+        }
+
+        return currentlySelectedCell.BuildingPopulation;
+    }
+
+    public GridCell.BuildingType GetSelectedCellBuildingType()
+    {
+        if (currentlySelectedCell == null)
+        {
+            return GridCell.BuildingType.None;
+        }
+
+        return currentlySelectedCell.CurrentBuilding;
+    }
+
+    public bool IsSelectedCellOccupied()
+    {
+        return
+            currentlySelectedCell != null &&
+            currentlySelectedCell.IsOccupied;
     }
 
     // =========================================================
@@ -588,10 +1123,19 @@ public class BoardManager : MonoBehaviour
         GridCell cell,
         GridCell.BuildingType buildingType)
     {
+        if (cell == null)
+        {
+            return false;
+        }
+
         GridCell neighbour;
 
+        // Right
         neighbour =
-            GetCell(cell.X + 1, cell.Y);
+            GetCell(
+                cell.X + 1,
+                cell.Y
+            );
 
         if (neighbour != null &&
             neighbour.CurrentBuilding == buildingType)
@@ -599,8 +1143,12 @@ public class BoardManager : MonoBehaviour
             return true;
         }
 
+        // Left
         neighbour =
-            GetCell(cell.X - 1, cell.Y);
+            GetCell(
+                cell.X - 1,
+                cell.Y
+            );
 
         if (neighbour != null &&
             neighbour.CurrentBuilding == buildingType)
@@ -608,8 +1156,12 @@ public class BoardManager : MonoBehaviour
             return true;
         }
 
+        // Up
         neighbour =
-            GetCell(cell.X, cell.Y + 1);
+            GetCell(
+                cell.X,
+                cell.Y + 1
+            );
 
         if (neighbour != null &&
             neighbour.CurrentBuilding == buildingType)
@@ -617,8 +1169,12 @@ public class BoardManager : MonoBehaviour
             return true;
         }
 
+        // Down
         neighbour =
-            GetCell(cell.X, cell.Y - 1);
+            GetCell(
+                cell.X,
+                cell.Y - 1
+            );
 
         if (neighbour != null &&
             neighbour.CurrentBuilding == buildingType)

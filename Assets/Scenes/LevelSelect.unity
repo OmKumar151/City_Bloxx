@@ -2993,6 +2993,7 @@ GameObject:
   - component: {fileID: 934009272}
   - component: {fileID: 934009274}
   - component: {fileID: 934009273}
+  - component: {fileID: 934009275}
   m_Layer: 5
   m_Name: BuildingCounter
   m_TagString: Untagged
@@ -3059,6 +3060,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 934009271}
   m_CullTransparentMesh: 1
+--- !u!114 &934009275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 934009271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2531deb7964d00945bcd3a2ee65c3d24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingCounterUI
+  countText: {fileID: 2078455512}
+  boardManager: {fileID: 1499414280}
 --- !u!1001 &971162480
 PrefabInstance:
   m_ObjectHideFlags: 0
