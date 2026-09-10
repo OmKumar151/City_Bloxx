@@ -33,6 +33,36 @@ public class GridCell : MonoBehaviour
 
     public int BuildingPopulation { get; private set; }
 
+    // =========================================================
+    // BUILDING SCORES
+    // =========================================================
+
+    public static int GetBuildingScore(
+        BuildingType buildingType)
+    {
+        switch (buildingType)
+        {
+            case BuildingType.Blue:
+                return 100;
+
+            case BuildingType.Red:
+                return 250;
+
+            case BuildingType.Green:
+                return 500;
+
+            case BuildingType.Yellow:
+                return 750;
+
+            default:
+                return 0;
+        }
+    }
+
+    // =========================================================
+    // SETUP
+    // =========================================================
+
     private void Awake()
     {
         SetHighlight(false);
@@ -46,6 +76,10 @@ public class GridCell : MonoBehaviour
             highlight.SetActive(selected);
         }
     }
+
+    // =========================================================
+    // BUILDING
+    // =========================================================
 
     public void SetBuilding(
         Sprite buildingSprite,

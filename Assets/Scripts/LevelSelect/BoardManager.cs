@@ -140,9 +140,6 @@ public class BoardManager : MonoBehaviour
         return GetCell(x, y) != null;
     }
 
-    /*
-     * Returns every active GridCell on the board.
-     */
     public IEnumerable<GridCell> GetAllActiveCells()
     {
         foreach (GridCell cell in gridCells.Values)
@@ -221,12 +218,64 @@ public class BoardManager : MonoBehaviour
         currentlySelectedCell = cell;
 
         currentlySelectedCell.SetHighlight(true);
+
+        // =====================================================
+        // UPDATE CURRENT BUILDING SCORE
+        // =====================================================
+
+        UpdateSelectedBuildingScore();
     }
 
-    /*
-     * Used when normal placement specifically needs
-     * an empty cell.
-     */
+    private void UpdateSelectedBuildingScore()
+    {
+        if (BuildingScoreManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "BoardManager: BuildingScoreManager " +
+                "instance was not found."
+            );
+
+            return;
+        }
+
+        if (currentlySelectedCell == null)
+        {
+            BuildingScoreManager.Instance.ClearBuildingScore();
+            return;
+        }
+
+        if (!currentlySelectedCell.IsOccupied)
+        {
+            BuildingScoreManager.Instance.ClearBuildingScore();
+            return;
+        }
+
+        int score =
+            GridCell.GetBuildingScore(
+                currentlySelectedCell.CurrentBuilding
+            );
+
+        BuildingScoreManager.Instance.SetBuildingScore(
+            score
+        );
+
+        Debug.Log(
+            "Selected Building Score: " +
+            score +
+            " | Building: " +
+            currentlySelectedCell.CurrentBuilding +
+            " | Cell: (" +
+            currentlySelectedCell.X +
+            ", " +
+            currentlySelectedCell.Y +
+            ")"
+        );
+    }
+
+    // =========================================================
+    // FIRST BOARD CELLS
+    // =========================================================
+
     public GridCell GetFirstAvailableCell()
     {
         GridCell cellAtOrigin =
@@ -251,12 +300,6 @@ public class BoardManager : MonoBehaviour
         return null;
     }
 
-    /*
-     * Used when entering board mode for both placement
-     * and replacement.
-     *
-     * This can return an occupied cell.
-     */
     public GridCell GetFirstBoardCell()
     {
         GridCell cellAtOrigin =
@@ -334,9 +377,6 @@ public class BoardManager : MonoBehaviour
         );
     }
 
-    /*
-     * Checks normal placement rules.
-     */
     private bool CanBuildingExistAtCell(
         GridCell cell,
         GridCell.BuildingType buildingType)
@@ -396,10 +436,6 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    /*
-     * Checks whether there is at least one empty cell
-     * where the selected building can normally be placed.
-     */
     public bool HasValidPlacement(int buildingIndex)
     {
         GridCell.BuildingType buildingType =
@@ -428,15 +464,6 @@ public class BoardManager : MonoBehaviour
         return false;
     }
 
-    /*
-     * Checks whether this building can either:
-     *
-     * 1. Be placed on an empty cell
-     * OR
-     * 2. Replace an existing building somewhere on the board.
-     *
-     * This method does NOT change the selected cell.
-     */
     public bool HasValidPlacementOrReplacement(
         int buildingIndex)
     {
@@ -483,12 +510,7 @@ public class BoardManager : MonoBehaviour
         return false;
     }
 
-    /*
-     * Actually places a new building on an empty cell.
-     */
-    public bool PlaceBuilding(
-        int buildingIndex,
-        int population)
+    public bool PlaceBuilding(int buildingIndex)
     {
         if (currentlySelectedCell == null)
         {
@@ -523,6 +545,9 @@ public class BoardManager : MonoBehaviour
         GridCell.BuildingType buildingType =
             GetBuildingType(buildingIndex);
 
+        int population =
+            GridCell.GetBuildingScore(buildingType);
+
         currentlySelectedCell.SetBuilding(
             spriteToPlace,
             buildingType,
@@ -530,6 +555,10 @@ public class BoardManager : MonoBehaviour
         );
 
         currentlySelectedCell.SetHighlight(false);
+
+        // The building has just been placed, so update
+        // the score associated with this cell.
+        UpdateSelectedBuildingScore();
 
         Debug.Log(
             "BoardManager: " +
@@ -550,12 +579,6 @@ public class BoardManager : MonoBehaviour
     // REPLACEMENT
     // =========================================================
 
-    /*
-     * Determines whether the selected occupied cell can
-     * be replaced by the selected building.
-     *
-     * The entire resulting board is checked.
-     */
     public bool CanReplaceBuilding(
         int buildingIndex)
     {
@@ -589,10 +612,6 @@ public class BoardManager : MonoBehaviour
         );
     }
 
-    /*
-     * Determines whether the selected cell can either
-     * receive a new building or replace its current one.
-     */
     public bool CanPlaceOrReplaceBuilding(
         int buildingIndex)
     {
@@ -609,10 +628,6 @@ public class BoardManager : MonoBehaviour
         return CanReplaceBuilding(buildingIndex);
     }
 
-    /*
-     * Checks the entire board as if replacementCell
-     * contained replacementType.
-     */
     private bool IsBoardValidAfterReplacement(
         GridCell replacementCell,
         GridCell.BuildingType replacementType)
@@ -652,10 +667,6 @@ public class BoardManager : MonoBehaviour
                     cell.CurrentBuilding;
             }
 
-            /*
-             * Empty cells do not need to satisfy
-             * building requirements.
-             */
             if (resultingBuilding ==
                 GridCell.BuildingType.None)
             {
@@ -675,10 +686,6 @@ public class BoardManager : MonoBehaviour
         return true;
     }
 
-    /*
-     * Checks one building against the hypothetical
-     * resulting board.
-     */
     private bool CanBuildingExistAfterReplacement(
         GridCell cell,
         GridCell.BuildingType buildingType,
@@ -752,10 +759,6 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    /*
-     * Checks the four orthogonal neighbours using the
-     * hypothetical replacement state.
-     */
     private bool HasNeighbourBuildingAfterReplacement(
         GridCell cell,
         GridCell.BuildingType requiredBuilding,
@@ -862,12 +865,7 @@ public class BoardManager : MonoBehaviour
                requiredBuilding;
     }
 
-    /*
-     * Actually performs the replacement.
-     */
-    public bool ReplaceBuilding(
-        int buildingIndex,
-        int population)
+    public bool ReplaceBuilding(int buildingIndex)
     {
         if (!CanReplaceBuilding(buildingIndex))
         {
@@ -900,6 +898,9 @@ public class BoardManager : MonoBehaviour
         int oldPopulation =
             currentlySelectedCell.BuildingPopulation;
 
+        int population =
+            GridCell.GetBuildingScore(buildingType);
+
         currentlySelectedCell.SetBuilding(
             spriteToPlace,
             buildingType,
@@ -907,6 +908,9 @@ public class BoardManager : MonoBehaviour
         );
 
         currentlySelectedCell.SetHighlight(false);
+
+        // Update the score after replacing the building.
+        UpdateSelectedBuildingScore();
 
         Debug.Log(
             "BoardManager: Replaced " +
@@ -926,6 +930,10 @@ public class BoardManager : MonoBehaviour
 
         return true;
     }
+
+    // =========================================================
+    // SELECTED CELL INFORMATION
+    // =========================================================
 
     public int GetSelectedCellPopulation()
     {
@@ -1109,6 +1117,11 @@ public class BoardManager : MonoBehaviour
         }
 
         currentlySelectedCell = null;
+
+        if (BuildingScoreManager.Instance != null)
+        {
+            BuildingScoreManager.Instance.ClearBuildingScore();
+        }
 
         Debug.Log(
             "BoardManager: All buildings cleared."

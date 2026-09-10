@@ -46,6 +46,10 @@ public class NavigationManager : MonoBehaviour
 
         ShowBuildingSelected();
 
+        UpdateCurrentBuildingScore();
+
+        ClearExistingBuildingScore();
+
         Debug.Log(
             "Navigation started. Building Selection Mode."
         );
@@ -124,6 +128,8 @@ public class NavigationManager : MonoBehaviour
 
         ShowBuildingSelected();
 
+        UpdateCurrentBuildingScore();
+
         Debug.Log(
             "Selected Building: " +
             selectedBuilding
@@ -143,6 +149,8 @@ public class NavigationManager : MonoBehaviour
         UpdateBuildingSelectionVisual();
 
         ShowBuildingSelected();
+
+        UpdateCurrentBuildingScore();
 
         Debug.Log(
             "Selected Building: " +
@@ -164,6 +172,109 @@ public class NavigationManager : MonoBehaviour
                 "NavigationManager: " +
                 "BuildingSelectionUI is not assigned."
             );
+        }
+    }
+
+    // =========================================================
+    // SCORE
+    // =========================================================
+
+    private void UpdateCurrentBuildingScore()
+    {
+        if (BuildingScoreManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "NavigationManager: " +
+                "BuildingScoreManager instance was not found."
+            );
+
+            return;
+        }
+
+        GridCell.BuildingType buildingType =
+            GetBuildingType(selectedBuilding);
+
+        int score =
+            GridCell.GetBuildingScore(
+                buildingType
+            );
+
+        BuildingScoreManager.Instance
+            .SetCurrentBuildingScore(score);
+
+        Debug.Log(
+            "Current Building: " +
+            buildingType +
+            " | Current Score: " +
+            score
+        );
+    }
+
+    private void UpdateExistingBuildingScore()
+    {
+        if (BuildingScoreManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "NavigationManager: " +
+                "BuildingScoreManager instance was not found."
+            );
+
+            return;
+        }
+
+        if (boardManager == null)
+        {
+            BuildingScoreManager.Instance
+                .ClearExistingBuildingScore();
+
+            return;
+        }
+
+        if (currentBoardCell == null)
+        {
+            BuildingScoreManager.Instance
+                .ClearExistingBuildingScore();
+
+            return;
+        }
+
+        if (!currentBoardCell.IsOccupied)
+        {
+            BuildingScoreManager.Instance
+                .ClearExistingBuildingScore();
+
+            Debug.Log(
+                "Selected cell is empty. " +
+                "Existing Building Score cleared."
+            );
+
+            return;
+        }
+
+        int existingScore =
+            GridCell.GetBuildingScore(
+                currentBoardCell.CurrentBuilding
+            );
+
+        BuildingScoreManager.Instance
+            .SetExistingBuildingScore(
+                existingScore
+            );
+
+        Debug.Log(
+            "Existing Building: " +
+            currentBoardCell.CurrentBuilding +
+            " | Existing Score: " +
+            existingScore
+        );
+    }
+
+    private void ClearExistingBuildingScore()
+    {
+        if (BuildingScoreManager.Instance != null)
+        {
+            BuildingScoreManager.Instance
+                .ClearExistingBuildingScore();
         }
     }
 
@@ -251,6 +362,10 @@ public class NavigationManager : MonoBehaviour
             currentBoardCell
         );
 
+        // Update the existing building portion
+        // after selecting the first board cell.
+        UpdateExistingBuildingScore();
+
         ShowPlacementStatus();
 
         Debug.Log(
@@ -299,6 +414,8 @@ public class NavigationManager : MonoBehaviour
                 currentBoardCell
             );
 
+            UpdateExistingBuildingScore();
+
             ShowPlacementStatus();
 
             return;
@@ -333,6 +450,10 @@ public class NavigationManager : MonoBehaviour
         boardManager.SetSelectedCell(
             currentBoardCell
         );
+
+        // Update the existing building score whenever
+        // the player moves to another grid cell.
+        UpdateExistingBuildingScore();
 
         ShowPlacementStatus();
 
@@ -387,8 +508,7 @@ public class NavigationManager : MonoBehaviour
         {
             bool placementSuccessful =
                 boardManager.PlaceBuilding(
-                    selectedBuilding,
-                    population
+                    selectedBuilding
                 );
 
             if (placementSuccessful)
@@ -430,8 +550,7 @@ public class NavigationManager : MonoBehaviour
 
         bool replacementSuccessful =
             boardManager.ReplaceBuilding(
-                selectedBuilding,
-                population
+                selectedBuilding
             );
 
         if (replacementSuccessful)
@@ -524,6 +643,13 @@ public class NavigationManager : MonoBehaviour
 
         currentBoardCell = null;
 
+        // We still have a current building selected,
+        // so keep Current Building Score visible.
+        UpdateCurrentBuildingScore();
+
+        // There is no longer an active grid-cell comparison.
+        ClearExistingBuildingScore();
+
         UpdateBuildingSelectionVisual();
     }
 
@@ -595,6 +721,14 @@ public class NavigationManager : MonoBehaviour
             infoPanel.ShowBuildingCancelled();
         }
 
+        // Keep the current building score because the
+        // building remains selected.
+        UpdateCurrentBuildingScore();
+
+        // Clear the existing-cell comparison because
+        // we are no longer on the board.
+        ClearExistingBuildingScore();
+
         UpdateBuildingSelectionVisual();
 
         Debug.Log(
@@ -651,6 +785,32 @@ public class NavigationManager : MonoBehaviour
         }
 
         infoPanel.ShowBuildingCannotBePlaced();
+    }
+
+    // =========================================================
+    // BUILDING TYPE
+    // =========================================================
+
+    private GridCell.BuildingType GetBuildingType(
+        int buildingIndex)
+    {
+        switch (buildingIndex)
+        {
+            case 0:
+                return GridCell.BuildingType.Blue;
+
+            case 1:
+                return GridCell.BuildingType.Red;
+
+            case 2:
+                return GridCell.BuildingType.Green;
+
+            case 3:
+                return GridCell.BuildingType.Yellow;
+
+            default:
+                return GridCell.BuildingType.None;
+        }
     }
 
     // =========================================================
