@@ -7,11 +7,6 @@ public class InfoPanelUI : MonoBehaviour
     [SerializeField] private GameObject background;
     [SerializeField] private TMP_Text messageText;
 
-
-    // =========================================================
-    // INITIALIZATION
-    // =========================================================
-
     private void Awake()
     {
         if (messageText != null)
@@ -19,11 +14,6 @@ public class InfoPanelUI : MonoBehaviour
             messageText.text = "Message";
         }
     }
-
-
-    // =========================================================
-    // GENERAL MESSAGE
-    // =========================================================
 
     public void ShowMessage(string message)
     {
@@ -43,39 +33,34 @@ public class InfoPanelUI : MonoBehaviour
             background.SetActive(true);
         }
 
-        Debug.Log("Info Panel: " + message);
+        Debug.Log(
+            "Info Panel: " +
+            message
+        );
     }
 
-
-    // =========================================================
-    // BUILDING SELECTION
-    // =========================================================
-
-    public void ShowBuildingSelected(string buildingName)
+    public void ShowBuildingSelected(
+        string buildingName)
     {
         ShowMessage(buildingName);
     }
 
-
-    // =========================================================
-    // PLACEMENT
-    // =========================================================
-
     public void ShowBuildingCanBePlaced()
     {
-        ShowMessage("Building can be placed");
+        ShowMessage(
+            "Building can be placed"
+        );
     }
-
 
     public void ShowBuildingCannotBePlaced()
     {
-        ShowMessage("Building cannot be placed");
+        ShowMessage(
+            "Building cannot be placed"
+        );
     }
 
-
-    // Accepts the building name because NavigationManager
-    // currently passes it when no valid placement exists.
-    public void ShowNoValidPlacement(string buildingName)
+    public void ShowNoValidPlacement(
+        string buildingName)
     {
         ShowMessage(
             buildingName +
@@ -83,12 +68,8 @@ public class InfoPanelUI : MonoBehaviour
         );
     }
 
-
-    // =========================================================
-    // BUILDING PLACED
-    // =========================================================
-
-    public void ShowBuildingPlaced(string buildingName)
+    public void ShowBuildingPlaced(
+        string buildingName)
     {
         ShowMessage(
             buildingName +
@@ -96,20 +77,12 @@ public class InfoPanelUI : MonoBehaviour
         );
     }
 
-
-    // =========================================================
-    // BUILDING CANCELLED / DEMOLISHED
-    // =========================================================
-
     public void ShowBuildingCancelled()
     {
-        ShowMessage("Building demolished");
+        ShowMessage(
+            "Building demolished"
+        );
     }
-
-
-    // =========================================================
-    // HIDE
-    // =========================================================
 
     public void Hide()
     {

@@ -49,11 +49,6 @@ public class CurrentBuildingScoreUI : MonoBehaviour
     {
         if (scoreText == null)
         {
-            Debug.LogWarning(
-                "CurrentBuildingScoreUI: " +
-                "Score Text is not assigned."
-            );
-
             return;
         }
 
@@ -71,26 +66,17 @@ public class CurrentBuildingScoreUI : MonoBehaviour
         int existingScore =
             scoreManager.ExistingBuildingScore;
 
-        // No current building selected.
-        if (currentScore <= 0)
+        if (existingScore > 0)
         {
-            scoreText.text = "0";
-            return;
+            scoreText.text =
+                currentScore +
+                " / " +
+                existingScore;
         }
-
-        // Empty grid cell.
-        if (existingScore <= 0)
+        else
         {
             scoreText.text =
                 currentScore.ToString();
-
-            return;
         }
-
-        // Occupied grid cell.
-        scoreText.text =
-            currentScore +
-            " / " +
-            existingScore;
     }
 }

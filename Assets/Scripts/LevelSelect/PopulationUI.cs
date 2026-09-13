@@ -45,6 +45,7 @@ public class PopulationUI : MonoBehaviour
         }
 
         populationText.text =
-            boardManager.GetTotalPopulation().ToString();
+            boardManager.GetTotalPopulation()
+            .ToString();
     }
 }

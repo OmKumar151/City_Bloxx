@@ -5,22 +5,11 @@ public class BuildingScoreManager : MonoBehaviour
 {
     public static BuildingScoreManager Instance { get; private set; }
 
-    // =========================================================
-    // SCORES
-    // =========================================================
-
-    // Score of the building the player currently has selected.
     public int CurrentBuildingScore { get; private set; }
 
-    // Score of the building already occupying the selected
-    // grid cell.
     public int ExistingBuildingScore { get; private set; }
 
     public event Action OnScoreChanged;
-
-    // =========================================================
-    // UNITY
-    // =========================================================
 
     private void Awake()
     {
@@ -52,21 +41,12 @@ public class BuildingScoreManager : MonoBehaviour
 
         CurrentBuildingScore = score;
 
-        Debug.Log(
-            "Current Building Score set to: " +
-            CurrentBuildingScore
-        );
-
         NotifyScoreChanged();
     }
 
     public void ClearCurrentBuildingScore()
     {
         CurrentBuildingScore = 0;
-
-        Debug.Log(
-            "Current Building Score cleared."
-        );
 
         NotifyScoreChanged();
     }
@@ -84,11 +64,6 @@ public class BuildingScoreManager : MonoBehaviour
 
         ExistingBuildingScore = score;
 
-        Debug.Log(
-            "Existing Building Score set to: " +
-            ExistingBuildingScore
-        );
-
         NotifyScoreChanged();
     }
 
@@ -96,15 +71,11 @@ public class BuildingScoreManager : MonoBehaviour
     {
         ExistingBuildingScore = 0;
 
-        Debug.Log(
-            "Existing Building Score cleared."
-        );
-
         NotifyScoreChanged();
     }
 
     // =========================================================
-    // SET BOTH
+    // BOTH
     // =========================================================
 
     public void SetScores(
@@ -124,14 +95,6 @@ public class BuildingScoreManager : MonoBehaviour
         CurrentBuildingScore = currentScore;
         ExistingBuildingScore = existingScore;
 
-        Debug.Log(
-            "Building Scores updated. " +
-            "Current: " +
-            CurrentBuildingScore +
-            " | Existing: " +
-            ExistingBuildingScore
-        );
-
         NotifyScoreChanged();
     }
 
@@ -140,26 +103,11 @@ public class BuildingScoreManager : MonoBehaviour
         CurrentBuildingScore = 0;
         ExistingBuildingScore = 0;
 
-        Debug.Log(
-            "Building Scores cleared."
-        );
-
         NotifyScoreChanged();
     }
 
     // =========================================================
     // BACKWARD COMPATIBILITY
-    // =========================================================
-    //
-    // Your existing BoardManager already calls these methods.
-    // Keep them so BoardManager does not need to be changed.
-    //
-    // SetBuildingScore() now means:
-    //     Set the EXISTING/selected grid-cell score.
-    //
-    // ClearBuildingScore() now means:
-    //     Clear the EXISTING/selected grid-cell score.
-    //
     // =========================================================
 
     public void SetBuildingScore(int score)
@@ -178,14 +126,11 @@ public class BuildingScoreManager : MonoBehaviour
 
     private void NotifyScoreChanged()
     {
-        if (OnScoreChanged != null)
-        {
-            OnScoreChanged.Invoke();
-        }
+        OnScoreChanged?.Invoke();
     }
 
     // =========================================================
-    // TESTS
+    // TESTING
     // =========================================================
 
     [ContextMenu("Test Current Score 250")]

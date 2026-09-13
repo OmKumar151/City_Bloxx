@@ -8,7 +8,7 @@ public class NavigationManager : MonoBehaviour
         BoardPlacement
     }
 
-    [Header("References")]
+[Header("References")]
     [SerializeField] private BuildingSelectionUI buildingSelectionUI;
     [SerializeField] private BoardManager boardManager;
     [SerializeField] private InfoPanelUI infoPanel;
@@ -43,11 +43,8 @@ public class NavigationManager : MonoBehaviour
         currentBoardCell = null;
 
         UpdateBuildingSelectionVisual();
-
         ShowBuildingSelected();
-
         UpdateCurrentBuildingScore();
-
         ClearExistingBuildingScore();
 
         Debug.Log(
@@ -125,9 +122,7 @@ public class NavigationManager : MonoBehaviour
         }
 
         UpdateBuildingSelectionVisual();
-
         ShowBuildingSelected();
-
         UpdateCurrentBuildingScore();
 
         Debug.Log(
@@ -147,9 +142,7 @@ public class NavigationManager : MonoBehaviour
         }
 
         UpdateBuildingSelectionVisual();
-
         ShowBuildingSelected();
-
         UpdateCurrentBuildingScore();
 
         Debug.Log(
@@ -183,11 +176,6 @@ public class NavigationManager : MonoBehaviour
     {
         if (BuildingScoreManager.Instance == null)
         {
-            Debug.LogWarning(
-                "NavigationManager: " +
-                "BuildingScoreManager instance was not found."
-            );
-
             return;
         }
 
@@ -214,34 +202,18 @@ public class NavigationManager : MonoBehaviour
     {
         if (BuildingScoreManager.Instance == null)
         {
-            Debug.LogWarning(
-                "NavigationManager: " +
-                "BuildingScoreManager instance was not found."
-            );
-
-            return;
-        }
-
-        if (boardManager == null)
-        {
-            BuildingScoreManager.Instance
-                .ClearExistingBuildingScore();
-
             return;
         }
 
         if (currentBoardCell == null)
         {
-            BuildingScoreManager.Instance
-                .ClearExistingBuildingScore();
-
+            ClearExistingBuildingScore();
             return;
         }
 
         if (!currentBoardCell.IsOccupied)
         {
-            BuildingScoreManager.Instance
-                .ClearExistingBuildingScore();
+            ClearExistingBuildingScore();
 
             Debug.Log(
                 "Selected cell is empty. " +
@@ -312,16 +284,15 @@ public class NavigationManager : MonoBehaviour
         }
 
         /*
-         * The selected building must have at least one
-         * legal operation somewhere on the board.
+         * Ask BoardManager whether this building has at least
+         * one legal operation somewhere on the CURRENT board.
          *
-         * This can be:
+         * This includes:
          *
-         * 1. Normal placement on an empty cell.
-         * 2. Replacement of an existing building.
-         *
-         * BoardManager performs the complete validation.
+         * 1. Empty-cell placement
+         * 2. Valid replacement
          */
+
         if (!boardManager.HasValidPlacementOrReplacement(
             selectedBuilding))
         {
@@ -335,11 +306,6 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        /*
-         * Start at the first actual GridCell.
-         *
-         * It may be occupied because replacement is allowed.
-         */
         currentBoardCell =
             boardManager.GetFirstBoardCell();
 
@@ -362,10 +328,7 @@ public class NavigationManager : MonoBehaviour
             currentBoardCell
         );
 
-        // Update the existing building portion
-        // after selecting the first board cell.
         UpdateExistingBuildingScore();
-
         ShowPlacementStatus();
 
         Debug.Log(
@@ -415,19 +378,24 @@ public class NavigationManager : MonoBehaviour
             );
 
             UpdateExistingBuildingScore();
-
             ShowPlacementStatus();
 
             return;
         }
 
         /*
-         * Only an actual neighbouring GridCell can be
-         * selected.
+         * IMPORTANT:
          *
-         * This means gaps in an irregular board cannot
-         * be skipped.
+         * GetNeighbour only checks:
+         *
+         * X + 1
+         * X - 1
+         * Y + 1
+         * Y - 1
+         *
+         * Therefore gaps in an irregular map cannot be skipped.
          */
+
         GridCell nextCell =
             boardManager.GetNeighbour(
                 currentBoardCell,
@@ -451,10 +419,7 @@ public class NavigationManager : MonoBehaviour
             currentBoardCell
         );
 
-        // Update the existing building score whenever
-        // the player moves to another grid cell.
         UpdateExistingBuildingScore();
-
         ShowPlacementStatus();
 
         Debug.Log(
@@ -491,17 +456,8 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        /*
-         * TEMPORARY POPULATION
-         *
-         * This will eventually come from the completed
-         * building gameplay level.
-         */
-        int population = 100;
-
         // =====================================================
         // EMPTY CELL
-        // NORMAL PLACEMENT
         // =====================================================
 
         if (!currentBoardCell.IsOccupied)
@@ -513,7 +469,14 @@ public class NavigationManager : MonoBehaviour
 
             if (placementSuccessful)
             {
-                AddPopulation(population);
+                /*
+                 * BoardManager already stores the building's
+                 * correct population.
+                 *
+                 * We no longer use the old temporary value of 100.
+                 */
+
+                SyncPopulationManager();
 
                 ShowBuildingPlaced();
 
@@ -542,11 +505,11 @@ public class NavigationManager : MonoBehaviour
         // REPLACEMENT
         // =====================================================
 
-        int oldPopulation =
-            currentBoardCell.BuildingPopulation;
-
         GridCell.BuildingType oldBuilding =
             currentBoardCell.CurrentBuilding;
+
+        int oldPopulation =
+            currentBoardCell.BuildingPopulation;
 
         bool replacementSuccessful =
             boardManager.ReplaceBuilding(
@@ -555,15 +518,14 @@ public class NavigationManager : MonoBehaviour
 
         if (replacementSuccessful)
         {
-            /*
-             * Remove the population belonging to the old
-             * building, then add the new building's population.
-             */
-            RemovePopulation(oldPopulation);
-
-            AddPopulation(population);
+            SyncPopulationManager();
 
             ShowBuildingPlaced();
+
+            // Store the new building BEFORE
+            // ReturnToBuildingSelection() clears currentBoardCell.
+            GridCell.BuildingType newBuilding =
+                currentBoardCell.CurrentBuilding;
 
             ReturnToBuildingSelection();
 
@@ -573,16 +535,12 @@ public class NavigationManager : MonoBehaviour
                 oldBuilding +
                 " | Old Population: " +
                 oldPopulation +
-                " | New Population: " +
-                population
+                " | New Building: " +
+                newBuilding
             );
         }
         else
         {
-            /*
-             * Replacement failed because the resulting
-             * board would violate one or more building rules.
-             */
             ShowBuildingCannotBePlaced();
 
             Debug.Log(
@@ -596,40 +554,21 @@ public class NavigationManager : MonoBehaviour
     // POPULATION
     // =========================================================
 
-    private void AddPopulation(
-        int amount)
+    private void SyncPopulationManager()
     {
-        if (PopulationManager.Instance != null)
+        if (PopulationManager.Instance == null)
         {
-            PopulationManager.Instance.AddPopulation(
-                amount
-            );
+            return;
         }
-        else
-        {
-            Debug.LogWarning(
-                "NavigationManager: PopulationManager " +
-                "instance was not found."
-            );
-        }
-    }
 
-    private void RemovePopulation(
-        int amount)
-    {
-        if (PopulationManager.Instance != null)
-        {
-            PopulationManager.Instance.RemovePopulation(
-                amount
-            );
-        }
-        else
-        {
-            Debug.LogWarning(
-                "NavigationManager: PopulationManager " +
-                "instance was not found."
-            );
-        }
+        /*
+         * BoardManager is the source of truth for the current
+         * board population.
+         */
+
+        PopulationManager.Instance.SetPopulation(
+            boardManager.GetTotalPopulation()
+        );
     }
 
     // =========================================================
@@ -643,13 +582,8 @@ public class NavigationManager : MonoBehaviour
 
         currentBoardCell = null;
 
-        // We still have a current building selected,
-        // so keep Current Building Score visible.
         UpdateCurrentBuildingScore();
-
-        // There is no longer an active grid-cell comparison.
         ClearExistingBuildingScore();
-
         UpdateBuildingSelectionVisual();
     }
 
@@ -666,13 +600,6 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        /*
-         * Empty cell:
-         *     Checks normal placement rules.
-         *
-         * Occupied cell:
-         *     Checks complete-board replacement rules.
-         */
         bool canOperate =
             boardManager.CanPlaceOrReplaceBuilding(
                 selectedBuilding
@@ -689,7 +616,7 @@ public class NavigationManager : MonoBehaviour
     }
 
     // =========================================================
-    // CANCEL / DISCARD
+    // CANCEL
     // =========================================================
 
     public void CancelPlacement()
@@ -721,14 +648,8 @@ public class NavigationManager : MonoBehaviour
             infoPanel.ShowBuildingCancelled();
         }
 
-        // Keep the current building score because the
-        // building remains selected.
         UpdateCurrentBuildingScore();
-
-        // Clear the existing-cell comparison because
-        // we are no longer on the board.
         ClearExistingBuildingScore();
-
         UpdateBuildingSelectionVisual();
 
         Debug.Log(
@@ -838,4 +759,6 @@ public class NavigationManager : MonoBehaviour
                 return "Unknown";
         }
     }
+
+
 }

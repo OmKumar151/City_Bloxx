@@ -60,7 +60,7 @@ public class GridCell : MonoBehaviour
     }
 
     // =========================================================
-    // SETUP
+    // UNITY
     // =========================================================
 
     private void Awake()
@@ -68,6 +68,10 @@ public class GridCell : MonoBehaviour
         SetHighlight(false);
         ClearBuilding();
     }
+
+    // =========================================================
+    // HIGHLIGHT
+    // =========================================================
 
     public void SetHighlight(bool selected)
     {
@@ -89,7 +93,8 @@ public class GridCell : MonoBehaviour
         if (buildingHolder == null)
         {
             Debug.LogWarning(
-                "GridCell " + name +
+                "GridCell " +
+                name +
                 ": Building Holder is not assigned."
             );
 
@@ -99,7 +104,8 @@ public class GridCell : MonoBehaviour
         if (buildingImage == null)
         {
             Debug.LogWarning(
-                "GridCell " + name +
+                "GridCell " +
+                name +
                 ": Building Image is not assigned."
             );
 
@@ -109,7 +115,8 @@ public class GridCell : MonoBehaviour
         if (buildingSprite == null)
         {
             Debug.LogWarning(
-                "GridCell " + name +
+                "GridCell " +
+                name +
                 ": Building sprite is null."
             );
 
@@ -151,10 +158,7 @@ public class GridCell : MonoBehaviour
         }
 
         IsOccupied = false;
-
-        CurrentBuilding =
-            BuildingType.None;
-
+        CurrentBuilding = BuildingType.None;
         BuildingPopulation = 0;
     }
 }

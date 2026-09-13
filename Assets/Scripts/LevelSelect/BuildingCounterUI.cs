@@ -34,7 +34,7 @@ public class BuildingCounterUI : MonoBehaviour
         {
             Debug.LogWarning(
                 "BuildingCounterUI: " +
-                "Could not find a BoardManager in the scene."
+                "Could not find a BoardManager."
             );
         }
     }
@@ -55,7 +55,9 @@ public class BuildingCounterUI : MonoBehaviour
         int totalCells = 0;
         int occupiedCells = 0;
 
-        foreach (GridCell cell in boardManager.GetAllActiveCells())
+        foreach (
+            GridCell cell
+            in boardManager.GetAllActiveCells())
         {
             if (cell == null)
             {

@@ -3383,8 +3383,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 85, y: -14}
-  m_SizeDelta: {x: 598.216, y: 111.816}
+  m_AnchoredPosition: {x: 148.63498, y: -14}
+  m_SizeDelta: {x: 827.858, y: 111.816}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1034827114
 MonoBehaviour:
@@ -4425,6 +4425,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1448530982}
+  - component: {fileID: 1448530983}
   m_Layer: 5
   m_Name: Grid
   m_TagString: Untagged
@@ -4456,6 +4457,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1448530983
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448530981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06687ac0a1d77864eb2862b507638cda, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GridManager
 --- !u!1 &1472544903
 GameObject:
   m_ObjectHideFlags: 0
@@ -4680,7 +4693,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd14af308680a8445ba93742d7061c85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardManager
-  gridRoot: {fileID: 0}
+  gridRoot: {fileID: 1448530982}
   blueBuildingSprite: {fileID: 7659080881312874595, guid: 33d29b8699e4f0343a457a1ca595359b, type: 3}
   redBuildingSprite: {fileID: -612752949811186290, guid: 72c73f7140eaa754b80920bf58d0150e, type: 3}
   greenBuildingSprite: {fileID: -6617001765717360738, guid: 23628e59292923e4c91829c8568c39e0, type: 3}
