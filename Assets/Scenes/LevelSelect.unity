@@ -1714,6 +1714,7 @@ Transform:
   - {fileID: 1894240963}
   - {fileID: 412002150}
   - {fileID: 1737179797}
+  - {fileID: 422999043}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &364477664
@@ -2013,6 +2014,67 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57fab4d15198cd1479a27c0060c233cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PopulationManager
+--- !u!1 &422999042
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 422999043}
+  - component: {fileID: 422999044}
+  m_Layer: 0
+  m_Name: PopulationProgressionManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &422999043
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 422999042}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 330771523}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &422999044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 422999042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23fd3d279b8420c4ba5527fa34f74608, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PopulationProgressionManager
+  checkpoints:
+  - requiredPopulation: 0
+    reward: 0
+  - requiredPopulation: 500
+    reward: 1
+  - requiredPopulation: 1000
+    reward: 2
+  - requiredPopulation: 1500
+    reward: 3
+  - requiredPopulation: 2000
+    reward: 4
+  - requiredPopulation: 2500
+    reward: 5
+  - requiredPopulation: 3000
+    reward: 6
+  - requiredPopulation: 3500
+    reward: 7
 --- !u!1001 &459703706
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2377,7 +2439,7 @@ GameObject:
   - component: {fileID: 620550354}
   - component: {fileID: 620550353}
   m_Layer: 5
-  m_Name: Image
+  m_Name: Star
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4462,9 +4524,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PopulationProgressBarUI
   fillImage: {fileID: 1929923738}
-  requiredPopulation: 1000
   fillSpeed: 0.2
-  boardManager: {fileID: 1499414280}
 --- !u!1 &1420890251
 GameObject:
   m_ObjectHideFlags: 0
@@ -4678,6 +4738,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1494890313}
+  - component: {fileID: 1494890315}
+  - component: {fileID: 1494890314}
   m_Layer: 0
   m_Name: SaveManager
   m_TagString: Untagged
@@ -4700,6 +4762,34 @@ Transform:
   m_Children: []
   m_Father: {fileID: 330771523}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1494890314
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1494890312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2bd5d192c2653b4080fc4ae8e358ad2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapSaveManager
+  mapID: CityBloxx_Map_01
+  boardManager: {fileID: 1499414280}
+  populationManager: {fileID: 412002151}
+  progressionManager: {fileID: 422999044}
+--- !u!114 &1494890315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1494890312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 841a00d922b79eb499f759789de8a00c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveManager
 --- !u!1 &1496035878
 GameObject:
   m_ObjectHideFlags: 0
@@ -4712,7 +4802,7 @@ GameObject:
   - component: {fileID: 1496035881}
   - component: {fileID: 1496035880}
   m_Layer: 5
-  m_Name: Image (1)
+  m_Name: Star
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5015,6 +5105,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1619613486}
   - component: {fileID: 1619613487}
+  - component: {fileID: 1619613488}
   m_Layer: 5
   m_Name: BuildingSelection
   m_TagString: Untagged
@@ -5071,6 +5162,28 @@ MonoBehaviour:
   normalScale: 1
   glowColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   glowDistance: {x: 2, y: 2}
+--- !u!114 &1619613488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1619613485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5921c880838a7d24c955887f10542133, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingUnlockUI
+  buildingImages:
+  - {fileID: 1689744159}
+  - {fileID: 874648242}
+  - {fileID: 57179243}
+  - {fileID: 270511982}
+  starObjects:
+  - {fileID: 620550351}
+  - {fileID: 1496035878}
+  - {fileID: 2115881579}
+  - {fileID: 1843855335}
 --- !u!224 &1640366589 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2937614819519740212, guid: 1a7ff0b862d855f42b3ab460f72f26fe, type: 3}
@@ -5574,7 +5687,7 @@ GameObject:
   - component: {fileID: 1843855338}
   - component: {fileID: 1843855337}
   m_Layer: 5
-  m_Name: Image (3)
+  m_Name: Star
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7462,7 +7575,7 @@ GameObject:
   - component: {fileID: 2115881582}
   - component: {fileID: 2115881581}
   m_Layer: 5
-  m_Name: Image (2)
+  m_Name: Star
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

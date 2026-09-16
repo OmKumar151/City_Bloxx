@@ -1315,4 +1315,70 @@ public class BoardManager : MonoBehaviour
     {
         RefreshBoardAnalysis();
     }
+
+    public void RestoreBuilding(
+    GridCell cell,
+    GridCell.BuildingType buildingType,
+    int population)
+    {
+        if (cell == null)
+        {
+            Debug.LogWarning(
+                "BoardManager: Cannot restore building. " +
+                "GridCell is null."
+            );
+
+            return;
+        }
+
+        Sprite buildingSprite =
+            GetBuildingSprite(
+                GetBuildingIndex(buildingType)
+            );
+
+        if (buildingType == GridCell.BuildingType.None)
+        {
+            cell.ClearBuilding();
+            return;
+        }
+
+        if (buildingSprite == null)
+        {
+            Debug.LogWarning(
+                "BoardManager: Cannot restore " +
+                buildingType +
+                " because its sprite is missing."
+            );
+
+            return;
+        }
+
+        cell.SetBuilding(
+            buildingSprite,
+            buildingType,
+            population
+        );
+    }
+
+    private int GetBuildingIndex(
+    GridCell.BuildingType buildingType)
+    {
+        switch (buildingType)
+        {
+            case GridCell.BuildingType.Blue:
+                return 0;
+
+            case GridCell.BuildingType.Red:
+                return 1;
+
+            case GridCell.BuildingType.Green:
+                return 2;
+
+            case GridCell.BuildingType.Yellow:
+                return 3;
+
+            default:
+                return -1;
+        }
+    }
 }

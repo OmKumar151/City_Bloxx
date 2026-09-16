@@ -8,7 +8,7 @@ public class NavigationManager : MonoBehaviour
         BoardPlacement
     }
 
-[Header("References")]
+    [Header("References")]
     [SerializeField] private BuildingSelectionUI buildingSelectionUI;
     [SerializeField] private BoardManager boardManager;
     [SerializeField] private InfoPanelUI infoPanel;
@@ -114,12 +114,17 @@ public class NavigationManager : MonoBehaviour
 
     private void SelectPreviousBuilding()
     {
-        selectedBuilding--;
+        int nextBuilding =
+            GetPreviousUnlockedBuilding(
+                selectedBuilding
+            );
 
-        if (selectedBuilding < 0)
+        if (nextBuilding == selectedBuilding)
         {
-            selectedBuilding = 0;
+            return;
         }
+
+        selectedBuilding = nextBuilding;
 
         UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
@@ -133,13 +138,17 @@ public class NavigationManager : MonoBehaviour
 
     private void SelectNextBuilding()
     {
-        selectedBuilding++;
+        int nextBuilding =
+            GetNextUnlockedBuilding(
+                selectedBuilding
+            );
 
-        if (selectedBuilding >= numberOfBuildings)
+        if (nextBuilding == selectedBuilding)
         {
-            selectedBuilding =
-                numberOfBuildings - 1;
+            return;
         }
+
+        selectedBuilding = nextBuilding;
 
         UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
@@ -150,6 +159,102 @@ public class NavigationManager : MonoBehaviour
             selectedBuilding
         );
     }
+
+    // =========================================================
+    // UNLOCKED BUILDING NAVIGATION
+    // =========================================================
+
+    private int GetNextUnlockedBuilding(
+        int currentBuilding)
+    {
+        if (PopulationProgressionManager.Instance == null)
+        {
+            return currentBuilding;
+        }
+
+        for (
+            int i = currentBuilding + 1;
+            i < numberOfBuildings;
+            i++)
+        {
+            if (IsBuildingUnlocked(i))
+            {
+                return i;
+            }
+        }
+
+        return currentBuilding;
+    }
+
+    private int GetPreviousUnlockedBuilding(
+        int currentBuilding)
+    {
+        if (PopulationProgressionManager.Instance == null)
+        {
+            return currentBuilding;
+        }
+
+        for (
+            int i = currentBuilding - 1;
+            i >= 0;
+            i--)
+        {
+            if (IsBuildingUnlocked(i))
+            {
+                return i;
+            }
+        }
+
+        return currentBuilding;
+    }
+
+    private bool IsBuildingUnlocked(
+        int buildingIndex)
+    {
+        if (PopulationProgressionManager.Instance == null)
+        {
+            return buildingIndex == 0;
+        }
+
+        PopulationProgressionManager.RewardType reward;
+
+        switch (buildingIndex)
+        {
+            case 0:
+                reward =
+                    PopulationProgressionManager
+                        .RewardType.BlueBuilding;
+                break;
+
+            case 1:
+                reward =
+                    PopulationProgressionManager
+                        .RewardType.RedBuilding;
+                break;
+
+            case 2:
+                reward =
+                    PopulationProgressionManager
+                        .RewardType.GreenBuilding;
+                break;
+
+            case 3:
+                reward =
+                    PopulationProgressionManager
+                        .RewardType.YellowBuilding;
+                break;
+
+            default:
+                return false;
+        }
+
+        return PopulationProgressionManager.Instance
+            .IsRewardUnlocked(reward);
+    }
+
+    // =========================================================
+    // BUILDING SELECTION VISUAL
+    // =========================================================
 
     private void UpdateBuildingSelectionVisual()
     {
@@ -283,16 +388,6 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        /*
-         * Ask BoardManager whether this building has at least
-         * one legal operation somewhere on the CURRENT board.
-         *
-         * This includes:
-         *
-         * 1. Empty-cell placement
-         * 2. Valid replacement
-         */
-
         if (!boardManager.HasValidPlacementOrReplacement(
             selectedBuilding))
         {
@@ -383,19 +478,6 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        /*
-         * IMPORTANT:
-         *
-         * GetNeighbour only checks:
-         *
-         * X + 1
-         * X - 1
-         * Y + 1
-         * Y - 1
-         *
-         * Therefore gaps in an irregular map cannot be skipped.
-         */
-
         GridCell nextCell =
             boardManager.GetNeighbour(
                 currentBoardCell,
@@ -469,13 +551,6 @@ public class NavigationManager : MonoBehaviour
 
             if (placementSuccessful)
             {
-                /*
-                 * BoardManager already stores the building's
-                 * correct population.
-                 *
-                 * We no longer use the old temporary value of 100.
-                 */
-
                 SyncPopulationManager();
 
                 ShowBuildingPlaced();
@@ -522,8 +597,6 @@ public class NavigationManager : MonoBehaviour
 
             ShowBuildingPlaced();
 
-            // Store the new building BEFORE
-            // ReturnToBuildingSelection() clears currentBoardCell.
             GridCell.BuildingType newBuilding =
                 currentBoardCell.CurrentBuilding;
 
@@ -560,11 +633,6 @@ public class NavigationManager : MonoBehaviour
         {
             return;
         }
-
-        /*
-         * BoardManager is the source of truth for the current
-         * board population.
-         */
 
         PopulationManager.Instance.SetPopulation(
             boardManager.GetTotalPopulation()
@@ -759,6 +827,4 @@ public class NavigationManager : MonoBehaviour
                 return "Unknown";
         }
     }
-
-
 }
