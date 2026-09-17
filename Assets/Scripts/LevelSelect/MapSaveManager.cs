@@ -6,45 +6,25 @@ public class MapSaveManager : MonoBehaviour
 {
     public static MapSaveManager Instance { get; private set; }
 
-    [Header("Map")]
-    [SerializeField] private string mapID = "CityBloxx_Map_01";
+    private const string SaveKey = "CityBloxx_MapSave";
 
     [Header("References")]
     [SerializeField] private BoardManager boardManager;
 
-    [SerializeField] private PopulationManager populationManager;
-
-    [SerializeField]
-    private PopulationProgressionManager progressionManager;
-
-    private const string SavePrefix =
-        "CityBloxx_Save_";
-
-    private string SaveKey =>
-        SavePrefix + mapID;
-
-    private string lastSavedState = "";
-
-    private bool isLoading;
+    [Serializable]
+    private class BuildingSaveData
+    {
+        public int x;
+        public int y;
+        public GridCell.BuildingType buildingType;
+        public int population;
+    }
 
     [Serializable]
     private class MapSaveData
     {
-        public int population;
-
-        public List<CellSaveData> cells =
-            new List<CellSaveData>();
-    }
-
-    [Serializable]
-    private class CellSaveData
-    {
-        public int x;
-        public int y;
-
-        public GridCell.BuildingType buildingType;
-
-        public int buildingPopulation;
+        public List<BuildingSaveData> buildings =
+            new List<BuildingSaveData>();
     }
 
     private void Awake()
@@ -61,55 +41,16 @@ public class MapSaveManager : MonoBehaviour
 
     private void Start()
     {
-        FindReferences();
+        if (boardManager == null)
+        {
+            Debug.LogWarning(
+                "MapSaveManager: BoardManager is not assigned."
+            );
+
+            return;
+        }
 
         LoadMap();
-    }
-
-    private void Update()
-    {
-        if (isLoading)
-        {
-            return;
-        }
-
-        if (boardManager == null)
-        {
-            return;
-        }
-
-        string currentState =
-            CreateStateSignature();
-
-        if (currentState != lastSavedState)
-        {
-            SaveMap();
-        }
-    }
-
-    // =========================================================
-    // REFERENCES
-    // =========================================================
-
-    private void FindReferences()
-    {
-        if (boardManager == null)
-        {
-            boardManager =
-                FindFirstObjectByType<BoardManager>();
-        }
-
-        if (populationManager == null)
-        {
-            populationManager =
-                PopulationManager.Instance;
-        }
-
-        if (progressionManager == null)
-        {
-            progressionManager =
-                PopulationProgressionManager.Instance;
-        }
     }
 
     // =========================================================
@@ -118,18 +59,11 @@ public class MapSaveManager : MonoBehaviour
 
     public void SaveMap()
     {
-        if (isLoading)
-        {
-            return;
-        }
-
-        FindReferences();
-
         if (boardManager == null)
         {
             Debug.LogWarning(
-                "MapSaveManager: " +
-                "BoardManager is missing."
+                "MapSaveManager: Cannot save because " +
+                "BoardManager is not assigned."
             );
 
             return;
@@ -138,20 +72,8 @@ public class MapSaveManager : MonoBehaviour
         MapSaveData saveData =
             new MapSaveData();
 
-        if (populationManager != null)
-        {
-            saveData.population =
-                populationManager.TotalPopulation;
-        }
-        else
-        {
-            saveData.population =
-                boardManager.GetTotalPopulation();
-        }
-
-        foreach (
-            GridCell cell
-            in boardManager.GetAllActiveCells())
+        foreach (GridCell cell in
+                 boardManager.GetAllActiveCells())
         {
             if (cell == null)
             {
@@ -163,23 +85,23 @@ public class MapSaveManager : MonoBehaviour
                 continue;
             }
 
-            CellSaveData cellData =
-                new CellSaveData();
+            BuildingSaveData buildingData =
+                new BuildingSaveData();
 
-            cellData.x = cell.X;
-            cellData.y = cell.Y;
-            cellData.buildingType =
+            buildingData.x = cell.X;
+            buildingData.y = cell.Y;
+            buildingData.buildingType =
                 cell.CurrentBuilding;
-            cellData.buildingPopulation =
+            buildingData.population =
                 cell.BuildingPopulation;
 
-            saveData.cells.Add(cellData);
+            saveData.buildings.Add(
+                buildingData
+            );
         }
 
         string json =
-            JsonUtility.ToJson(
-                saveData
-            );
+            JsonUtility.ToJson(saveData);
 
         PlayerPrefs.SetString(
             SaveKey,
@@ -188,17 +110,13 @@ public class MapSaveManager : MonoBehaviour
 
         PlayerPrefs.Save();
 
-        lastSavedState =
-            CreateStateSignature();
-
         Debug.Log(
             "MapSaveManager: Map saved. " +
-            "Population: " +
-            saveData.population +
-            " | Buildings: " +
-            saveData.cells.Count
+            "Buildings saved: " +
+            saveData.buildings.Count
         );
     }
+
 
     // =========================================================
     // LOAD
@@ -206,13 +124,11 @@ public class MapSaveManager : MonoBehaviour
 
     public void LoadMap()
     {
-        FindReferences();
-
         if (boardManager == null)
         {
             Debug.LogWarning(
-                "MapSaveManager: " +
-                "BoardManager is missing."
+                "MapSaveManager: Cannot load because " +
+                "BoardManager is not assigned."
             );
 
             return;
@@ -221,13 +137,11 @@ public class MapSaveManager : MonoBehaviour
         if (!PlayerPrefs.HasKey(SaveKey))
         {
             Debug.Log(
-                "MapSaveManager: No save found for " +
-                mapID +
-                ". Starting new map."
+                "MapSaveManager: No saved map found. " +
+                "Starting from state 0."
             );
 
-            lastSavedState =
-                CreateStateSignature();
+            ResetPopulationAndProgression();
 
             return;
         }
@@ -240,74 +154,53 @@ public class MapSaveManager : MonoBehaviour
         if (string.IsNullOrEmpty(json))
         {
             Debug.LogWarning(
-                "MapSaveManager: Save data is empty."
+                "MapSaveManager: Saved map data is empty."
             );
+
+            ResetPopulationAndProgression();
 
             return;
         }
 
-        MapSaveData saveData;
-
-        try
-        {
-            saveData =
-                JsonUtility.FromJson<MapSaveData>(
-                    json
-                );
-        }
-        catch (Exception exception)
-        {
-            Debug.LogError(
-                "MapSaveManager: Failed to load save. " +
-                exception.Message
+        MapSaveData saveData =
+            JsonUtility.FromJson<MapSaveData>(
+                json
             );
-
-            return;
-        }
 
         if (saveData == null)
         {
             Debug.LogWarning(
-                "MapSaveManager: Save data could not be read."
+                "MapSaveManager: Could not read saved map data."
             );
+
+            ResetPopulationAndProgression();
 
             return;
         }
 
-        isLoading = true;
-
-        // Clear current board first.
+        // Clear whatever is currently on the board
+        // before restoring the saved state.
         boardManager.ClearAllBuildings();
 
-        // Restore population.
-        if (populationManager != null)
+        if (saveData.buildings != null)
         {
-            populationManager.SetPopulation(
-                saveData.population
-            );
-        }
-
-        // Restore buildings.
-        if (saveData.cells != null)
-        {
-            foreach (
-                CellSaveData cellData
-                in saveData.cells)
+            foreach (BuildingSaveData buildingData
+                     in saveData.buildings)
             {
                 GridCell cell =
                     boardManager.GetCell(
-                        cellData.x,
-                        cellData.y
+                        buildingData.x,
+                        buildingData.y
                     );
 
                 if (cell == null)
                 {
                     Debug.LogWarning(
-                        "MapSaveManager: Saved cell (" +
-                        cellData.x +
+                        "MapSaveManager: Could not find GridCell at (" +
+                        buildingData.x +
                         ", " +
-                        cellData.y +
-                        ") no longer exists."
+                        buildingData.y +
+                        ")."
                     );
 
                     continue;
@@ -315,41 +208,25 @@ public class MapSaveManager : MonoBehaviour
 
                 boardManager.RestoreBuilding(
                     cell,
-                    cellData.buildingType,
-                    cellData.buildingPopulation
+                    buildingData.buildingType,
+                    buildingData.population
                 );
             }
         }
 
-        // Make sure population matches the actual board.
-        if (populationManager != null)
-        {
-            populationManager.SetPopulation(
-                boardManager.GetTotalPopulation()
-            );
-        }
-
-        isLoading = false;
-
-        // Recalculate progression from restored population.
-        FindReferences();
-
-        if (progressionManager != null)
-        {
-            progressionManager.ForceCheckProgression();
-        }
-
-        lastSavedState =
-            CreateStateSignature();
+        SyncPopulation();
 
         Debug.Log(
             "MapSaveManager: Map loaded. " +
-            "Population: " +
-            boardManager.GetTotalPopulation() +
-            " | Buildings: " +
-            boardManager.GetTotalBuildingCount()
+            "Buildings restored: " +
+            (
+                saveData.buildings != null
+                    ? saveData.buildings.Count
+                    : 0
+            )
         );
     }
+
 
     // =========================================================
     // RESET
@@ -357,42 +234,87 @@ public class MapSaveManager : MonoBehaviour
 
     public void ResetMap()
     {
-        FindReferences();
-
-        isLoading = true;
-
-        if (boardManager != null)
+        if (boardManager == null)
         {
-            boardManager.ClearAllBuildings();
+            Debug.LogWarning(
+                "MapSaveManager: Cannot reset because " +
+                "BoardManager is not assigned."
+            );
+
+            return;
         }
 
-        if (populationManager != null)
+        // -----------------------------------------------------
+        // 1. Clear every building from the board
+        // -----------------------------------------------------
+
+        boardManager.ClearAllBuildings();
+
+
+        // -----------------------------------------------------
+        // 2. Reset population
+        // -----------------------------------------------------
+
+        if (PopulationManager.Instance != null)
         {
-            populationManager.SetPopulation(0);
+            PopulationManager.Instance.ResetPopulation();
         }
 
-        if (progressionManager != null)
+
+        // -----------------------------------------------------
+        // 3. Reset progression
+        // -----------------------------------------------------
+
+        if (PopulationProgressionManager.Instance != null)
         {
-            progressionManager.ResetProgression();
+            PopulationProgressionManager.Instance
+                .ResetProgression();
         }
 
-        isLoading = false;
+
+        // -----------------------------------------------------
+        // 4. Save the empty state
+        // -----------------------------------------------------
 
         SaveMap();
 
         Debug.Log(
-            "MapSaveManager: Map reset to State 0."
+            "MapSaveManager: Map reset to state 0."
         );
     }
 
+
     // =========================================================
-    // SAVE EXISTENCE
+    // POPULATION
     // =========================================================
 
-    public bool HasSave()
+    private void SyncPopulation()
     {
-        return PlayerPrefs.HasKey(SaveKey);
+        if (PopulationManager.Instance == null)
+        {
+            return;
+        }
+
+        PopulationManager.Instance.SetPopulation(
+            boardManager.GetTotalPopulation()
+        );
     }
+
+
+    private void ResetPopulationAndProgression()
+    {
+        if (PopulationManager.Instance != null)
+        {
+            PopulationManager.Instance.ResetPopulation();
+        }
+
+        if (PopulationProgressionManager.Instance != null)
+        {
+            PopulationProgressionManager.Instance
+                .ResetProgression();
+        }
+    }
+
 
     // =========================================================
     // DELETE SAVE
@@ -404,53 +326,10 @@ public class MapSaveManager : MonoBehaviour
         {
             PlayerPrefs.DeleteKey(SaveKey);
             PlayerPrefs.Save();
+
+            Debug.Log(
+                "MapSaveManager: Save deleted."
+            );
         }
-
-        lastSavedState = "";
-
-        Debug.Log(
-            "MapSaveManager: Save deleted for " +
-            mapID
-        );
-    }
-
-    // =========================================================
-    // STATE SIGNATURE
-    // =========================================================
-
-    private string CreateStateSignature()
-    {
-        if (boardManager == null)
-        {
-            return "";
-        }
-
-        string state = "";
-
-        foreach (
-            GridCell cell
-            in boardManager.GetAllActiveCells())
-        {
-            if (cell == null)
-            {
-                continue;
-            }
-
-            state +=
-                cell.X +
-                "," +
-                cell.Y +
-                ":" +
-                (int)cell.CurrentBuilding +
-                ":" +
-                cell.BuildingPopulation +
-                ";";
-        }
-
-        state +=
-            "|Population:" +
-            boardManager.GetTotalPopulation();
-
-        return state;
     }
 }

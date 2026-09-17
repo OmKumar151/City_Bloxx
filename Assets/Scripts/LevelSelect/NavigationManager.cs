@@ -29,6 +29,7 @@ public class NavigationManager : MonoBehaviour
     public NavigationMode CurrentMode =>
         currentMode;
 
+
     // =========================================================
     // START
     // =========================================================
@@ -52,6 +53,7 @@ public class NavigationManager : MonoBehaviour
         );
     }
 
+
     // =========================================================
     // D-PAD
     // =========================================================
@@ -69,6 +71,7 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
+
     public void Down()
     {
         if (currentMode ==
@@ -81,6 +84,7 @@ public class NavigationManager : MonoBehaviour
             MoveBoard(0, 1);
         }
     }
+
 
     public void Left()
     {
@@ -95,6 +99,7 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
+
     public void Right()
     {
         if (currentMode ==
@@ -107,6 +112,7 @@ public class NavigationManager : MonoBehaviour
             MoveBoard(1, 0);
         }
     }
+
 
     // =========================================================
     // BUILDING SELECTION
@@ -136,6 +142,7 @@ public class NavigationManager : MonoBehaviour
         );
     }
 
+
     private void SelectNextBuilding()
     {
         int nextBuilding =
@@ -159,6 +166,7 @@ public class NavigationManager : MonoBehaviour
             selectedBuilding
         );
     }
+
 
     // =========================================================
     // UNLOCKED BUILDING NAVIGATION
@@ -186,6 +194,7 @@ public class NavigationManager : MonoBehaviour
         return currentBuilding;
     }
 
+
     private int GetPreviousUnlockedBuilding(
         int currentBuilding)
     {
@@ -207,6 +216,7 @@ public class NavigationManager : MonoBehaviour
 
         return currentBuilding;
     }
+
 
     private bool IsBuildingUnlocked(
         int buildingIndex)
@@ -252,6 +262,7 @@ public class NavigationManager : MonoBehaviour
             .IsRewardUnlocked(reward);
     }
 
+
     // =========================================================
     // BUILDING SELECTION VISUAL
     // =========================================================
@@ -272,6 +283,7 @@ public class NavigationManager : MonoBehaviour
             );
         }
     }
+
 
     // =========================================================
     // SCORE
@@ -302,6 +314,7 @@ public class NavigationManager : MonoBehaviour
             score
         );
     }
+
 
     private void UpdateExistingBuildingScore()
     {
@@ -346,6 +359,7 @@ public class NavigationManager : MonoBehaviour
         );
     }
 
+
     private void ClearExistingBuildingScore()
     {
         if (BuildingScoreManager.Instance != null)
@@ -354,6 +368,7 @@ public class NavigationManager : MonoBehaviour
                 .ClearExistingBuildingScore();
         }
     }
+
 
     // =========================================================
     // OK BUTTON
@@ -371,6 +386,7 @@ public class NavigationManager : MonoBehaviour
             ConfirmBoardPosition();
         }
     }
+
 
     // =========================================================
     // ENTER BOARD MODE
@@ -434,6 +450,7 @@ public class NavigationManager : MonoBehaviour
             ")."
         );
     }
+
 
     // =========================================================
     // BOARD MOVEMENT
@@ -512,6 +529,7 @@ public class NavigationManager : MonoBehaviour
         );
     }
 
+
     // =========================================================
     // CONFIRM BOARD POSITION
     // =========================================================
@@ -538,6 +556,7 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+
         // =====================================================
         // EMPTY CELL
         // =====================================================
@@ -553,12 +572,19 @@ public class NavigationManager : MonoBehaviour
             {
                 SyncPopulationManager();
 
+                // -------------------------------------------------
+                // AUTOMATIC SAVE
+                // -------------------------------------------------
+
+                SaveMap();
+
                 ShowBuildingPlaced();
 
                 ReturnToBuildingSelection();
 
                 Debug.Log(
                     "Building placed successfully. " +
+                    "Map automatically saved. " +
                     "Returned to Building Selection Mode."
                 );
             }
@@ -574,6 +600,7 @@ public class NavigationManager : MonoBehaviour
 
             return;
         }
+
 
         // =====================================================
         // OCCUPIED CELL
@@ -595,6 +622,12 @@ public class NavigationManager : MonoBehaviour
         {
             SyncPopulationManager();
 
+            // -------------------------------------------------
+            // AUTOMATIC SAVE
+            // -------------------------------------------------
+
+            SaveMap();
+
             ShowBuildingPlaced();
 
             GridCell.BuildingType newBuilding =
@@ -604,6 +637,7 @@ public class NavigationManager : MonoBehaviour
 
             Debug.Log(
                 "Building replaced successfully. " +
+                "Map automatically saved. " +
                 "Old Building: " +
                 oldBuilding +
                 " | Old Population: " +
@@ -623,6 +657,28 @@ public class NavigationManager : MonoBehaviour
         }
     }
 
+
+    // =========================================================
+    // SAVE
+    // =========================================================
+
+    private void SaveMap()
+    {
+        if (MapSaveManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "NavigationManager: " +
+                "MapSaveManager is not available. " +
+                "The map was NOT saved."
+            );
+
+            return;
+        }
+
+        MapSaveManager.Instance.SaveMap();
+    }
+
+
     // =========================================================
     // POPULATION
     // =========================================================
@@ -639,6 +695,7 @@ public class NavigationManager : MonoBehaviour
         );
     }
 
+
     // =========================================================
     // RETURN TO BUILDING SELECTION
     // =========================================================
@@ -654,6 +711,7 @@ public class NavigationManager : MonoBehaviour
         ClearExistingBuildingScore();
         UpdateBuildingSelectionVisual();
     }
+
 
     // =========================================================
     // PLACEMENT STATUS
@@ -682,6 +740,7 @@ public class NavigationManager : MonoBehaviour
             infoPanel.ShowBuildingCannotBePlaced();
         }
     }
+
 
     // =========================================================
     // CANCEL
@@ -726,6 +785,26 @@ public class NavigationManager : MonoBehaviour
         );
     }
 
+
+    // =========================================================
+    // SAFETY SAVE
+    // =========================================================
+
+    private void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
+        {
+            SaveMap();
+        }
+    }
+
+
+    private void OnApplicationQuit()
+    {
+        SaveMap();
+    }
+
+
     // =========================================================
     // INFO PANEL
     // =========================================================
@@ -742,6 +821,7 @@ public class NavigationManager : MonoBehaviour
         );
     }
 
+
     private void ShowNoValidPlacement()
     {
         if (infoPanel == null)
@@ -753,6 +833,7 @@ public class NavigationManager : MonoBehaviour
             GetBuildingName(selectedBuilding)
         );
     }
+
 
     private void ShowBuildingPlaced()
     {
@@ -766,6 +847,7 @@ public class NavigationManager : MonoBehaviour
         );
     }
 
+
     private void ShowBuildingCannotBePlaced()
     {
         if (infoPanel == null)
@@ -775,6 +857,7 @@ public class NavigationManager : MonoBehaviour
 
         infoPanel.ShowBuildingCannotBePlaced();
     }
+
 
     // =========================================================
     // BUILDING TYPE
@@ -801,6 +884,7 @@ public class NavigationManager : MonoBehaviour
                 return GridCell.BuildingType.None;
         }
     }
+
 
     // =========================================================
     // BUILDING NAME
