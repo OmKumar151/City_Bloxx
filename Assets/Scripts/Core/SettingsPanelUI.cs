@@ -11,17 +11,21 @@ public class SettingsPanelUI : MonoBehaviour
     [SerializeField] private Slider sfxSlider;
     [SerializeField] private Toggle muteToggle;
 
+    private bool listenersRegistered;
+
     // =========================================================
     // INITIALIZATION
     // =========================================================
 
+    private void Awake()
+    {
+        RegisterListeners();
+    }
+
     private void Start()
     {
-        // The SettingsPanelUI script should NOT be attached
-        // to the Settings Panel itself.
-        //
-        // It should be attached to a separate always-active
-        // SettingsController GameObject.
+        // The SettingsPanelUI script should be on
+        // SettingsController, NOT on SettingPanel.
 
         if (settingsPanel != null)
         {
@@ -29,6 +33,99 @@ public class SettingsPanelUI : MonoBehaviour
         }
 
         LoadCurrentAudioSettings();
+    }
+
+    // =========================================================
+    // REGISTER UI EVENTS
+    // =========================================================
+
+    private void RegisterListeners()
+    {
+        if (listenersRegistered)
+            return;
+
+        // -----------------------------------------------------
+        // SAFETY CHECK
+        // -----------------------------------------------------
+
+        if (musicSlider != null &&
+            sfxSlider != null &&
+            musicSlider == sfxSlider)
+        {
+            Debug.LogError(
+                "SettingsPanelUI: Music Slider and SFX Slider " +
+                "are assigned to the SAME Slider. " +
+                "They must be two separate Slider objects."
+            );
+        }
+
+        // -----------------------------------------------------
+        // MUSIC SLIDER
+        // -----------------------------------------------------
+
+        if (musicSlider != null)
+        {
+            musicSlider.onValueChanged.AddListener(
+                OnMusicSliderChanged
+            );
+        }
+
+        // -----------------------------------------------------
+        // SFX SLIDER
+        // -----------------------------------------------------
+
+        if (sfxSlider != null)
+        {
+            sfxSlider.onValueChanged.AddListener(
+                OnSFXSliderChanged
+            );
+        }
+
+        // -----------------------------------------------------
+        // MUTE TOGGLE
+        // -----------------------------------------------------
+
+        if (muteToggle != null)
+        {
+            muteToggle.onValueChanged.AddListener(
+                OnMuteToggleChanged
+            );
+        }
+
+        listenersRegistered = true;
+    }
+
+    // =========================================================
+    // REMOVE UI EVENTS
+    // =========================================================
+
+    private void OnDestroy()
+    {
+        if (!listenersRegistered)
+            return;
+
+        if (musicSlider != null)
+        {
+            musicSlider.onValueChanged.RemoveListener(
+                OnMusicSliderChanged
+            );
+        }
+
+        if (sfxSlider != null)
+        {
+            sfxSlider.onValueChanged.RemoveListener(
+                OnSFXSliderChanged
+            );
+        }
+
+        if (muteToggle != null)
+        {
+            muteToggle.onValueChanged.RemoveListener(
+                OnMuteToggleChanged
+            );
+        }
+
+        listenersRegistered = false;
     }
 
     // =========================================================
@@ -46,10 +143,8 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
-        // Load the latest saved values.
         LoadCurrentAudioSettings();
 
-        // Open the panel.
         settingsPanel.SetActive(true);
 
         Debug.Log(
@@ -77,7 +172,7 @@ public class SettingsPanelUI : MonoBehaviour
     // MUSIC SLIDER
     // =========================================================
 
-    public void OnMusicSliderChanged(float value)
+    private void OnMusicSliderChanged(float value)
     {
         if (AudioManager.Instance == null)
         {
@@ -88,14 +183,20 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
+        // ONLY changes MUSIC.
         AudioManager.Instance.SetMusicVolume(value);
+
+        Debug.Log(
+            "SettingsPanelUI: Music slider changed to " +
+            value
+        );
     }
 
     // =========================================================
     // SFX SLIDER
     // =========================================================
 
-    public void OnSFXSliderChanged(float value)
+    private void OnSFXSliderChanged(float value)
     {
         if (AudioManager.Instance == null)
         {
@@ -106,14 +207,20 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
+        // ONLY changes SFX.
         AudioManager.Instance.SetSFXVolume(value);
+
+        Debug.Log(
+            "SettingsPanelUI: SFX slider changed to " +
+            value
+        );
     }
 
     // =========================================================
     // MUTE TOGGLE
     // =========================================================
 
-    public void OnMuteToggleChanged(bool value)
+    private void OnMuteToggleChanged(bool value)
     {
         if (AudioManager.Instance == null)
         {
@@ -142,6 +249,10 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
+        // -----------------------------------------------------
+        // MUSIC
+        // -----------------------------------------------------
+
         if (musicSlider != null)
         {
             musicSlider.SetValueWithoutNotify(
@@ -149,12 +260,20 @@ public class SettingsPanelUI : MonoBehaviour
             );
         }
 
+        // -----------------------------------------------------
+        // SFX
+        // -----------------------------------------------------
+
         if (sfxSlider != null)
         {
             sfxSlider.SetValueWithoutNotify(
                 AudioManager.Instance.SFXVolume
             );
         }
+
+        // -----------------------------------------------------
+        // MUTE
+        // -----------------------------------------------------
 
         if (muteToggle != null)
         {
@@ -184,7 +303,7 @@ public class SettingsPanelUI : MonoBehaviour
         LoadCurrentAudioSettings();
 
         Debug.Log(
-            "SettingsPanelUI: Settings reset."
+            "SettingsPanelUI: Audio settings reset."
         );
     }
 }

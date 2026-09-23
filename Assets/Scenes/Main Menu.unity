@@ -770,7 +770,6 @@ GameObject:
   - component: {fileID: 264408771}
   - component: {fileID: 264408770}
   - component: {fileID: 264408769}
-  - component: {fileID: 264408772}
   m_Layer: 5
   m_Name: SettingButton
   m_TagString: Untagged
@@ -891,19 +890,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 264408767}
   m_CullTransparentMesh: 1
---- !u!114 &264408772
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 264408767}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c34cd193a05511548b64de777376d59b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIButtonSound
-  playSound: 1
 --- !u!1 &337898061
 GameObject:
   m_ObjectHideFlags: 0
@@ -916,8 +902,6 @@ GameObject:
   - component: {fileID: 337898065}
   - component: {fileID: 337898064}
   - component: {fileID: 337898063}
-  - component: {fileID: 337898067}
-  - component: {fileID: 337898066}
   m_Layer: 5
   m_Name: BuildCityButton
   m_TagString: Untagged
@@ -1039,32 +1023,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 337898061}
   m_CullTransparentMesh: 1
---- !u!114 &337898066
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 337898061}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c34cd193a05511548b64de777376d59b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIButtonSound
-  playSound: 1
---- !u!114 &337898067
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 337898061}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c34cd193a05511548b64de777376d59b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIButtonSound
-  playSound: 1
 --- !u!1 &384235581
 GameObject:
   m_ObjectHideFlags: 0
@@ -1900,7 +1858,7 @@ MonoBehaviour:
       - m_Target: {fileID: 1373125596}
         m_TargetAssemblyTypeName: SettingsPanelUI, Assembly-CSharp
         m_MethodName: OnMusicSliderChanged
-        m_Mode: 4
+        m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -2126,7 +2084,6 @@ GameObject:
   - component: {fileID: 886163220}
   - component: {fileID: 886163219}
   - component: {fileID: 886163218}
-  - component: {fileID: 886163221}
   m_Layer: 5
   m_Name: ShopButton
   m_TagString: Untagged
@@ -2248,19 +2205,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 886163216}
   m_CullTransparentMesh: 1
---- !u!114 &886163221
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 886163216}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c34cd193a05511548b64de777376d59b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIButtonSound
-  playSound: 1
 --- !u!1 &887156061
 GameObject:
   m_ObjectHideFlags: 0
@@ -2846,7 +2790,6 @@ GameObject:
   - component: {fileID: 1124699743}
   - component: {fileID: 1124699742}
   - component: {fileID: 1124699741}
-  - component: {fileID: 1124699744}
   m_Layer: 5
   m_Name: RankingButton
   m_TagString: Untagged
@@ -2968,19 +2911,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1124699739}
   m_CullTransparentMesh: 1
---- !u!114 &1124699744
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1124699739}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c34cd193a05511548b64de777376d59b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIButtonSound
-  playSound: 1
 --- !u!1 &1193782005
 GameObject:
   m_ObjectHideFlags: 0
@@ -3892,7 +3822,7 @@ MonoBehaviour:
       - m_Target: {fileID: 1373125596}
         m_TargetAssemblyTypeName: SettingsPanelUI, Assembly-CSharp
         m_MethodName: OnSFXSliderChanged
-        m_Mode: 4
+        m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -4166,17 +4096,18 @@ MonoBehaviour:
   musicSource: {fileID: 1719876564}
   sfxSource: {fileID: 1719876564}
   mainMenuMusic: {fileID: 8300000, guid: d8741d0c493e5c246bcd4caaeb3c090b, type: 3}
-  cityMapMusic: {fileID: 8300000, guid: 8fd2eb4a4f406344faf2a4b2265feca1, type: 3}
+  levelSelectMusic: {fileID: 8300000, guid: 8fd2eb4a4f406344faf2a4b2265feca1, type: 3}
   gameplayMusic: {fileID: 8300000, guid: dee92fda635c4d246b0bba90d4fe26dd, type: 3}
-  buttonClickSound: {fileID: 8300000, guid: 13c25e6cb76c4d7459dba8dec67a9702, type: 3}
-  selectionSound: {fileID: 8300000, guid: 84531c5259a41964a930ac10169049ea, type: 3}
-  confirmSound: {fileID: 8300000, guid: 9263e12ccff0d494799cd50cff289adb, type: 3}
-  errorSound: {fileID: 8300000, guid: 3175d147b948cbe428ba2cb184edc3cc, type: 3}
-  whooshSound: {fileID: 8300000, guid: 2120fa5e6d2842d4cbec05c0b2ce3fdc, type: 3}
-  buildingPlacedSound: {fileID: 8300000, guid: 9263e12ccff0d494799cd50cff289adb, type: 3}
-  buildingUnlockedSound: {fileID: 8300000, guid: 9ae73eb713594544ab874496b3c494b5, type: 3}
-  victorySound: {fileID: 8300000, guid: 7bf91e4927c55144f9ad984642df1c39, type: 3}
+  buttonSound: {fileID: 8300000, guid: 13c25e6cb76c4d7459dba8dec67a9702, type: 3}
+  majorButtonSound: {fileID: 8300000, guid: 84531c5259a41964a930ac10169049ea, type: 3}
+  navigationButtonSound: {fileID: 8300000, guid: 945d87e5e049fbd478822e0ce3c0c9e2, type: 3}
+  deniedSound: {fileID: 8300000, guid: 3175d147b948cbe428ba2cb184edc3cc, type: 3}
+  windowSwitchSound: {fileID: 8300000, guid: 2120fa5e6d2842d4cbec05c0b2ce3fdc, type: 3}
+  placementConfirmedSound: {fileID: 8300000, guid: 9263e12ccff0d494799cd50cff289adb, type: 3}
+  unlockingSound: {fileID: 8300000, guid: 9ae73eb713594544ab874496b3c494b5, type: 3}
+  gameWonSound: {fileID: 8300000, guid: 7bf91e4927c55144f9ad984642df1c39, type: 3}
   gameOverSound: {fileID: 8300000, guid: ed7e615fd4956cd4c9d57990b14e2165, type: 3}
+  musicFadeDuration: 0.35
   defaultMusicVolume: 1
   defaultSFXVolume: 1
 --- !u!1 &1752302626
@@ -4459,7 +4390,7 @@ MonoBehaviour:
       - m_Target: {fileID: 1373125596}
         m_TargetAssemblyTypeName: SettingsPanelUI, Assembly-CSharp
         m_MethodName: OnMuteToggleChanged
-        m_Mode: 6
+        m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -4502,7 +4433,6 @@ GameObject:
   - component: {fileID: 1929095851}
   - component: {fileID: 1929095850}
   - component: {fileID: 1929095849}
-  - component: {fileID: 1929095852}
   m_Layer: 5
   m_Name: QuickGameButton
   m_TagString: Untagged
@@ -4624,19 +4554,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1929095847}
   m_CullTransparentMesh: 1
---- !u!114 &1929095852
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1929095847}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c34cd193a05511548b64de777376d59b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIButtonSound
-  playSound: 1
 --- !u!1 &2035957543
 GameObject:
   m_ObjectHideFlags: 0
@@ -5046,7 +4963,6 @@ GameObject:
   - component: {fileID: 2142334608}
   - component: {fileID: 2142334607}
   - component: {fileID: 2142334606}
-  - component: {fileID: 2142334609}
   m_Layer: 5
   m_Name: QuitGame
   m_TagString: Untagged
@@ -5168,19 +5084,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2142334604}
   m_CullTransparentMesh: 1
---- !u!114 &2142334609
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2142334604}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c34cd193a05511548b64de777376d59b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIButtonSound
-  playSound: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
