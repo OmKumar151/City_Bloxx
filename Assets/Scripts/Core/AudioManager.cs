@@ -140,9 +140,15 @@ public class AudioManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        Debug.LogWarning(
+            "AudioManager was DESTROYED. Instance = " +
+            (Instance == this)
+        );
+
         if (Instance == this)
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
+            Instance = null;
         }
     }
 
