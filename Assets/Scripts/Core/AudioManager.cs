@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class AudioManager : MonoBehaviour
 {
@@ -21,6 +22,15 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip mainMenuMusic;
     [SerializeField] private AudioClip levelSelectMusic;
     [SerializeField] private AudioClip gameplayMusic;
+
+    // =========================================================
+    // SCENE NAMES
+    // =========================================================
+
+    [Header("Scene Names")]
+    [SerializeField] private string mainMenuSceneName = "Main Menu";
+    [SerializeField] private string levelSelectSceneName = "LevelSelect";
+    [SerializeField] private string gameplaySceneName = "Gameplay1";
 
     // =========================================================
     // UI SOUND EFFECTS
@@ -85,6 +95,10 @@ public class AudioManager : MonoBehaviour
 
     private Coroutine musicTransitionCoroutine;
 
+    // =========================================================
+    // PUBLIC PROPERTIES
+    // =========================================================
+
     public float MusicVolume => musicVolume;
     public float SFXVolume => sfxVolume;
     public bool IsMuted => isMuted;
@@ -95,6 +109,7 @@ public class AudioManager : MonoBehaviour
 
     private void Awake()
     {
+        // Prevent duplicate AudioManagers.
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -103,6 +118,7 @@ public class AudioManager : MonoBehaviour
 
         Instance = this;
 
+        // Keep this AudioManager alive between scenes.
         DontDestroyOnLoad(gameObject);
 
         SetupAudioSources();
@@ -110,11 +126,109 @@ public class AudioManager : MonoBehaviour
         LoadAudioSettings();
 
         ApplyAudioSettings();
+
+        // Listen for scene changes.
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void Start()
     {
-        PlayMainMenuMusic();
+        // Start the correct music for the scene
+        // that launched the game.
+        PlayMusicForCurrentScene();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+    }
+
+    // =========================================================
+    // SCENE CHANGED
+    // =========================================================
+
+    private void OnSceneLoaded(
+        Scene scene,
+        LoadSceneMode mode
+    )
+    {
+        Debug.Log(
+            "AudioManager: Scene loaded: " +
+            scene.name
+        );
+
+        PlayMusicForScene(scene.name);
+    }
+
+    // =========================================================
+    // PLAY MUSIC FOR CURRENT SCENE
+    // =========================================================
+
+    private void PlayMusicForCurrentScene()
+    {
+        string currentSceneName =
+            SceneManager.GetActiveScene().name;
+
+        PlayMusicForScene(currentSceneName);
+    }
+
+    // =========================================================
+    // SELECT MUSIC BASED ON SCENE
+    // =========================================================
+
+    private void PlayMusicForScene(string sceneName)
+    {
+        Debug.Log(
+            "AudioManager: Selecting music for scene: " +
+            sceneName
+        );
+
+        // -----------------------------------------------------
+        // MAIN MENU
+        // -----------------------------------------------------
+
+        if (sceneName == mainMenuSceneName)
+        {
+            PlayMainMenuMusic();
+            return;
+        }
+
+        // -----------------------------------------------------
+        // LEVEL SELECT
+        // -----------------------------------------------------
+
+        if (sceneName == levelSelectSceneName)
+        {
+            PlayLevelSelectMusic();
+            return;
+        }
+
+        // -----------------------------------------------------
+        // GAMEPLAY
+        // -----------------------------------------------------
+
+        if (sceneName == gameplaySceneName)
+        {
+            PlayGameplayMusic();
+            return;
+        }
+
+        // -----------------------------------------------------
+        // OTHER SCENES
+        // -----------------------------------------------------
+        //
+        // Ranking / Shop / etc.
+        // Keep the current music instead of restarting it.
+        //
+
+        Debug.Log(
+            "AudioManager: No specific music assigned for scene '" +
+            sceneName +
+            "'. Keeping current music."
+        );
     }
 
     // =========================================================
@@ -177,9 +291,16 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
+        // If this exact track is already playing,
+        // DO NOT restart it.
         if (musicSource.clip == newClip &&
             musicSource.isPlaying)
         {
+            Debug.Log(
+                "AudioManager: Music already playing: " +
+                newClip.name
+            );
+
             return;
         }
 
@@ -189,15 +310,24 @@ public class AudioManager : MonoBehaviour
         }
 
         musicTransitionCoroutine =
-            StartCoroutine(CrossfadeMusic(newClip));
+            StartCoroutine(
+                CrossfadeMusic(newClip)
+            );
     }
 
-    private IEnumerator CrossfadeMusic(AudioClip newClip)
+    // =========================================================
+    // MUSIC CROSSFADE
+    // =========================================================
+
+    private IEnumerator CrossfadeMusic(
+        AudioClip newClip
+    )
     {
-        float startingVolume = musicSource.volume;
+        float startingVolume =
+            musicSource.volume;
 
         // -----------------------------------------------------
-        // FADE OLD MUSIC OUT
+        // FADE CURRENT MUSIC OUT
         // -----------------------------------------------------
 
         if (musicSource.isPlaying)
@@ -208,15 +338,17 @@ public class AudioManager : MonoBehaviour
             {
                 elapsed += Time.unscaledDeltaTime;
 
-                float t = musicFadeDuration > 0f
+                float t =
+                    musicFadeDuration > 0f
                     ? elapsed / musicFadeDuration
                     : 1f;
 
-                musicSource.volume = Mathf.Lerp(
-                    startingVolume,
-                    0f,
-                    t
-                );
+                musicSource.volume =
+                    Mathf.Lerp(
+                        startingVolume,
+                        0f,
+                        t
+                    );
 
                 yield return null;
             }
@@ -225,7 +357,7 @@ public class AudioManager : MonoBehaviour
         }
 
         // -----------------------------------------------------
-        // CHANGE TRACK
+        // CHANGE MUSIC CLIP
         // -----------------------------------------------------
 
         musicSource.clip = newClip;
@@ -242,29 +374,36 @@ public class AudioManager : MonoBehaviour
 
         float fadeElapsed = 0f;
 
-        while (fadeElapsed < musicFadeDuration)
+        while (
+            fadeElapsed < musicFadeDuration
+        )
         {
-            fadeElapsed += Time.unscaledDeltaTime;
+            fadeElapsed +=
+                Time.unscaledDeltaTime;
 
-            float t = musicFadeDuration > 0f
+            float t =
+                musicFadeDuration > 0f
                 ? fadeElapsed / musicFadeDuration
                 : 1f;
 
-            musicSource.volume = Mathf.Lerp(
-                0f,
-                targetVolume,
-                t
-            );
+            musicSource.volume =
+                Mathf.Lerp(
+                    0f,
+                    targetVolume,
+                    t
+                );
 
             yield return null;
         }
 
-        musicSource.volume = targetVolume;
+        musicSource.volume =
+            targetVolume;
 
         musicTransitionCoroutine = null;
 
         Debug.Log(
-            "AudioManager: Playing music: " + newClip.name
+            "AudioManager: Now playing: " +
+            newClip.name
         );
     }
 
@@ -275,7 +414,9 @@ public class AudioManager : MonoBehaviour
 
         if (musicTransitionCoroutine != null)
         {
-            StopCoroutine(musicTransitionCoroutine);
+            StopCoroutine(
+                musicTransitionCoroutine
+            );
 
             musicTransitionCoroutine = null;
         }
@@ -344,7 +485,7 @@ public class AudioManager : MonoBehaviour
     }
 
     // =========================================================
-    // COMPATIBILITY WITH EXISTING SCRIPTS
+    // COMPATIBILITY
     // =========================================================
 
     public void PlaySelectionSound()
@@ -406,10 +547,6 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        // IMPORTANT:
-        // SFX volume is controlled ONLY by sfxVolume.
-        // Music volume has no effect here.
-
         sfxSource.PlayOneShot(clip);
     }
 
@@ -419,7 +556,8 @@ public class AudioManager : MonoBehaviour
 
     public void SetMusicVolume(float volume)
     {
-        musicVolume = Mathf.Clamp01(volume);
+        musicVolume =
+            Mathf.Clamp01(volume);
 
         ApplyMusicSettings();
 
@@ -442,7 +580,8 @@ public class AudioManager : MonoBehaviour
 
     public void SetSFXVolume(float volume)
     {
-        sfxVolume = Mathf.Clamp01(volume);
+        sfxVolume =
+            Mathf.Clamp01(volume);
 
         ApplySFXSettings();
 
@@ -505,7 +644,6 @@ public class AudioManager : MonoBehaviour
         musicSource.volume =
             isMuted ? 0f : musicVolume;
 
-        // We control mute through volume.
         musicSource.mute = false;
     }
 
@@ -514,13 +652,11 @@ public class AudioManager : MonoBehaviour
         if (sfxSource == null)
             return;
 
-        // IMPORTANT:
-        // SFX has its own independent volume.
+        sfxSource.volume =
+            sfxVolume;
 
-        sfxSource.volume = sfxVolume;
-
-        // Mute is the only thing shared.
-        sfxSource.mute = isMuted;
+        sfxSource.mute =
+            isMuted;
     }
 
     // =========================================================
@@ -529,15 +665,17 @@ public class AudioManager : MonoBehaviour
 
     private void LoadAudioSettings()
     {
-        musicVolume = PlayerPrefs.GetFloat(
-            MusicVolumeKey,
-            defaultMusicVolume
-        );
+        musicVolume =
+            PlayerPrefs.GetFloat(
+                MusicVolumeKey,
+                defaultMusicVolume
+            );
 
-        sfxVolume = PlayerPrefs.GetFloat(
-            SFXVolumeKey,
-            defaultSFXVolume
-        );
+        sfxVolume =
+            PlayerPrefs.GetFloat(
+                SFXVolumeKey,
+                defaultSFXVolume
+            );
 
         isMuted =
             PlayerPrefs.GetInt(
@@ -545,19 +683,26 @@ public class AudioManager : MonoBehaviour
                 0
             ) == 1;
 
-        musicVolume = Mathf.Clamp01(musicVolume);
-        sfxVolume = Mathf.Clamp01(sfxVolume);
+        musicVolume =
+            Mathf.Clamp01(musicVolume);
+
+        sfxVolume =
+            Mathf.Clamp01(sfxVolume);
     }
 
     // =========================================================
-    // RESET
+    // RESET SETTINGS
     // =========================================================
 
     [ContextMenu("Reset Audio Settings")]
     public void ResetAudioSettings()
     {
-        musicVolume = defaultMusicVolume;
-        sfxVolume = defaultSFXVolume;
+        musicVolume =
+            defaultMusicVolume;
+
+        sfxVolume =
+            defaultSFXVolume;
+
         isMuted = false;
 
         PlayerPrefs.SetFloat(
@@ -598,6 +743,12 @@ public class AudioManager : MonoBehaviour
     private void TestLevelSelectMusic()
     {
         PlayLevelSelectMusic();
+    }
+
+    [ContextMenu("Test Gameplay Music")]
+    private void TestGameplayMusic()
+    {
+        PlayGameplayMusic();
     }
 
     [ContextMenu("Test Button Sound")]

@@ -3,20 +3,6 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuManager : MonoBehaviour
 {
-    private void Start()
-    {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlayMainMenuMusic();
-        }
-        else
-        {
-            Debug.LogWarning(
-                "MainMenuManager: AudioManager is not available."
-            );
-        }
-    }
-
     // =========================================================
     // MAIN MENU BUTTONS
     // =========================================================
@@ -71,7 +57,6 @@ public class MainMenuManager : MonoBehaviour
             return;
         }
 
-        // This uses SFX only.
         AudioManager.Instance.PlayButtonClick();
     }
 }

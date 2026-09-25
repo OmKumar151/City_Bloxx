@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,7 +23,7 @@ public class SettingsPanelUI : MonoBehaviour
         RegisterListeners();
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
         // The SettingsPanelUI script should be on
         // SettingsController, NOT on SettingPanel.
@@ -31,6 +32,11 @@ public class SettingsPanelUI : MonoBehaviour
         {
             settingsPanel.SetActive(false);
         }
+
+        // Wait until AudioManager exists.
+        yield return new WaitUntil(() =>
+            AudioManager.Instance != null
+        );
 
         LoadCurrentAudioSettings();
     }
@@ -172,7 +178,7 @@ public class SettingsPanelUI : MonoBehaviour
     // MUSIC SLIDER
     // =========================================================
 
-    private void OnMusicSliderChanged(float value)
+    public void OnMusicSliderChanged(float value)
     {
         if (AudioManager.Instance == null)
         {
@@ -183,7 +189,6 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
-        // ONLY changes MUSIC.
         AudioManager.Instance.SetMusicVolume(value);
 
         Debug.Log(
@@ -196,7 +201,7 @@ public class SettingsPanelUI : MonoBehaviour
     // SFX SLIDER
     // =========================================================
 
-    private void OnSFXSliderChanged(float value)
+    public void OnSFXSliderChanged(float value)
     {
         if (AudioManager.Instance == null)
         {
@@ -207,7 +212,6 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
-        // ONLY changes SFX.
         AudioManager.Instance.SetSFXVolume(value);
 
         Debug.Log(
@@ -220,7 +224,7 @@ public class SettingsPanelUI : MonoBehaviour
     // MUTE TOGGLE
     // =========================================================
 
-    private void OnMuteToggleChanged(bool value)
+    public void OnMuteToggleChanged(bool value)
     {
         if (AudioManager.Instance == null)
         {
@@ -232,6 +236,11 @@ public class SettingsPanelUI : MonoBehaviour
         }
 
         AudioManager.Instance.SetMuted(value);
+
+        Debug.Log(
+            "SettingsPanelUI: Mute changed to " +
+            value
+        );
     }
 
     // =========================================================
@@ -242,10 +251,6 @@ public class SettingsPanelUI : MonoBehaviour
     {
         if (AudioManager.Instance == null)
         {
-            Debug.LogWarning(
-                "SettingsPanelUI: AudioManager is not available."
-            );
-
             return;
         }
 
