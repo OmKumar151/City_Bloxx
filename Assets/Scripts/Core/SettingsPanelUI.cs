@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,251 +11,162 @@ public class SettingsPanelUI : MonoBehaviour
     [SerializeField] private Slider sfxSlider;
     [SerializeField] private Toggle muteToggle;
 
-    private bool listenersRegistered;
-
-    // =========================================================
-    // INITIALIZATION
-    // =========================================================
-
     private void Awake()
     {
-        RegisterListeners();
+        Debug.Log(
+            "SettingsPanelUI Awake | AudioManager.Instance = " +
+            (AudioManager.Instance != null)
+        );
+
+        if (musicSlider != null)
+            musicSlider.onValueChanged.AddListener(
+                OnMusicSliderChanged
+            );
+
+        if (sfxSlider != null)
+            sfxSlider.onValueChanged.AddListener(
+                OnSFXSliderChanged
+            );
+
+        if (muteToggle != null)
+            muteToggle.onValueChanged.AddListener(
+                OnMuteToggleChanged
+            );
     }
 
-    private IEnumerator Start()
+    private void Start()
     {
-        // The SettingsPanelUI script should be on
-        // SettingsController, NOT on SettingPanel.
-
         if (settingsPanel != null)
-        {
             settingsPanel.SetActive(false);
-        }
 
-        // Wait until AudioManager exists.
-        yield return new WaitUntil(() =>
-            AudioManager.Instance != null
+        Debug.Log(
+            "SettingsPanelUI Start | AudioManager.Instance = " +
+            (AudioManager.Instance != null)
         );
 
         LoadCurrentAudioSettings();
     }
 
-    // =========================================================
-    // REGISTER UI EVENTS
-    // =========================================================
-
-    private void RegisterListeners()
-    {
-        if (listenersRegistered)
-            return;
-
-        // -----------------------------------------------------
-        // SAFETY CHECK
-        // -----------------------------------------------------
-
-        if (musicSlider != null &&
-            sfxSlider != null &&
-            musicSlider == sfxSlider)
-        {
-            Debug.LogError(
-                "SettingsPanelUI: Music Slider and SFX Slider " +
-                "are assigned to the SAME Slider. " +
-                "They must be two separate Slider objects."
-            );
-        }
-
-        // -----------------------------------------------------
-        // MUSIC SLIDER
-        // -----------------------------------------------------
-
-        if (musicSlider != null)
-        {
-            musicSlider.onValueChanged.AddListener(
-                OnMusicSliderChanged
-            );
-        }
-
-        // -----------------------------------------------------
-        // SFX SLIDER
-        // -----------------------------------------------------
-
-        if (sfxSlider != null)
-        {
-            sfxSlider.onValueChanged.AddListener(
-                OnSFXSliderChanged
-            );
-        }
-
-        // -----------------------------------------------------
-        // MUTE TOGGLE
-        // -----------------------------------------------------
-
-        if (muteToggle != null)
-        {
-            muteToggle.onValueChanged.AddListener(
-                OnMuteToggleChanged
-            );
-        }
-
-        listenersRegistered = true;
-    }
-
-    // =========================================================
-    // REMOVE UI EVENTS
-    // =========================================================
-
     private void OnDestroy()
     {
-        if (!listenersRegistered)
-            return;
-
         if (musicSlider != null)
-        {
             musicSlider.onValueChanged.RemoveListener(
                 OnMusicSliderChanged
             );
-        }
 
         if (sfxSlider != null)
-        {
             sfxSlider.onValueChanged.RemoveListener(
                 OnSFXSliderChanged
             );
-        }
 
         if (muteToggle != null)
-        {
             muteToggle.onValueChanged.RemoveListener(
                 OnMuteToggleChanged
             );
-        }
-
-        listenersRegistered = false;
     }
-
-    // =========================================================
-    // OPEN SETTINGS
-    // =========================================================
 
     public void OpenSettings()
     {
+        Debug.Log(
+            "SettingsPanelUI: OpenSettings called."
+        );
+
         if (settingsPanel == null)
         {
-            Debug.LogWarning(
-                "SettingsPanelUI: Settings Panel is not assigned."
+            Debug.LogError(
+                "SettingsPanelUI: Settings Panel is NOT assigned."
             );
 
             return;
         }
+
+        Debug.Log(
+            "AudioManager.Instance exists = " +
+            (AudioManager.Instance != null)
+        );
 
         LoadCurrentAudioSettings();
 
         settingsPanel.SetActive(true);
-
-        Debug.Log(
-            "SettingsPanelUI: Settings panel opened."
-        );
     }
-
-    // =========================================================
-    // CLOSE SETTINGS
-    // =========================================================
 
     public void CloseSettings()
     {
-        if (settingsPanel == null)
-            return;
-
-        settingsPanel.SetActive(false);
-
         Debug.Log(
-            "SettingsPanelUI: Settings panel closed."
+            "SettingsPanelUI: CloseSettings called."
         );
-    }
 
-    // =========================================================
-    // MUSIC SLIDER
-    // =========================================================
+        if (settingsPanel != null)
+            settingsPanel.SetActive(false);
+    }
 
     public void OnMusicSliderChanged(float value)
     {
+        Debug.Log(
+            "SettingsPanelUI: Music slider changed to " +
+            value
+        );
+
         if (AudioManager.Instance == null)
         {
-            Debug.LogWarning(
-                "SettingsPanelUI: AudioManager is not available."
+            Debug.LogError(
+                "SettingsPanelUI: AudioManager.Instance is NULL."
             );
 
             return;
         }
 
         AudioManager.Instance.SetMusicVolume(value);
-
-        Debug.Log(
-            "SettingsPanelUI: Music slider changed to " +
-            value
-        );
     }
-
-    // =========================================================
-    // SFX SLIDER
-    // =========================================================
 
     public void OnSFXSliderChanged(float value)
     {
+        Debug.Log(
+            "SettingsPanelUI: SFX slider changed to " +
+            value
+        );
+
         if (AudioManager.Instance == null)
         {
-            Debug.LogWarning(
-                "SettingsPanelUI: AudioManager is not available."
+            Debug.LogError(
+                "SettingsPanelUI: AudioManager.Instance is NULL."
             );
 
             return;
         }
 
         AudioManager.Instance.SetSFXVolume(value);
-
-        Debug.Log(
-            "SettingsPanelUI: SFX slider changed to " +
-            value
-        );
     }
-
-    // =========================================================
-    // MUTE TOGGLE
-    // =========================================================
 
     public void OnMuteToggleChanged(bool value)
     {
+        Debug.Log(
+            "SettingsPanelUI: Mute toggle changed to " +
+            value
+        );
+
         if (AudioManager.Instance == null)
         {
-            Debug.LogWarning(
-                "SettingsPanelUI: AudioManager is not available."
+            Debug.LogError(
+                "SettingsPanelUI: AudioManager.Instance is NULL."
             );
 
             return;
         }
 
         AudioManager.Instance.SetMuted(value);
-
-        Debug.Log(
-            "SettingsPanelUI: Mute changed to " +
-            value
-        );
     }
-
-    // =========================================================
-    // LOAD CURRENT SETTINGS
-    // =========================================================
 
     private void LoadCurrentAudioSettings()
     {
         if (AudioManager.Instance == null)
         {
+            Debug.LogError(
+                "SettingsPanelUI: Cannot load audio settings because AudioManager.Instance is NULL."
+            );
+
             return;
         }
-
-        // -----------------------------------------------------
-        // MUSIC
-        // -----------------------------------------------------
 
         if (musicSlider != null)
         {
@@ -265,10 +175,6 @@ public class SettingsPanelUI : MonoBehaviour
             );
         }
 
-        // -----------------------------------------------------
-        // SFX
-        // -----------------------------------------------------
-
         if (sfxSlider != null)
         {
             sfxSlider.SetValueWithoutNotify(
@@ -276,28 +182,28 @@ public class SettingsPanelUI : MonoBehaviour
             );
         }
 
-        // -----------------------------------------------------
-        // MUTE
-        // -----------------------------------------------------
-
         if (muteToggle != null)
         {
             muteToggle.SetIsOnWithoutNotify(
                 AudioManager.Instance.IsMuted
             );
         }
-    }
 
-    // =========================================================
-    // RESET SETTINGS
-    // =========================================================
+        Debug.Log(
+            "SettingsPanelUI: Current audio settings loaded."
+        );
+    }
 
     public void ResetSettings()
     {
+        Debug.Log(
+            "SettingsPanelUI: ResetSettings called."
+        );
+
         if (AudioManager.Instance == null)
         {
-            Debug.LogWarning(
-                "SettingsPanelUI: AudioManager is not available."
+            Debug.LogError(
+                "SettingsPanelUI: AudioManager.Instance is NULL."
             );
 
             return;
@@ -306,9 +212,5 @@ public class SettingsPanelUI : MonoBehaviour
         AudioManager.Instance.ResetAudioSettings();
 
         LoadCurrentAudioSettings();
-
-        Debug.Log(
-            "SettingsPanelUI: Audio settings reset."
-        );
     }
 }

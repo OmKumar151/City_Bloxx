@@ -1,266 +1,245 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
 
-    // =========================================================
-    // AUDIO SOURCES
-    // =========================================================
-
     [Header("Audio Sources")]
     [SerializeField] private AudioSource musicSource;
     [SerializeField] private AudioSource sfxSource;
-
-    // =========================================================
-    // MUSIC
-    // =========================================================
 
     [Header("Music")]
     [SerializeField] private AudioClip mainMenuMusic;
     [SerializeField] private AudioClip levelSelectMusic;
     [SerializeField] private AudioClip gameplayMusic;
 
-    // =========================================================
-    // SCENE NAMES
-    // =========================================================
-
     [Header("Scene Names")]
     [SerializeField] private string mainMenuSceneName = "Main Menu";
     [SerializeField] private string levelSelectSceneName = "LevelSelect";
     [SerializeField] private string gameplaySceneName = "Gameplay1";
 
-    // =========================================================
-    // UI SOUND EFFECTS
-    // =========================================================
-
-    [Header("UI Sound Effects")]
-    [SerializeField] private AudioClip buttonSound;
+    [Header("SFX")]
+    [SerializeField] private AudioClip buttonClickSound;
+    [SerializeField] private AudioClip deniedSound;
+    [SerializeField] private AudioClip gameOverSound;
+    [SerializeField] private AudioClip gameWonSound;
+    [SerializeField] private AudioClip levelSelectSound;
+    [SerializeField] private AudioClip mainMenuSound;
     [SerializeField] private AudioClip majorButtonSound;
     [SerializeField] private AudioClip navigationButtonSound;
-    [SerializeField] private AudioClip deniedSound;
-    [SerializeField] private AudioClip windowSwitchSound;
-
-    // =========================================================
-    // CITY / PROGRESSION
-    // =========================================================
-
-    [Header("City / Progression Sound Effects")]
     [SerializeField] private AudioClip placementConfirmedSound;
     [SerializeField] private AudioClip unlockingSound;
+    [SerializeField] private AudioClip windowSwitchSound;
 
-    // =========================================================
-    // GAMEPLAY
-    // =========================================================
-
-    [Header("Gameplay Sound Effects")]
-    [SerializeField] private AudioClip gameWonSound;
-    [SerializeField] private AudioClip gameOverSound;
-
-    // =========================================================
-    // MUSIC TRANSITION
-    // =========================================================
-
-    [Header("Music Transition")]
+    [Header("Settings")]
     [SerializeField] private float musicFadeDuration = 0.35f;
-
-    // =========================================================
-    // DEFAULT SETTINGS
-    // =========================================================
-
-    [Header("Default Settings")]
-    [Range(0f, 1f)]
     [SerializeField] private float defaultMusicVolume = 1f;
-
-    [Range(0f, 1f)]
     [SerializeField] private float defaultSFXVolume = 1f;
-
-    // =========================================================
-    // PLAYER PREFS
-    // =========================================================
 
     private const string MusicVolumeKey = "MusicVolume";
     private const string SFXVolumeKey = "SFXVolume";
     private const string MuteKey = "AudioMuted";
 
-    // =========================================================
-    // CURRENT SETTINGS
-    // =========================================================
-
     private float musicVolume;
     private float sfxVolume;
     private bool isMuted;
 
-    private Coroutine musicTransitionCoroutine;
-
-    // =========================================================
-    // PUBLIC PROPERTIES
-    // =========================================================
+    private Coroutine musicFadeCoroutine;
 
     public float MusicVolume => musicVolume;
     public float SFXVolume => sfxVolume;
     public bool IsMuted => isMuted;
 
-    // =========================================================
-    // INITIALIZATION
-    // =========================================================
-
     private void Awake()
     {
-        // Prevent duplicate AudioManagers.
+        Debug.Log("========== AUDIO MANAGER AWAKE ==========");
+        Debug.Log("AudioManager GameObject: " + gameObject.name);
+        Debug.Log("AudioManager Scene: " + gameObject.scene.name);
+        Debug.Log("AudioManager Is Root: " + (transform.root == transform));
+
         if (Instance != null && Instance != this)
         {
+            Debug.LogWarning(
+                "DUPLICATE AudioManager FOUND. Destroying: " +
+                gameObject.name
+            );
+
             Destroy(gameObject);
             return;
         }
 
         Instance = this;
 
-        // Keep this AudioManager alive between scenes.
         DontDestroyOnLoad(gameObject);
 
+        Debug.Log("AudioManager.Instance assigned.");
+        Debug.Log("DontDestroyOnLoad called.");
+
         SetupAudioSources();
-
         LoadAudioSettings();
-
         ApplyAudioSettings();
 
-        // Listen for scene changes.
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void Start()
     {
-        // Start the correct music for the scene
-        // that launched the game.
+        Debug.Log("========== AUDIO MANAGER START ==========");
+        Debug.Log("Instance exists: " + (Instance != null));
+        Debug.Log("Current Scene: " + SceneManager.GetActiveScene().name);
+
         PlayMusicForCurrentScene();
     }
 
     private void OnDestroy()
     {
-        Debug.LogWarning(
-            "AudioManager was DESTROYED. Instance = " +
-            (Instance == this)
-        );
+        Debug.LogWarning("==========================================");
+        Debug.LogWarning("!!! AUDIO MANAGER WAS DESTROYED !!!");
+        Debug.LogWarning("GameObject: " + gameObject.name);
+        Debug.LogWarning("Scene: " + gameObject.scene.name);
+        Debug.LogWarning("Was Instance: " + (Instance == this));
+        Debug.LogWarning("==========================================");
 
         if (Instance == this)
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
             Instance = null;
+
+            Debug.LogWarning("AudioManager.Instance has been set to NULL.");
         }
     }
 
-    // =========================================================
-    // SCENE CHANGED
-    // =========================================================
-
-    private void OnSceneLoaded(
-        Scene scene,
-        LoadSceneMode mode
-    )
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        Debug.Log(
-            "AudioManager: Scene loaded: " +
-            scene.name
-        );
+        Debug.Log("========== AUDIO MANAGER SCENE LOADED ==========");
+        Debug.Log("Scene: " + scene.name);
+        Debug.Log("AudioManager.Instance exists: " + (Instance != null));
+
+        if (Instance != this)
+        {
+            Debug.LogError(
+                "AudioManager sceneLoaded callback fired, " +
+                "but Instance is NOT this AudioManager."
+            );
+        }
 
         PlayMusicForScene(scene.name);
     }
 
-    // =========================================================
-    // PLAY MUSIC FOR CURRENT SCENE
-    // =========================================================
-
-    private void PlayMusicForCurrentScene()
+    private void SetupAudioSources()
     {
-        string currentSceneName =
-            SceneManager.GetActiveScene().name;
+        if (musicSource == null)
+        {
+            Debug.LogError("AudioManager: Music Source is NOT assigned!");
+        }
 
-        PlayMusicForScene(currentSceneName);
+        if (sfxSource == null)
+        {
+            Debug.LogError("AudioManager: SFX Source is NOT assigned!");
+        }
+
+        if (musicSource != null)
+        {
+            musicSource.loop = true;
+            musicSource.playOnAwake = false;
+        }
+
+        if (sfxSource != null)
+        {
+            sfxSource.loop = false;
+            sfxSource.playOnAwake = false;
+        }
+    }
+
+    private void LoadAudioSettings()
+    {
+        musicVolume = PlayerPrefs.GetFloat(
+            MusicVolumeKey,
+            defaultMusicVolume
+        );
+
+        sfxVolume = PlayerPrefs.GetFloat(
+            SFXVolumeKey,
+            defaultSFXVolume
+        );
+
+        isMuted = PlayerPrefs.GetInt(
+            MuteKey,
+            0
+        ) == 1;
+
+        Debug.Log(
+            "Audio Settings Loaded | " +
+            "Music: " + musicVolume +
+            " | SFX: " + sfxVolume +
+            " | Muted: " + isMuted
+        );
+    }
+
+    private void ApplyAudioSettings()
+    {
+        ApplyMusicSettings();
+        ApplySFXSettings();
+    }
+
+    private void ApplyMusicSettings()
+    {
+        if (musicSource == null)
+            return;
+
+        musicSource.volume = isMuted ? 0f : musicVolume;
+        musicSource.mute = false;
+    }
+
+    private void ApplySFXSettings()
+    {
+        if (sfxSource == null)
+            return;
+
+        sfxSource.volume = sfxVolume;
+        sfxSource.mute = isMuted;
     }
 
     // =========================================================
-    // SELECT MUSIC BASED ON SCENE
+    // MUSIC
     // =========================================================
 
-    private void PlayMusicForScene(string sceneName)
+    public void PlayMusicForCurrentScene()
+    {
+        PlayMusicForScene(
+            SceneManager.GetActiveScene().name
+        );
+    }
+
+    public void PlayMusicForScene(string sceneName)
     {
         Debug.Log(
             "AudioManager: Selecting music for scene: " +
             sceneName
         );
 
-        // -----------------------------------------------------
-        // MAIN MENU
-        // -----------------------------------------------------
-
         if (sceneName == mainMenuSceneName)
         {
             PlayMainMenuMusic();
-            return;
         }
-
-        // -----------------------------------------------------
-        // LEVEL SELECT
-        // -----------------------------------------------------
-
-        if (sceneName == levelSelectSceneName)
+        else if (sceneName == levelSelectSceneName)
         {
             PlayLevelSelectMusic();
-            return;
         }
-
-        // -----------------------------------------------------
-        // GAMEPLAY
-        // -----------------------------------------------------
-
-        if (sceneName == gameplaySceneName)
+        else if (sceneName == gameplaySceneName)
         {
             PlayGameplayMusic();
-            return;
         }
-
-        // -----------------------------------------------------
-        // OTHER SCENES
-        // -----------------------------------------------------
-        //
-        // Ranking / Shop / etc.
-        // Keep the current music instead of restarting it.
-        //
-
-        Debug.Log(
-            "AudioManager: No specific music assigned for scene '" +
-            sceneName +
-            "'. Keeping current music."
-        );
-    }
-
-    // =========================================================
-    // AUDIO SOURCE SETUP
-    // =========================================================
-
-    private void SetupAudioSources()
-    {
-        if (musicSource != null)
+        else
         {
-            musicSource.playOnAwake = false;
-            musicSource.loop = true;
-            musicSource.spatialBlend = 0f;
-        }
-
-        if (sfxSource != null)
-        {
-            sfxSource.playOnAwake = false;
-            sfxSource.loop = false;
-            sfxSource.spatialBlend = 0f;
+            Debug.Log(
+                "AudioManager: No music assigned for scene: " +
+                sceneName
+            );
         }
     }
-
-    // =========================================================
-    // MUSIC
-    // =========================================================
 
     public void PlayMainMenuMusic()
     {
@@ -281,26 +260,17 @@ public class AudioManager : MonoBehaviour
     {
         if (musicSource == null)
         {
-            Debug.LogError(
-                "AudioManager: Music Source is not assigned."
-            );
-
+            Debug.LogError("AudioManager: Music Source missing.");
             return;
         }
 
         if (newClip == null)
         {
-            Debug.LogError(
-                "AudioManager: Music Clip is not assigned."
-            );
-
+            Debug.LogWarning("AudioManager: Music clip is NULL.");
             return;
         }
 
-        // If this exact track is already playing,
-        // DO NOT restart it.
-        if (musicSource.clip == newClip &&
-            musicSource.isPlaying)
+        if (musicSource.clip == newClip && musicSource.isPlaying)
         {
             Debug.Log(
                 "AudioManager: Music already playing: " +
@@ -310,136 +280,102 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        if (musicTransitionCoroutine != null)
+        Debug.Log(
+            "AudioManager: Switching music to: " +
+            newClip.name
+        );
+
+        if (musicFadeCoroutine != null)
         {
-            StopCoroutine(musicTransitionCoroutine);
+            StopCoroutine(musicFadeCoroutine);
         }
 
-        musicTransitionCoroutine =
-            StartCoroutine(
-                CrossfadeMusic(newClip)
-            );
+        musicFadeCoroutine = StartCoroutine(
+            CrossfadeMusic(newClip)
+        );
     }
 
-    // =========================================================
-    // MUSIC CROSSFADE
-    // =========================================================
-
-    private IEnumerator CrossfadeMusic(
-        AudioClip newClip
-    )
+    private IEnumerator CrossfadeMusic(AudioClip newClip)
     {
-        float startingVolume =
-            musicSource.volume;
-
-        // -----------------------------------------------------
-        // FADE CURRENT MUSIC OUT
-        // -----------------------------------------------------
-
         if (musicSource.isPlaying)
         {
-            float elapsed = 0f;
+            float startVolume = musicSource.volume;
 
-            while (elapsed < musicFadeDuration)
+            float timer = 0f;
+
+            while (timer < musicFadeDuration)
             {
-                elapsed += Time.unscaledDeltaTime;
+                timer += Time.unscaledDeltaTime;
 
-                float t =
-                    musicFadeDuration > 0f
-                    ? elapsed / musicFadeDuration
-                    : 1f;
-
-                musicSource.volume =
-                    Mathf.Lerp(
-                        startingVolume,
-                        0f,
-                        t
-                    );
+                musicSource.volume = Mathf.Lerp(
+                    startVolume,
+                    0f,
+                    timer / musicFadeDuration
+                );
 
                 yield return null;
             }
-
-            musicSource.Stop();
         }
 
-        // -----------------------------------------------------
-        // CHANGE MUSIC CLIP
-        // -----------------------------------------------------
-
         musicSource.clip = newClip;
-        musicSource.loop = true;
-
+        musicSource.volume = 0f;
         musicSource.Play();
 
-        // -----------------------------------------------------
-        // FADE NEW MUSIC IN
-        // -----------------------------------------------------
+        float fadeTimer = 0f;
 
-        float targetVolume =
-            isMuted ? 0f : musicVolume;
-
-        float fadeElapsed = 0f;
-
-        while (
-            fadeElapsed < musicFadeDuration
-        )
+        while (fadeTimer < musicFadeDuration)
         {
-            fadeElapsed +=
-                Time.unscaledDeltaTime;
+            fadeTimer += Time.unscaledDeltaTime;
 
-            float t =
-                musicFadeDuration > 0f
-                ? fadeElapsed / musicFadeDuration
-                : 1f;
-
-            musicSource.volume =
-                Mathf.Lerp(
-                    0f,
-                    targetVolume,
-                    t
-                );
+            musicSource.volume = Mathf.Lerp(
+                0f,
+                isMuted ? 0f : musicVolume,
+                fadeTimer / musicFadeDuration
+            );
 
             yield return null;
         }
 
-        musicSource.volume =
-            targetVolume;
-
-        musicTransitionCoroutine = null;
+        musicSource.volume = isMuted ? 0f : musicVolume;
 
         Debug.Log(
-            "AudioManager: Now playing: " +
+            "AudioManager: Music Playing: " +
             newClip.name
         );
     }
 
-    public void StopMusic()
-    {
-        if (musicSource == null)
-            return;
-
-        if (musicTransitionCoroutine != null)
-        {
-            StopCoroutine(
-                musicTransitionCoroutine
-            );
-
-            musicTransitionCoroutine = null;
-        }
-
-        musicSource.Stop();
-
-        musicSource.volume =
-            isMuted ? 0f : musicVolume;
-    }
-
     // =========================================================
-    // UI SOUND EFFECTS
+    // SFX
     // =========================================================
 
     public void PlayButtonClick()
     {
-        PlaySFX(buttonSound);
+        PlaySFX(buttonClickSound);
+    }
+
+    public void PlayDenied()
+    {
+        PlaySFX(deniedSound);
+    }
+
+    public void PlayGameOver()
+    {
+        PlaySFX(gameOverSound);
+    }
+
+    public void PlayGameWon()
+    {
+        PlaySFX(gameWonSound);
+    }
+
+    public void PlayLevelSelectSound()
+    {
+        PlaySFX(levelSelectSound);
+    }
+
+    public void PlayMainMenuSound()
+    {
+        PlaySFX(mainMenuSound);
     }
 
     public void PlayMajorButton()
@@ -452,20 +388,6 @@ public class AudioManager : MonoBehaviour
         PlaySFX(navigationButtonSound);
     }
 
-    public void PlayDenied()
-    {
-        PlaySFX(deniedSound);
-    }
-
-    public void PlayWindowSwitch()
-    {
-        PlaySFX(windowSwitchSound);
-    }
-
-    // =========================================================
-    // CITY / PROGRESSION
-    // =========================================================
-
     public void PlayPlacementConfirmed()
     {
         PlaySFX(placementConfirmedSound);
@@ -476,69 +398,17 @@ public class AudioManager : MonoBehaviour
         PlaySFX(unlockingSound);
     }
 
-    // =========================================================
-    // GAMEPLAY
-    // =========================================================
-
-    public void PlayGameWon()
+    public void PlayWindowSwitch()
     {
-        PlaySFX(gameWonSound);
+        PlaySFX(windowSwitchSound);
     }
-
-    public void PlayGameOver()
-    {
-        PlaySFX(gameOverSound);
-    }
-
-    // =========================================================
-    // COMPATIBILITY
-    // =========================================================
-
-    public void PlaySelectionSound()
-    {
-        PlayNavigationButton();
-    }
-
-    public void PlayConfirmSound()
-    {
-        PlayMajorButton();
-    }
-
-    public void PlayErrorSound()
-    {
-        PlayDenied();
-    }
-
-    public void PlayWhooshSound()
-    {
-        PlayWindowSwitch();
-    }
-
-    public void PlayBuildingPlacedSound()
-    {
-        PlayPlacementConfirmed();
-    }
-
-    public void PlayBuildingUnlockedSound()
-    {
-        PlayUnlocking();
-    }
-
-    public void PlayVictorySound()
-    {
-        PlayGameWon();
-    }
-
-    // =========================================================
-    // SFX CORE
-    // =========================================================
 
     private void PlaySFX(AudioClip clip)
     {
         if (sfxSource == null)
         {
             Debug.LogError(
-                "AudioManager: SFX Source is not assigned."
+                "AudioManager: SFX Source missing."
             );
 
             return;
@@ -546,8 +416,8 @@ public class AudioManager : MonoBehaviour
 
         if (clip == null)
         {
-            Debug.LogError(
-                "AudioManager: SFX Clip is not assigned."
+            Debug.LogWarning(
+                "AudioManager: SFX clip is NULL."
             );
 
             return;
@@ -557,15 +427,12 @@ public class AudioManager : MonoBehaviour
     }
 
     // =========================================================
-    // MUSIC VOLUME
+    // SETTINGS
     // =========================================================
 
-    public void SetMusicVolume(float volume)
+    public void SetMusicVolume(float value)
     {
-        musicVolume =
-            Mathf.Clamp01(volume);
-
-        ApplyMusicSettings();
+        musicVolume = Mathf.Clamp01(value);
 
         PlayerPrefs.SetFloat(
             MusicVolumeKey,
@@ -574,22 +441,17 @@ public class AudioManager : MonoBehaviour
 
         PlayerPrefs.Save();
 
+        ApplyMusicSettings();
+
         Debug.Log(
             "AudioManager: Music Volume = " +
             musicVolume
         );
     }
 
-    // =========================================================
-    // SFX VOLUME
-    // =========================================================
-
-    public void SetSFXVolume(float volume)
+    public void SetSFXVolume(float value)
     {
-        sfxVolume =
-            Mathf.Clamp01(volume);
-
-        ApplySFXSettings();
+        sfxVolume = Mathf.Clamp01(value);
 
         PlayerPrefs.SetFloat(
             SFXVolumeKey,
@@ -598,21 +460,17 @@ public class AudioManager : MonoBehaviour
 
         PlayerPrefs.Save();
 
+        ApplySFXSettings();
+
         Debug.Log(
             "AudioManager: SFX Volume = " +
             sfxVolume
         );
     }
 
-    // =========================================================
-    // MUTE
-    // =========================================================
-
     public void SetMuted(bool muted)
     {
         isMuted = muted;
-
-        ApplyAudioSettings();
 
         PlayerPrefs.SetInt(
             MuteKey,
@@ -621,94 +479,18 @@ public class AudioManager : MonoBehaviour
 
         PlayerPrefs.Save();
 
+        ApplyAudioSettings();
+
         Debug.Log(
             "AudioManager: Muted = " +
             isMuted
         );
     }
 
-    public void ToggleMute()
-    {
-        SetMuted(!isMuted);
-    }
-
-    // =========================================================
-    // APPLY SETTINGS
-    // =========================================================
-
-    private void ApplyAudioSettings()
-    {
-        ApplyMusicSettings();
-        ApplySFXSettings();
-    }
-
-    private void ApplyMusicSettings()
-    {
-        if (musicSource == null)
-            return;
-
-        musicSource.volume =
-            isMuted ? 0f : musicVolume;
-
-        musicSource.mute = false;
-    }
-
-    private void ApplySFXSettings()
-    {
-        if (sfxSource == null)
-            return;
-
-        sfxSource.volume =
-            sfxVolume;
-
-        sfxSource.mute =
-            isMuted;
-    }
-
-    // =========================================================
-    // LOAD SETTINGS
-    // =========================================================
-
-    private void LoadAudioSettings()
-    {
-        musicVolume =
-            PlayerPrefs.GetFloat(
-                MusicVolumeKey,
-                defaultMusicVolume
-            );
-
-        sfxVolume =
-            PlayerPrefs.GetFloat(
-                SFXVolumeKey,
-                defaultSFXVolume
-            );
-
-        isMuted =
-            PlayerPrefs.GetInt(
-                MuteKey,
-                0
-            ) == 1;
-
-        musicVolume =
-            Mathf.Clamp01(musicVolume);
-
-        sfxVolume =
-            Mathf.Clamp01(sfxVolume);
-    }
-
-    // =========================================================
-    // RESET SETTINGS
-    // =========================================================
-
-    [ContextMenu("Reset Audio Settings")]
     public void ResetAudioSettings()
     {
-        musicVolume =
-            defaultMusicVolume;
-
-        sfxVolume =
-            defaultSFXVolume;
-
+        musicVolume = defaultMusicVolume;
+        sfxVolume = defaultSFXVolume;
         isMuted = false;
 
         PlayerPrefs.SetFloat(
@@ -736,78 +518,30 @@ public class AudioManager : MonoBehaviour
     }
 
     // =========================================================
-    // TESTING
+    // TEST
     // =========================================================
 
-    [ContextMenu("Test Main Menu Music")]
-    private void TestMainMenuMusic()
-    {
-        PlayMainMenuMusic();
-    }
-
-    [ContextMenu("Test Level Select Music")]
-    private void TestLevelSelectMusic()
-    {
-        PlayLevelSelectMusic();
-    }
-
-    [ContextMenu("Test Gameplay Music")]
-    private void TestGameplayMusic()
-    {
-        PlayGameplayMusic();
-    }
-
-    [ContextMenu("Test Button Sound")]
-    private void TestButtonSound()
+    [ContextMenu("TEST - Play Button")]
+    private void TestButton()
     {
         PlayButtonClick();
     }
 
-    [ContextMenu("Test Major Button")]
-    private void TestMajorButton()
-    {
-        PlayMajorButton();
-    }
-
-    [ContextMenu("Test Navigation Button")]
-    private void TestNavigationButton()
+    [ContextMenu("TEST - Play Navigation")]
+    private void TestNavigation()
     {
         PlayNavigationButton();
     }
 
-    [ContextMenu("Test Denied")]
-    private void TestDenied()
+    [ContextMenu("TEST - Toggle Mute")]
+    private void TestMute()
     {
-        PlayDenied();
+        SetMuted(!isMuted);
     }
 
-    [ContextMenu("Test Placement Confirmed")]
-    private void TestPlacementConfirmed()
+    [ContextMenu("TEST - Reset Audio")]
+    private void TestReset()
     {
-        PlayPlacementConfirmed();
-    }
-
-    [ContextMenu("Test Unlocking")]
-    private void TestUnlocking()
-    {
-        PlayUnlocking();
-    }
-
-    [ContextMenu("Test Game Won")]
-    private void TestGameWon()
-    {
-        PlayGameWon();
-    }
-
-    [ContextMenu("Test Game Over")]
-    private void TestGameOver()
-    {
-        PlayGameOver();
-    }
-
-    [ContextMenu("Test Window Switch")]
-    private void TestWindowSwitch()
-    {
-        PlayWindowSwitch();
+        ResetAudioSettings();
     }
 }
