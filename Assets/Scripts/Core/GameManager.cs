@@ -17,10 +17,23 @@ public class GameManager : MonoBehaviour
     public int floorsBuilt = 0;
     public int targetFloors = 10;
 
+    [Header("Combo / Accuracy (Tower Bloxx style)")]
+    [Tooltip("Overlap ratio (0-1) required for a drop to count as 'perfect' and build combo.")]
+    public float perfectAccuracyThreshold = 0.85f;
+    public int maxCombo = 5;
+    public int baseFloorScore = 50;
+
+    [HideInInspector]
+    public int comboCount = 0;
+
     [HideInInspector]
     public bool isGameOver = false;
 
     private GameObject lastPlacedBlock;
+
+    // Lets BlockLanding check whether a collision is against the CURRENT
+    // top block, instead of just matching any "Building"-tagged object.
+    public GameObject LastPlacedBlock => lastPlacedBlock;
 
     private void Awake()
     {
@@ -48,6 +61,7 @@ public class GameManager : MonoBehaviour
         floorsBuilt = 0;
         score = 0;
         lives = 3;
+        comboCount = 0;
         isGameOver = false;
 
         if (UIManager.Instance != null)
@@ -128,24 +142,49 @@ public class GameManager : MonoBehaviour
     }
 
     // =========================================================
-    // FLOOR COUNT
+    // FLOOR COUNT + COMBO/ACCURACY SCORING
     // =========================================================
 
-    public void AddFloor()
+    // accuracy: 0-1, how centered the block was on the one below it.
+    // Called by BlockLanding once a drop is confirmed as a valid stack.
+    public void AddFloor(float accuracy)
     {
         if (isGameOver)
             return;
 
         floorsBuilt++;
 
-        Debug.Log("Floors Built: " + floorsBuilt);
+        bool wasPerfect = accuracy >= perfectAccuracyThreshold;
+
+        // Perfect (well-centered) drops build the combo, like the real
+        // Tower Bloxx star meter. A sloppy-but-valid drop just resets the
+        // combo back to x1 — it does NOT cost a life or count as a miss.
+        if (wasPerfect)
+        {
+            comboCount = Mathf.Min(comboCount + 1, maxCombo);
+        }
+        else
+        {
+            comboCount = 0;
+        }
+
+        int multiplier = comboCount + 1;
+        int floorScore = baseFloorScore * multiplier;
+
+        AddScore(floorScore);
+
+        Debug.Log(
+            "Floors Built: " + floorsBuilt +
+            " | Accuracy: " + accuracy.ToString("P0") +
+            " | Combo: x" + multiplier
+        );
 
         if (UIManager.Instance != null)
         {
             UIManager.Instance.UpdateFloors(floorsBuilt);
+            UIManager.Instance.UpdateCombo(comboCount, maxCombo, wasPerfect);
         }
 
-        // EXACTLY 10 BLOCKS = COMPLETE
         if (floorsBuilt >= targetFloors)
         {
             BuildingComplete();
@@ -184,9 +223,13 @@ public class GameManager : MonoBehaviour
 
         lives = Mathf.Max(lives, 0);
 
+        // A miss also breaks the combo.
+        comboCount = 0;
+
         if (UIManager.Instance != null)
         {
             UIManager.Instance.UpdateLives(lives);
+            UIManager.Instance.UpdateCombo(comboCount, maxCombo, false);
         }
 
         Debug.Log("Lives Remaining: " + lives);

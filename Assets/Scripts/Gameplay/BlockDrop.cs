@@ -2,16 +2,7 @@ using UnityEngine;
 
 public class BlockDrop : MonoBehaviour
 {
-    private Rigidbody2D rb;
     private bool dropped = false;
-
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-
-        // Every new block starts hanging
-        rb.gravityScale = 0;
-    }
 
     void Update()
     {
@@ -19,9 +10,20 @@ public class BlockDrop : MonoBehaviour
         {
             dropped = true;
 
-            rb.gravityScale = 1;
+            BlockSwing swing = GetComponent<BlockSwing>();
+            if (swing != null)
+            {
+                swing.enabled = false;
+            }
 
-            GetComponent<BlockSwing>().enabled = false;
+            // IMPORTANT: release through the crane (not just locally), so
+            // CraneController.currentBlock gets cleared. Without this the
+            // crane thinks a block is still active and refuses to spawn
+            // the next one — that's what was causing the game to get stuck.
+            if (CraneController.Instance != null)
+            {
+                CraneController.Instance.ReleaseBlock();
+            }
         }
     }
 }
