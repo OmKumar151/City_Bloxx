@@ -2,29 +2,62 @@ using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
+    [Header("Target")]
     public Transform target;
 
-    public float smoothSpeed = 2f;
+    [Header("Camera Settings")]
+    public float smoothSpeed = 4f;
+    public float offsetY = 2.5f;
 
-    public float offsetY = 3f;
+    [Header("Movement")]
+    public bool onlyMoveUp = true;
+
+    private float highestCameraY;
+
+    private void Start()
+    {
+        highestCameraY = transform.position.y;
+    }
 
     private void LateUpdate()
     {
         if (target == null)
             return;
 
-        Vector3 desiredPosition =
-            new Vector3(
-                transform.position.x,
-                target.position.y + offsetY,
-                transform.position.z
-            );
+        float wantedY = target.position.y + offsetY;
 
-        transform.position =
-            Vector3.Lerp(
-                transform.position,
-                desiredPosition,
-                smoothSpeed * Time.deltaTime
-            );
+        // Camera should NEVER move downward.
+        if (onlyMoveUp)
+        {
+            wantedY = Mathf.Max(wantedY, highestCameraY);
+        }
+
+        float newY = Mathf.Lerp(
+            transform.position.y,
+            wantedY,
+            smoothSpeed * Time.deltaTime
+        );
+
+        // Safety: never move downward.
+        if (onlyMoveUp)
+        {
+            newY = Mathf.Max(newY, transform.position.y);
+        }
+
+        transform.position = new Vector3(
+            transform.position.x,
+            newY,
+            transform.position.z
+        );
+
+        highestCameraY = Mathf.Max(highestCameraY, newY);
+    }
+
+    public void SetTarget(Transform newTarget)
+    {
+        if (newTarget == null)
+            return;
+
+        target = newTarget;
     }
 }

@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 2610849808553134082}
   - component: {fileID: 8546844795838902115}
   - component: {fileID: 9100744240261391800}
+  - component: {fileID: 1957485127722664485}
   m_Layer: 0
   m_Name: HangingBlock
   m_TagString: Building
@@ -31,8 +32,8 @@ Transform:
   m_GameObject: {fileID: 4873505803641195100}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
-  m_LocalScale: {x: 2, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 8, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -207,3 +208,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fcf89e2e15a4a7f4d83f5aeb3db39dae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockLanding
+  minOverlap: 0.3
+  missedBlockLifetime: 0.4
+--- !u!114 &1957485127722664485
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4873505803641195100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c71d755ca21c994993f4610e997d324, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingTier
+  tiers:
+  - tierName: Base
+    floorsPerTier: 3
+    sprites: []
+    fallbackColor: {r: 0.82, g: 0.71, b: 0.55, a: 1}
+  - tierName: Mid-Rise
+    floorsPerTier: 3
+    sprites: []
+    fallbackColor: {r: 0.55, g: 0.65, b: 0.75, a: 1}
+  - tierName: High-Rise
+    floorsPerTier: 3
+    sprites: []
+    fallbackColor: {r: 0.85, g: 0.55, b: 0.35, a: 1}
+  - tierName: Penthouse
+    floorsPerTier: 3
+    sprites: []
+    fallbackColor: {r: 0.65, g: 0.85, b: 0.95, a: 1}
