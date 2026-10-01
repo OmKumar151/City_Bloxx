@@ -21,25 +21,39 @@ public class LevelSelectManager : MonoBehaviour
 
     public void NextLevel()
     {
+        int oldIndex = currentIndex;
+
         currentIndex++;
 
         if (currentIndex >= levels.Length)
             currentIndex = levels.Length - 1;
 
-        UpdateSelection();
+        // Only play the sound if the selection actually changed.
+        if (currentIndex != oldIndex)
+        {
+            PlayNavigationSound();
+            UpdateSelection();
+        }
     }
 
     public void PreviousLevel()
     {
+        int oldIndex = currentIndex;
+
         currentIndex--;
 
         if (currentIndex < 0)
             currentIndex = 0;
 
-        UpdateSelection();
+        // Only play the sound if the selection actually changed.
+        if (currentIndex != oldIndex)
+        {
+            PlayNavigationSound();
+            UpdateSelection();
+        }
     }
 
-    void UpdateSelection()
+    private void UpdateSelection()
     {
         foreach (var level in levels)
             level.Select(false);
@@ -57,12 +71,57 @@ public class LevelSelectManager : MonoBehaviour
 
     public void PlaySelectedLevel()
     {
-        Debug.Log("Play " +
+        PlayMajorButtonSound();
+
+        Debug.Log(
+            "Play " +
             levels[currentIndex].levelData.levelName);
     }
 
     public void BackToMenu()
     {
+        PlayWindowSwitchSound();
+
         Debug.Log("Return to Main Menu");
+    }
+
+    // =========================================================
+    // AUDIO
+    // =========================================================
+
+    private void PlayNavigationSound()
+    {
+        if (AudioManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "LevelSelectManager: AudioManager is not available.");
+            return;
+        }
+
+        AudioManager.Instance.PlayNavigationButton();
+    }
+
+    private void PlayMajorButtonSound()
+    {
+        if (AudioManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "LevelSelectManager: AudioManager is not available.");
+            return;
+        }
+
+        AudioManager.Instance.PlayMajorButton();
+    }
+
+    private void PlayWindowSwitchSound()
+    {
+        if (AudioManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "LevelSelectManager: AudioManager is not available.");
+            return;
+        }
+
+        AudioManager.Instance.PlayWindowSwitch();
     }
 }

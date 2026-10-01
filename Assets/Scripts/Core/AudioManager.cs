@@ -405,25 +405,29 @@ public class AudioManager : MonoBehaviour
 
     private void PlaySFX(AudioClip clip)
     {
-        if (sfxSource == null)
-        {
-            Debug.LogError(
-                "AudioManager: SFX Source missing."
-            );
-
-            return;
-        }
+        Debug.Log("========== SFX REQUEST ==========");
 
         if (clip == null)
         {
-            Debug.LogWarning(
-                "AudioManager: SFX clip is NULL."
-            );
-
+            Debug.LogError("SFX REQUEST FAILED: AudioClip is NULL!");
             return;
         }
 
+        Debug.Log("SFX Clip: " + clip.name);
+        Debug.Log("SFX Source exists: " + (sfxSource != null));
+
+        if (sfxSource == null)
+        {
+            Debug.LogError("SFX REQUEST FAILED: SFX AudioSource is NULL!");
+            return;
+        }
+
+        Debug.Log("SFX Source Volume: " + sfxSource.volume);
+        Debug.Log("SFX Source Mute: " + sfxSource.mute);
+
         sfxSource.PlayOneShot(clip);
+
+        Debug.Log("SFX PLAYED: " + clip.name);
     }
 
     // =========================================================
@@ -544,4 +548,37 @@ public class AudioManager : MonoBehaviour
     {
         ResetAudioSettings();
     }
+
+    // =========================================================
+    // SFX TESTS
+    // =========================================================
+
+    [ContextMenu("TEST - Play Button")]
+    private void TestButtonSound()
+    {
+        Debug.Log("TEST: Play Button SFX");
+        PlayButtonClick();
+    }
+
+    [ContextMenu("TEST - Play Navigation")]
+    private void TestNavigationSound()
+    {
+        Debug.Log("TEST: Play Navigation SFX");
+        PlayNavigationButton();
+    }
+
+    [ContextMenu("TEST - Play Denied")]
+    private void TestDeniedSound()
+    {
+        Debug.Log("TEST: Play Denied SFX");
+        PlayDenied();
+    }
+
+    [ContextMenu("TEST - Play Placement Confirmed")]
+    private void TestPlacementConfirmedSound()
+    {
+        Debug.Log("TEST: Play Placement Confirmed SFX");
+        PlayPlacementConfirmed();
+    }
+
 }

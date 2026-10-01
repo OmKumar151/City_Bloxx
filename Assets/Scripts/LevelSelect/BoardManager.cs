@@ -6,6 +6,16 @@ public class BoardManager : MonoBehaviour
     [Header("Board")]
     [SerializeField] private Transform gridRoot;
 
+    [Header("Placement Glow")]
+    [SerializeField] private float placementGlowSize = 125f;
+    [SerializeField] private float placementGlowIntensity = 1.35f;
+    [SerializeField] private float placementIndicatorSize = 88f;
+    [SerializeField] private float placementPreviewAlpha = 0.55f;
+    [SerializeField] private Color bluePlacementColor = new Color(0.15f, 0.55f, 1f, 0.85f);
+    [SerializeField] private Color redPlacementColor = new Color(1f, 0.2f, 0.2f, 0.85f);
+    [SerializeField] private Color greenPlacementColor = new Color(0.2f, 0.9f, 0.25f, 0.85f);
+    [SerializeField] private Color yellowPlacementColor = new Color(1f, 0.85f, 0.1f, 0.9f);
+
     [Header("Building Sprites")]
     [SerializeField] private Sprite blueBuildingSprite;
     [SerializeField] private Sprite redBuildingSprite;
@@ -16,6 +26,8 @@ public class BoardManager : MonoBehaviour
         new Dictionary<Vector2Int, GridCell>();
 
     private GridCell currentlySelectedCell;
+
+    private int currentPlacementBuildingIndex = -1;
 
 
     // =========================================================
@@ -247,13 +259,24 @@ public class BoardManager : MonoBehaviour
         if (currentlySelectedCell != null)
         {
             currentlySelectedCell.SetHighlight(false);
+            currentlySelectedCell.HidePlacementIndicator();
         }
 
         currentlySelectedCell = cell;
 
-        currentlySelectedCell.SetHighlight(true);
-
         UpdateSelectedBuildingScore();
+
+        if (currentPlacementBuildingIndex >= 0)
+        {
+            ShowPlacementHighlights(
+                currentPlacementBuildingIndex
+            );
+        }
+        else
+        {
+            currentlySelectedCell.SetHighlight(false);
+            currentlySelectedCell.HidePlacementIndicator();
+        }
     }
 
 
@@ -351,6 +374,202 @@ public class BoardManager : MonoBehaviour
         }
 
         return null;
+    }
+
+
+    // =========================================================
+    // PLACEMENT HIGHLIGHTS
+    // =========================================================
+
+    public void ShowPlacementHighlights(int buildingIndex)
+    {
+        GridCell.BuildingType buildingType =
+            GetBuildingType(buildingIndex);
+
+        if (buildingType == GridCell.BuildingType.None)
+        {
+            ClearPlacementHighlights();
+            return;
+        }
+
+        // Detect whether the player has selected a different
+        // building. If so, the cursor should move to the first
+        // valid location for the new building.
+        bool buildingSelectionChanged =
+            currentPlacementBuildingIndex != buildingIndex;
+
+        currentPlacementBuildingIndex =
+            buildingIndex;
+
+        RefreshBoardAnalysis();
+
+        Color glowColor =
+            GetPlacementGlowColor(buildingType);
+
+        Sprite buildingSprite =
+            GetBuildingSprite(buildingIndex);
+
+        GridCell firstValidCell = null;
+
+        foreach (GridCell cell in GetAllActiveCells())
+        {
+            if (cell == null)
+            {
+                continue;
+            }
+
+            bool validPlacement;
+
+            if (cell.IsOccupied)
+            {
+                validPlacement =
+                    CanReplaceBuildingAtCell(
+                        cell,
+                        buildingType
+                    );
+            }
+            else
+            {
+                validPlacement =
+                    CanPlaceBuilding(
+                        cell,
+                        buildingType
+                    );
+            }
+
+            if (validPlacement &&
+                firstValidCell == null)
+            {
+                firstValidCell = cell;
+            }
+
+            cell.SetPlacementHighlight(
+                validPlacement,
+                glowColor,
+                placementGlowSize,
+                placementGlowIntensity
+            );
+
+            cell.HidePlacementIndicator();
+        }
+
+
+        // -----------------------------------------------------
+        // CURSOR SELECTION
+        // -----------------------------------------------------
+
+        // When a building is newly selected, automatically move
+        // the cursor to the first valid location.
+        //
+        // During normal board navigation, keep the player's
+        // current cursor position.
+        if (buildingSelectionChanged &&
+            firstValidCell != null)
+        {
+            if (currentlySelectedCell != null &&
+                currentlySelectedCell != firstValidCell)
+            {
+                currentlySelectedCell.SetHighlight(false);
+                currentlySelectedCell.HidePlacementIndicator();
+            }
+
+            currentlySelectedCell =
+                firstValidCell;
+        }
+        else if (currentlySelectedCell == null &&
+                 firstValidCell != null)
+        {
+            currentlySelectedCell =
+                firstValidCell;
+        }
+
+
+        // -----------------------------------------------------
+        // PLACEMENT PREVIEW
+        // -----------------------------------------------------
+
+        if (currentlySelectedCell != null &&
+            currentlySelectedCell.gameObject.activeInHierarchy)
+        {
+            bool selectedCellCanPlace;
+
+            if (currentlySelectedCell.IsOccupied)
+            {
+                selectedCellCanPlace =
+                    CanReplaceBuildingAtCell(
+                        currentlySelectedCell,
+                        buildingType
+                    );
+            }
+            else
+            {
+                selectedCellCanPlace =
+                    CanPlaceBuilding(
+                        currentlySelectedCell,
+                        buildingType
+                    );
+            }
+
+            Color indicatorColor =
+                glowColor;
+
+            if (!selectedCellCanPlace)
+            {
+                indicatorColor =
+                    new Color(
+                        1f,
+                        0.25f,
+                        0.25f,
+                        0.95f
+                    );
+            }
+
+            currentlySelectedCell.SetPlacementIndicator(
+                true,
+                buildingSprite,
+                indicatorColor,
+                placementIndicatorSize,
+                placementPreviewAlpha
+            );
+        }
+    }
+
+
+    public void ClearPlacementHighlights()
+    {
+        currentPlacementBuildingIndex = -1;
+
+        foreach (GridCell cell in GetAllActiveCells())
+        {
+            if (cell != null)
+            {
+                cell.SetHighlight(false);
+                cell.HidePlacementIndicator();
+            }
+        }
+    }
+
+
+    private Color GetPlacementGlowColor(
+        GridCell.BuildingType buildingType)
+    {
+        switch (buildingType)
+        {
+            case GridCell.BuildingType.Blue:
+                return bluePlacementColor;
+
+            case GridCell.BuildingType.Red:
+                return redPlacementColor;
+
+            case GridCell.BuildingType.Green:
+                return greenPlacementColor;
+
+            case GridCell.BuildingType.Yellow:
+                return yellowPlacementColor;
+
+            default:
+                return Color.white;
+        }
     }
 
 
@@ -512,11 +731,6 @@ public class BoardManager : MonoBehaviour
 
         RefreshBoardAnalysis();
 
-
-        // -----------------------------------------------------
-        // NORMAL EMPTY-CELL PLACEMENT
-        // -----------------------------------------------------
-
         if (HasValidPlacement(buildingIndex))
         {
             Debug.Log(
@@ -526,11 +740,6 @@ public class BoardManager : MonoBehaviour
 
             return true;
         }
-
-
-        // -----------------------------------------------------
-        // REPLACEMENT
-        // -----------------------------------------------------
 
         foreach (GridCell cell in GetAllActiveCells())
         {
@@ -618,7 +827,7 @@ public class BoardManager : MonoBehaviour
             population
         );
 
-        currentlySelectedCell.SetHighlight(false);
+        ClearPlacementHighlights();
 
         UpdateSelectedBuildingScore();
 
@@ -705,31 +914,6 @@ public class BoardManager : MonoBehaviour
     // =========================================================
     // REPLACEMENT VALIDATION
     // =========================================================
-    //
-    // IMPORTANT GAME RULE:
-    //
-    // Replacement only checks whether the NEW building
-    // satisfies its own placement requirements.
-    //
-    // Existing buildings are NOT revalidated.
-    //
-    // Example:
-    //
-    //     Red Blue Blue
-    //
-    // Replace middle Blue with Green:
-    //
-    //     Red Green Blue
-    //
-    // Green has:
-    //     Red on the left
-    //     Blue on the right
-    //
-    // Therefore the replacement is valid.
-    //
-    // We do NOT check whether the existing Red still
-    // has a Blue neighbour.
-    // =========================================================
 
     private bool CanReplaceBuildingAtCell(
         GridCell replacementCell,
@@ -776,13 +960,11 @@ public class BoardManager : MonoBehaviour
         {
             case GridCell.BuildingType.Blue:
 
-                // Blue can always be placed/replaced.
                 return true;
 
 
             case GridCell.BuildingType.Red:
 
-                // Red requires Blue.
                 return HasNeighbourBuilding(
                     cell,
                     GridCell.BuildingType.Blue
@@ -791,7 +973,6 @@ public class BoardManager : MonoBehaviour
 
             case GridCell.BuildingType.Green:
 
-                // Green requires Blue AND Red.
                 return
                     HasNeighbourBuilding(
                         cell,
@@ -806,7 +987,6 @@ public class BoardManager : MonoBehaviour
 
             case GridCell.BuildingType.Yellow:
 
-                // Yellow requires Blue AND Red AND Green.
                 return
                     HasNeighbourBuilding(
                         cell,
@@ -865,11 +1045,6 @@ public class BoardManager : MonoBehaviour
             return false;
         }
 
-
-        // -----------------------------------------------------
-        // ONLY VALIDATE THE NEW BUILDING
-        // -----------------------------------------------------
-
         if (!CanReplaceBuildingAtCell(
             currentlySelectedCell,
             replacementType))
@@ -890,11 +1065,6 @@ public class BoardManager : MonoBehaviour
             return false;
         }
 
-
-        // -----------------------------------------------------
-        // GET SPRITE
-        // -----------------------------------------------------
-
         Sprite spriteToPlace =
             GetBuildingSprite(buildingIndex);
 
@@ -906,11 +1076,6 @@ public class BoardManager : MonoBehaviour
 
             return false;
         }
-
-
-        // -----------------------------------------------------
-        // REPLACE
-        // -----------------------------------------------------
 
         GridCell.BuildingType oldBuildingType =
             currentlySelectedCell.CurrentBuilding;
@@ -929,7 +1094,7 @@ public class BoardManager : MonoBehaviour
             newPopulation
         );
 
-        currentlySelectedCell.SetHighlight(false);
+        ClearPlacementHighlights();
 
         UpdateSelectedBuildingScore();
 
@@ -950,6 +1115,19 @@ public class BoardManager : MonoBehaviour
         );
 
         return true;
+    }
+
+
+    // =========================================================
+    // PLACEMENT HIGHLIGHT REFRESH
+    // =========================================================
+
+    public void RefreshPlacementHighlights(
+        int buildingIndex)
+    {
+        ShowPlacementHighlights(
+            buildingIndex
+        );
     }
 
 
@@ -1129,6 +1307,7 @@ public class BoardManager : MonoBehaviour
         }
 
         currentlySelectedCell = null;
+        currentPlacementBuildingIndex = -1;
 
         if (BuildingScoreManager.Instance != null)
         {
@@ -1156,11 +1335,6 @@ public class BoardManager : MonoBehaviour
 
         GridCell neighbour;
 
-
-        // -----------------------------------------------------
-        // RIGHT
-        // -----------------------------------------------------
-
         neighbour =
             GetCell(
                 cell.X + 1,
@@ -1172,11 +1346,6 @@ public class BoardManager : MonoBehaviour
         {
             return true;
         }
-
-
-        // -----------------------------------------------------
-        // LEFT
-        // -----------------------------------------------------
 
         neighbour =
             GetCell(
@@ -1190,11 +1359,6 @@ public class BoardManager : MonoBehaviour
             return true;
         }
 
-
-        // -----------------------------------------------------
-        // UP
-        // -----------------------------------------------------
-
         neighbour =
             GetCell(
                 cell.X,
@@ -1207,11 +1371,6 @@ public class BoardManager : MonoBehaviour
             return true;
         }
 
-
-        // -----------------------------------------------------
-        // DOWN
-        // -----------------------------------------------------
-
         neighbour =
             GetCell(
                 cell.X,
@@ -1223,7 +1382,6 @@ public class BoardManager : MonoBehaviour
         {
             return true;
         }
-
 
         return false;
     }
@@ -1316,10 +1474,15 @@ public class BoardManager : MonoBehaviour
         RefreshBoardAnalysis();
     }
 
+
+    // =========================================================
+    // RESTORE BUILDING
+    // =========================================================
+
     public void RestoreBuilding(
-    GridCell cell,
-    GridCell.BuildingType buildingType,
-    int population)
+        GridCell cell,
+        GridCell.BuildingType buildingType,
+        int population)
     {
         if (cell == null)
         {
@@ -1360,8 +1523,9 @@ public class BoardManager : MonoBehaviour
         );
     }
 
+
     private int GetBuildingIndex(
-    GridCell.BuildingType buildingType)
+        GridCell.BuildingType buildingType)
     {
         switch (buildingType)
         {

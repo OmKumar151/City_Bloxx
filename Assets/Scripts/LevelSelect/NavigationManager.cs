@@ -130,7 +130,8 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        selectedBuilding = nextBuilding;
+        selectedBuilding =
+            nextBuilding;
 
         UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
@@ -155,7 +156,8 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        selectedBuilding = nextBuilding;
+        selectedBuilding =
+            nextBuilding;
 
         UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
@@ -417,8 +419,30 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+        /*
+         * BuildingSelectionUI calls BoardManager.ShowPlacementHighlights()
+         * whenever a building is selected.
+         *
+         * BoardManager now automatically moves its placement cursor
+         * to the first valid location when the selected building changes.
+         *
+         * Therefore, use BoardManager's selected cell instead of
+         * resetting the cursor to the first board cell.
+         */
         currentBoardCell =
-            boardManager.GetFirstBoardCell();
+            boardManager.GetSelectedCell();
+
+        /*
+         * Safety fallback.
+         *
+         * Normally this should not be needed because selecting a
+         * building already creates the placement cursor.
+         */
+        if (currentBoardCell == null)
+        {
+            currentBoardCell =
+                boardManager.GetFirstBoardCell();
+        }
 
         if (currentBoardCell == null)
         {
@@ -435,6 +459,10 @@ public class NavigationManager : MonoBehaviour
         currentMode =
             NavigationMode.BoardPlacement;
 
+        /*
+         * Refresh the selected cell now that Board Placement Mode
+         * has officially started.
+         */
         boardManager.SetSelectedCell(
             currentBoardCell
         );
@@ -572,10 +600,6 @@ public class NavigationManager : MonoBehaviour
             {
                 SyncPopulationManager();
 
-                // -------------------------------------------------
-                // AUTOMATIC SAVE
-                // -------------------------------------------------
-
                 SaveMap();
 
                 ShowBuildingPlaced();
@@ -621,10 +645,6 @@ public class NavigationManager : MonoBehaviour
         if (replacementSuccessful)
         {
             SyncPopulationManager();
-
-            // -------------------------------------------------
-            // AUTOMATIC SAVE
-            // -------------------------------------------------
 
             SaveMap();
 
@@ -768,6 +788,8 @@ public class NavigationManager : MonoBehaviour
             {
                 selectedCell.SetHighlight(false);
             }
+
+            boardManager.ClearPlacementHighlights();
         }
 
         if (infoPanel != null)

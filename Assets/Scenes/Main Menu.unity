@@ -151,8 +151,8 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 826117897}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMin: {x: 1, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -1169,7 +1169,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &384235582
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1296,7 +1296,7 @@ RectTransform:
   m_Father: {fileID: 1404983238}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -1806,8 +1806,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 444, y: 299}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: 429.13074, y: 299}
+  m_SizeDelta: {x: 130, y: 35}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &711474371
 MonoBehaviour:
@@ -1885,7 +1885,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -3018690797939162413, guid: 0d581c5c8332ca546ad8c9c7283aeefe, type: 3}
+  m_Sprite: {fileID: -4238711552060958762, guid: 2d9789f56a779fd48b0e471e3c1b70d3, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -4035,15 +4035,17 @@ MonoBehaviour:
   mainMenuSceneName: Main Menu
   levelSelectSceneName: LevelSelect
   gameplaySceneName: Gameplay1
-  buttonSound: {fileID: 8300000, guid: 13c25e6cb76c4d7459dba8dec67a9702, type: 3}
+  buttonClickSound: {fileID: 8300000, guid: 13c25e6cb76c4d7459dba8dec67a9702, type: 3}
+  deniedSound: {fileID: 8300000, guid: 3175d147b948cbe428ba2cb184edc3cc, type: 3}
+  gameOverSound: {fileID: 8300000, guid: ed7e615fd4956cd4c9d57990b14e2165, type: 3}
+  gameWonSound: {fileID: 8300000, guid: 7bf91e4927c55144f9ad984642df1c39, type: 3}
+  levelSelectSound: {fileID: 8300000, guid: 8fd2eb4a4f406344faf2a4b2265feca1, type: 3}
+  mainMenuSound: {fileID: 8300000, guid: d8741d0c493e5c246bcd4caaeb3c090b, type: 3}
   majorButtonSound: {fileID: 8300000, guid: 84531c5259a41964a930ac10169049ea, type: 3}
   navigationButtonSound: {fileID: 8300000, guid: 945d87e5e049fbd478822e0ce3c0c9e2, type: 3}
-  deniedSound: {fileID: 8300000, guid: 3175d147b948cbe428ba2cb184edc3cc, type: 3}
-  windowSwitchSound: {fileID: 8300000, guid: 2120fa5e6d2842d4cbec05c0b2ce3fdc, type: 3}
   placementConfirmedSound: {fileID: 8300000, guid: 9263e12ccff0d494799cd50cff289adb, type: 3}
   unlockingSound: {fileID: 8300000, guid: 9ae73eb713594544ab874496b3c494b5, type: 3}
-  gameWonSound: {fileID: 8300000, guid: 7bf91e4927c55144f9ad984642df1c39, type: 3}
-  gameOverSound: {fileID: 8300000, guid: ed7e615fd4956cd4c9d57990b14e2165, type: 3}
+  windowSwitchSound: {fileID: 8300000, guid: 2120fa5e6d2842d4cbec05c0b2ce3fdc, type: 3}
   musicFadeDuration: 0.35
   defaultMusicVolume: 1
   defaultSFXVolume: 1

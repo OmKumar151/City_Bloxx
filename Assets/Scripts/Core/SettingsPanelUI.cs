@@ -85,6 +85,8 @@ public class SettingsPanelUI : MonoBehaviour
             (AudioManager.Instance != null)
         );
 
+        PlayButtonSound();
+
         LoadCurrentAudioSettings();
 
         settingsPanel.SetActive(true);
@@ -96,8 +98,12 @@ public class SettingsPanelUI : MonoBehaviour
             "SettingsPanelUI: CloseSettings called."
         );
 
-        if (settingsPanel != null)
-            settingsPanel.SetActive(false);
+        if (settingsPanel == null)
+            return;
+
+        PlayButtonSound();
+
+        settingsPanel.SetActive(false);
     }
 
     public void OnMusicSliderChanged(float value)
@@ -209,8 +215,28 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
+        PlayButtonSound();
+
         AudioManager.Instance.ResetAudioSettings();
 
         LoadCurrentAudioSettings();
+    }
+
+    // =========================================================
+    // AUDIO
+    // =========================================================
+
+    private void PlayButtonSound()
+    {
+        if (AudioManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "SettingsPanelUI: AudioManager is not available."
+            );
+
+            return;
+        }
+
+        AudioManager.Instance.PlayButtonClick();
     }
 }
