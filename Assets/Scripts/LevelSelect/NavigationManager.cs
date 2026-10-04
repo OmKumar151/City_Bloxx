@@ -1,3 +1,4 @@
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class NavigationManager : MonoBehaviour
@@ -23,11 +24,15 @@ public class NavigationManager : MonoBehaviour
     private NavigationMode currentMode =
         NavigationMode.BuildingSelection;
 
-    public int SelectedBuilding =>
-        selectedBuilding;
+    public int SelectedBuilding
+    {
+        get { return selectedBuilding; }
+    }
 
-    public NavigationMode CurrentMode =>
-        currentMode;
+    public NavigationMode CurrentMode
+    {
+        get { return currentMode; }
+    }
 
 
     // =========================================================
@@ -43,20 +48,23 @@ public class NavigationManager : MonoBehaviour
 
         currentBoardCell = null;
 
-        // Make absolutely sure placement visuals are hidden
-        // when the scene starts in Building Selection Mode.
-        if (boardManager != null)
-        {
-            boardManager.ClearPlacementHighlights();
-        }
+        // Building Selection Mode must NEVER show
+        // board placement glow or placement marker.
+        ClearPlacementVisuals();
 
         UpdateBuildingSelectionVisual();
+
+        // Safety clear in case the selection UI changes
+        // anything during its visual update.
+        ClearPlacementVisuals();
+
         ShowBuildingSelected();
         UpdateCurrentBuildingScore();
         ClearExistingBuildingScore();
 
         Debug.Log(
-            "Navigation started. Building Selection Mode."
+            "Navigation started. Building Selection Mode. " +
+            "Board placement visuals are OFF."
         );
     }
 
@@ -140,17 +148,21 @@ public class NavigationManager : MonoBehaviour
         selectedBuilding =
             nextBuilding;
 
-        // We are still only selecting a building.
-        // Do NOT show placement visuals yet.
+        // Only change the building selection UI.
+        UpdateBuildingSelectionVisual();
+
+        // Do NOT show board placement visuals while
+        // selecting a building.
         ClearPlacementVisuals();
 
-        UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
         UpdateCurrentBuildingScore();
+        ClearExistingBuildingScore();
 
         Debug.Log(
             "Selected Building: " +
-            selectedBuilding
+            selectedBuilding +
+            " | Board placement visuals OFF."
         );
     }
 
@@ -170,17 +182,21 @@ public class NavigationManager : MonoBehaviour
         selectedBuilding =
             nextBuilding;
 
-        // We are still only selecting a building.
-        // Do NOT show placement visuals yet.
+        // Only change the building selection UI.
+        UpdateBuildingSelectionVisual();
+
+        // Do NOT show board placement visuals while
+        // selecting a building.
         ClearPlacementVisuals();
 
-        UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
         UpdateCurrentBuildingScore();
+        ClearExistingBuildingScore();
 
         Debug.Log(
             "Selected Building: " +
-            selectedBuilding
+            selectedBuilding +
+            " | Board placement visuals OFF."
         );
     }
 
@@ -421,11 +437,13 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        // First determine whether ANY valid position exists.
+        // Check whether ANY valid placement or replacement exists.
         if (!boardManager.HasValidPlacementOrReplacement(
             selectedBuilding))
         {
             ShowNoValidPlacement();
+
+            ClearPlacementVisuals();
 
             Debug.Log(
                 "No valid placement or replacement exists for " +
@@ -435,17 +453,15 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        // Tell BoardManager which building is being placed.
-        //
-        // This is the important part:
-        // placement highlights are created HERE,
-        // not while simply selecting the building.
+        // We are now officially entering Board Placement Mode.
+        currentMode =
+            NavigationMode.BoardPlacement;
+
+        // Board glow and marker are allowed to appear HERE.
         boardManager.ShowPlacementHighlights(
             selectedBuilding
         );
 
-        // BoardManager now knows the valid placement cells
-        // and has selected the first valid cell.
         currentBoardCell =
             boardManager.GetSelectedCell();
 
@@ -459,21 +475,20 @@ public class NavigationManager : MonoBehaviour
         {
             ShowNoValidPlacement();
 
+            currentMode =
+                NavigationMode.BuildingSelection;
+
+            ClearPlacementVisuals();
+
             Debug.LogWarning(
                 "NavigationManager: " +
                 "No active GridCells exist."
             );
 
-            boardManager.ClearPlacementHighlights();
-
             return;
         }
 
-        currentMode =
-            NavigationMode.BoardPlacement;
-
-        // Make sure the selected cell and placement visuals
-        // are synchronized.
+        // Synchronize BoardManager with our selected cell.
         boardManager.SetSelectedCell(
             currentBoardCell
         );
@@ -509,6 +524,12 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+        if (currentMode !=
+            NavigationMode.BoardPlacement)
+        {
+            return;
+        }
+
         if (currentBoardCell == null)
         {
             currentBoardCell =
@@ -520,6 +541,8 @@ public class NavigationManager : MonoBehaviour
                     "NavigationManager: " +
                     "No active GridCells exist."
                 );
+
+                ClearPlacementVisuals();
 
                 return;
             }
@@ -577,25 +600,21 @@ public class NavigationManager : MonoBehaviour
     {
         if (boardManager == null)
         {
-            Debug.LogWarning(
-                "NavigationManager: " +
-                "BoardManager is not assigned."
-            );
-
+            PlayDeniedSound();
             return;
         }
 
         if (currentBoardCell == null)
         {
-            Debug.LogWarning(
-                "NavigationManager: " +
-                "No board cell selected."
-            );
-
+            PlayDeniedSound();
+            ShowBuildingCannotBePlaced();
             return;
         }
 
+        // =====================================================
         // EMPTY CELL
+        // =====================================================
+
         if (!currentBoardCell.IsOccupied)
         {
             bool placementSuccessful =
@@ -605,13 +624,14 @@ public class NavigationManager : MonoBehaviour
 
             if (placementSuccessful)
             {
-                SyncPopulationManager();
+                PlayPlacementConfirmedSound();
 
+                SyncPopulationManager();
                 SaveMap();
 
                 ShowBuildingPlaced();
 
-                ReturnToBuildingSelection();
+                ReturnToBuildingSelectionAfterPlacement();
 
                 Debug.Log(
                     "Building placed successfully. " +
@@ -621,6 +641,7 @@ public class NavigationManager : MonoBehaviour
             }
             else
             {
+                PlayDeniedSound();
                 ShowBuildingCannotBePlaced();
 
                 Debug.Log(
@@ -632,7 +653,11 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+
+        // =====================================================
         // OCCUPIED CELL / REPLACEMENT
+        // =====================================================
+
         GridCell.BuildingType oldBuilding =
             currentBoardCell.CurrentBuilding;
 
@@ -646,8 +671,9 @@ public class NavigationManager : MonoBehaviour
 
         if (replacementSuccessful)
         {
-            SyncPopulationManager();
+            PlayPlacementConfirmedSound();
 
+            SyncPopulationManager();
             SaveMap();
 
             ShowBuildingPlaced();
@@ -655,7 +681,7 @@ public class NavigationManager : MonoBehaviour
             GridCell.BuildingType newBuilding =
                 currentBoardCell.CurrentBuilding;
 
-            ReturnToBuildingSelection();
+            ReturnToBuildingSelectionAfterPlacement();
 
             Debug.Log(
                 "Building replaced successfully. " +
@@ -665,12 +691,13 @@ public class NavigationManager : MonoBehaviour
                 oldBuilding +
                 " | Old Population: " +
                 oldPopulation +
-                " | New Population: " +
+                " | New Building: " +
                 newBuilding
             );
         }
         else
         {
+            PlayDeniedSound();
             ShowBuildingCannotBePlaced();
 
             Debug.Log(
@@ -723,19 +750,29 @@ public class NavigationManager : MonoBehaviour
     // RETURN TO BUILDING SELECTION
     // =========================================================
 
-    private void ReturnToBuildingSelection()
+    private void ReturnToBuildingSelectionAfterPlacement()
     {
         currentMode =
             NavigationMode.BuildingSelection;
 
         currentBoardCell = null;
 
-        // Remove every placement visual.
+        // Remove ALL board placement visuals first.
         ClearPlacementVisuals();
 
         UpdateCurrentBuildingScore();
         ClearExistingBuildingScore();
-        UpdateBuildingSelectionVisual();
+
+        // Update ONLY the building selection visual.
+        UpdateBuildingSelectionVisualOnly();
+
+        // Final safety clear.
+        ClearPlacementVisuals();
+
+        Debug.Log(
+            "Returned to Building Selection Mode. " +
+            "Board placement glow and marker are OFF."
+        );
     }
 
 
@@ -798,8 +835,7 @@ public class NavigationManager : MonoBehaviour
 
         currentBoardCell = null;
 
-        // Completely remove the cursor and all
-        // placement glows.
+        // Completely remove board glow and marker.
         ClearPlacementVisuals();
 
         if (infoPanel != null)
@@ -809,11 +845,17 @@ public class NavigationManager : MonoBehaviour
 
         UpdateCurrentBuildingScore();
         ClearExistingBuildingScore();
+
+        // Restore building-selection UI only.
         UpdateBuildingSelectionVisual();
+
+        // Final safety clear.
+        ClearPlacementVisuals();
 
         Debug.Log(
             "Cancelled placement. " +
-            "Returned to Building Selection Mode."
+            "Returned to Building Selection Mode. " +
+            "Board placement glow and marker are OFF."
         );
     }
 
@@ -822,7 +864,8 @@ public class NavigationManager : MonoBehaviour
     // SAFETY SAVE
     // =========================================================
 
-    private void OnApplicationPause(bool pauseStatus)
+    private void OnApplicationPause(
+        bool pauseStatus)
     {
         if (pauseStatus)
         {
@@ -834,6 +877,87 @@ public class NavigationManager : MonoBehaviour
     private void OnApplicationQuit()
     {
         SaveMap();
+    }
+
+
+    // =========================================================
+    // AUDIO
+    // =========================================================
+
+    private void PlayNavigationSound()
+    {
+        if (AudioManager.Instance == null)
+        {
+            return;
+        }
+
+        AudioManager.Instance.PlayNavigationButton();
+    }
+
+
+    private void PlayMajorButtonSound()
+    {
+        if (AudioManager.Instance == null)
+        {
+            return;
+        }
+
+        AudioManager.Instance.PlayMajorButton();
+    }
+
+
+    private void PlayDeniedSound()
+    {
+        if (AudioManager.Instance == null)
+        {
+            return;
+        }
+
+        AudioManager.Instance.PlayDenied();
+    }
+
+
+    private void PlayPlacementConfirmedSound()
+    {
+        if (AudioManager.Instance == null)
+        {
+            return;
+        }
+
+        AudioManager.Instance.PlayPlacementConfirmed();
+    }
+
+
+    private void PlayButtonSound()
+    {
+        if (AudioManager.Instance == null)
+        {
+            return;
+        }
+
+        AudioManager.Instance.PlayButtonClick();
+    }
+
+
+    // =========================================================
+    // BUILDING SELECTION VISUAL ONLY
+    // =========================================================
+
+    private void UpdateBuildingSelectionVisualOnly()
+    {
+        if (buildingSelectionUI != null)
+        {
+            buildingSelectionUI.SetSelectedBuildingVisualOnly(
+                selectedBuilding
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "NavigationManager: " +
+                "BuildingSelectionUI is not assigned."
+            );
+        }
     }
 
 
