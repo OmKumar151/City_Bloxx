@@ -124,53 +124,23 @@ public class BuildingSelectionUI : MonoBehaviour
             buildingIndex;
 
         // -----------------------------------------------------
-        // Update the building-selection UI.
+        // Update ONLY the building-selection UI.
+        //
+        // Placement highlights are intentionally NOT updated
+        // here.
+        //
+        // The player is still in Building Selection Mode.
+        // Board placement begins only after pressing OK.
         // -----------------------------------------------------
 
         ApplySelectionVisual(
             buildingIndex
         );
 
-        // -----------------------------------------------------
-        // Find BoardManager if necessary.
-        // -----------------------------------------------------
-
-        if (boardManager == null)
-        {
-            boardManager =
-                FindFirstObjectByType<BoardManager>();
-        }
-
-        if (boardManager == null)
-        {
-            Debug.LogWarning(
-                "BuildingSelectionUI: " +
-                "BoardManager is not assigned."
-            );
-
-            return;
-        }
-
-        // -----------------------------------------------------
-        // Tell BoardManager which building is selected.
-        //
-        // This will:
-        //
-        // 1. Find all valid placement cells.
-        // 2. Glow those cells.
-        // 3. Find the first valid cell.
-        // 4. Put the placement cursor there.
-        // 5. Show the building preview.
-        // -----------------------------------------------------
-
-        boardManager.ShowPlacementHighlights(
-            buildingIndex
-        );
-
         Debug.Log(
             "BuildingSelectionUI: Selected building " +
             buildingIndex +
-            " and refreshed placement highlights."
+            ". Placement visuals will appear after OK."
         );
     }
 
@@ -181,12 +151,8 @@ public class BuildingSelectionUI : MonoBehaviour
     //
     // Used when returning from board placement.
     //
-    // IMPORTANT:
-    // This intentionally does NOT call
-    // ShowPlacementHighlights().
-    //
-    // BoardManager handles clearing the board visuals when
-    // placement is finished/cancelled.
+    // This only restores the selected building's UI visual.
+    // It does NOT interact with the board.
     // =========================================================
 
     public void SetSelectedBuildingVisualOnly(
@@ -265,6 +231,7 @@ public class BuildingSelectionUI : MonoBehaviour
 
         ResetAllBuildings();
 
+        // Also make sure no board placement visuals remain.
         if (boardManager == null)
         {
             boardManager =

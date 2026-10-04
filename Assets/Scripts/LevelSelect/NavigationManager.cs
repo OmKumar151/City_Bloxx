@@ -43,6 +43,13 @@ public class NavigationManager : MonoBehaviour
 
         currentBoardCell = null;
 
+        // Make absolutely sure placement visuals are hidden
+        // when the scene starts in Building Selection Mode.
+        if (boardManager != null)
+        {
+            boardManager.ClearPlacementHighlights();
+        }
+
         UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
         UpdateCurrentBuildingScore();
@@ -133,6 +140,10 @@ public class NavigationManager : MonoBehaviour
         selectedBuilding =
             nextBuilding;
 
+        // We are still only selecting a building.
+        // Do NOT show placement visuals yet.
+        ClearPlacementVisuals();
+
         UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
         UpdateCurrentBuildingScore();
@@ -158,6 +169,10 @@ public class NavigationManager : MonoBehaviour
 
         selectedBuilding =
             nextBuilding;
+
+        // We are still only selecting a building.
+        // Do NOT show placement visuals yet.
+        ClearPlacementVisuals();
 
         UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
@@ -406,6 +421,7 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+        // First determine whether ANY valid position exists.
         if (!boardManager.HasValidPlacementOrReplacement(
             selectedBuilding))
         {
@@ -419,25 +435,20 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        /*
-         * BuildingSelectionUI calls BoardManager.ShowPlacementHighlights()
-         * whenever a building is selected.
-         *
-         * BoardManager now automatically moves its placement cursor
-         * to the first valid location when the selected building changes.
-         *
-         * Therefore, use BoardManager's selected cell instead of
-         * resetting the cursor to the first board cell.
-         */
+        // Tell BoardManager which building is being placed.
+        //
+        // This is the important part:
+        // placement highlights are created HERE,
+        // not while simply selecting the building.
+        boardManager.ShowPlacementHighlights(
+            selectedBuilding
+        );
+
+        // BoardManager now knows the valid placement cells
+        // and has selected the first valid cell.
         currentBoardCell =
             boardManager.GetSelectedCell();
 
-        /*
-         * Safety fallback.
-         *
-         * Normally this should not be needed because selecting a
-         * building already creates the placement cursor.
-         */
         if (currentBoardCell == null)
         {
             currentBoardCell =
@@ -453,16 +464,16 @@ public class NavigationManager : MonoBehaviour
                 "No active GridCells exist."
             );
 
+            boardManager.ClearPlacementHighlights();
+
             return;
         }
 
         currentMode =
             NavigationMode.BoardPlacement;
 
-        /*
-         * Refresh the selected cell now that Board Placement Mode
-         * has officially started.
-         */
+        // Make sure the selected cell and placement visuals
+        // are synchronized.
         boardManager.SetSelectedCell(
             currentBoardCell
         );
@@ -471,7 +482,7 @@ public class NavigationManager : MonoBehaviour
         ShowPlacementStatus();
 
         Debug.Log(
-            "Entered Board Mode at (" +
+            "Entered Board Placement Mode at (" +
             currentBoardCell.X +
             ", " +
             currentBoardCell.Y +
@@ -584,11 +595,7 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-
-        // =====================================================
         // EMPTY CELL
-        // =====================================================
-
         if (!currentBoardCell.IsOccupied)
         {
             bool placementSuccessful =
@@ -618,19 +625,14 @@ public class NavigationManager : MonoBehaviour
 
                 Debug.Log(
                     "Building placement failed. " +
-                    "Remaining in Board Mode."
+                    "Remaining in Board Placement Mode."
                 );
             }
 
             return;
         }
 
-
-        // =====================================================
-        // OCCUPIED CELL
-        // REPLACEMENT
-        // =====================================================
-
+        // OCCUPIED CELL / REPLACEMENT
         GridCell.BuildingType oldBuilding =
             currentBoardCell.CurrentBuilding;
 
@@ -658,11 +660,12 @@ public class NavigationManager : MonoBehaviour
             Debug.Log(
                 "Building replaced successfully. " +
                 "Map automatically saved. " +
+                "Returned to Building Selection Mode. " +
                 "Old Building: " +
                 oldBuilding +
                 " | Old Population: " +
                 oldPopulation +
-                " | New Building: " +
+                " | New Population: " +
                 newBuilding
             );
         }
@@ -672,7 +675,7 @@ public class NavigationManager : MonoBehaviour
 
             Debug.Log(
                 "Building replacement failed. " +
-                "Remaining in Board Mode."
+                "Remaining in Board Placement Mode."
             );
         }
     }
@@ -727,9 +730,25 @@ public class NavigationManager : MonoBehaviour
 
         currentBoardCell = null;
 
+        // Remove every placement visual.
+        ClearPlacementVisuals();
+
         UpdateCurrentBuildingScore();
         ClearExistingBuildingScore();
         UpdateBuildingSelectionVisual();
+    }
+
+
+    // =========================================================
+    // CLEAR PLACEMENT VISUALS
+    // =========================================================
+
+    private void ClearPlacementVisuals()
+    {
+        if (boardManager != null)
+        {
+            boardManager.ClearPlacementHighlights();
+        }
     }
 
 
@@ -779,18 +798,9 @@ public class NavigationManager : MonoBehaviour
 
         currentBoardCell = null;
 
-        if (boardManager != null)
-        {
-            GridCell selectedCell =
-                boardManager.GetSelectedCell();
-
-            if (selectedCell != null)
-            {
-                selectedCell.SetHighlight(false);
-            }
-
-            boardManager.ClearPlacementHighlights();
-        }
+        // Completely remove the cursor and all
+        // placement glows.
+        ClearPlacementVisuals();
 
         if (infoPanel != null)
         {
