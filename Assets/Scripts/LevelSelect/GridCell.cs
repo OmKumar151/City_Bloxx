@@ -12,19 +12,32 @@ public class GridCell : MonoBehaviour
         Yellow
     }
 
+
     [Header("Grid Position")]
     [SerializeField] private int x;
     [SerializeField] private int y;
 
+
     [Header("Selection")]
     [SerializeField] private GameObject highlight;
+
 
     [Header("Building")]
     [SerializeField] private GameObject buildingHolder;
     [SerializeField] private Image buildingImage;
 
+
+    [Header("Placement Glow")]
+    [SerializeField]
+    private float defaultGlowPadding = 6f;
+
+
     private Image highlightImage;
+
     private RectTransform highlightRectTransform;
+
+    private RectTransform cellRectTransform;
+
 
     private static Sprite glowSprite;
     private static Texture2D glowTexture;
@@ -32,28 +45,47 @@ public class GridCell : MonoBehaviour
     private static Sprite cursorSprite;
     private static Texture2D cursorTexture;
 
+
     private Image placementCursorImage;
     private Image placementPreviewImage;
 
     private RectTransform placementCursorRectTransform;
     private RectTransform placementPreviewRectTransform;
 
+
     public int X => x;
+
     public int Y => y;
 
-    public bool IsOccupied { get; private set; }
 
-    public BuildingType CurrentBuilding { get; private set; } =
+    public bool IsOccupied
+    {
+        get;
+        private set;
+    }
+
+
+    public BuildingType CurrentBuilding
+    {
+        get;
+        private set;
+    } =
         BuildingType.None;
 
-    public int BuildingPopulation { get; private set; }
+
+    public int BuildingPopulation
+    {
+        get;
+        private set;
+    }
 
 
     // =========================================================
     // BUILDING SCORES
     // =========================================================
 
-    public static int GetBuildingScore(BuildingType buildingType)
+    public static int GetBuildingScore(
+        BuildingType buildingType)
     {
         switch (buildingType)
         {
@@ -81,11 +113,17 @@ public class GridCell : MonoBehaviour
 
     private void Awake()
     {
+        cellRectTransform =
+            GetComponent<RectTransform>();
+
         PrepareHighlight();
+
         PreparePlacementIndicator();
 
         SetHighlight(false);
+
         HidePlacementIndicator();
+
         ClearBuilding();
     }
 
@@ -101,6 +139,7 @@ public class GridCell : MonoBehaviour
             return;
         }
 
+
         highlightImage =
             highlight.GetComponent<Image>();
 
@@ -110,6 +149,7 @@ public class GridCell : MonoBehaviour
                 highlight.AddComponent<Image>();
         }
 
+
         highlightRectTransform =
             highlight.GetComponent<RectTransform>();
 
@@ -118,8 +158,9 @@ public class GridCell : MonoBehaviour
             return;
         }
 
+
         // -----------------------------------------------------
-        // USE THE SQUARE HALO SPRITE
+        // GLOW SPRITE
         // -----------------------------------------------------
 
         highlightImage.sprite =
@@ -134,15 +175,85 @@ public class GridCell : MonoBehaviour
         highlightImage.raycastTarget =
             false;
 
-        // Large default size.
-        // BoardManager overrides this when placement glow
-        // is shown.
-        highlightRectTransform.sizeDelta =
-            new Vector2(200f, 200f);
 
-        // IMPORTANT:
-        // Keep the glow behind the tile.
+        // -----------------------------------------------------
+        // INITIAL SIZE
+        // -----------------------------------------------------
+        //
+        // Use the actual GridCell dimensions.
+        //
+        // The glow is NOT a giant fixed-size object anymore.
+        // -----------------------------------------------------
+
+        Vector2 cellSize =
+            GetCellSize();
+
+
+        highlightRectTransform.sizeDelta =
+            cellSize +
+            new Vector2(
+                defaultGlowPadding,
+                defaultGlowPadding
+            );
+
+
+        // -----------------------------------------------------
+        // GLOW MUST BE BEHIND THE CELL
+        // -----------------------------------------------------
+
         highlight.transform.SetAsFirstSibling();
+    }
+
+
+    // =========================================================
+    // GET ACTUAL CELL SIZE
+    // =========================================================
+
+    private Vector2 GetCellSize()
+    {
+        if (cellRectTransform == null)
+        {
+            cellRectTransform =
+                GetComponent<RectTransform>();
+        }
+
+
+        if (cellRectTransform == null)
+        {
+            return new Vector2(
+                50f,
+                50f
+            );
+        }
+
+
+        Vector2 size =
+            cellRectTransform.rect.size;
+
+
+        // Safety fallback in case the RectTransform
+        // has not calculated its size yet.
+        if (size.x <= 0f ||
+            size.y <= 0f)
+        {
+            size =
+                cellRectTransform.sizeDelta;
+        }
+
+
+        if (size.x <= 0f)
+        {
+            size.x = 50f;
+        }
+
+
+        if (size.y <= 0f)
+        {
+            size.y = 50f;
+        }
+
+
+        return size;
     }
 
 
@@ -150,19 +261,17 @@ public class GridCell : MonoBehaviour
     // SQUARE GLOW / HALO
     // =========================================================
     //
-    // Creates a square-shaped glowing border.
+    // The glow texture itself is still a square halo.
     //
-    // CENTER:
-    // Completely transparent.
+    // IMPORTANT:
     //
-    // MIDDLE:
-    // Bright colored glow.
+    // The center is transparent.
     //
-    // OUTSIDE:
-    // Soft fade.
+    // The GridCell sits in front of this image.
     //
-    // This allows the tile to remain completely visible
-    // while the glow is behind it.
+    // Therefore only the outer edge of the halo is visible,
+    // making it look like the colour is coming from BEHIND
+    // the grid cell.
     // =========================================================
 
     private static Sprite GetGlowSprite()
@@ -172,7 +281,9 @@ public class GridCell : MonoBehaviour
             return glowSprite;
         }
 
+
         const int textureSize = 128;
+
 
         glowTexture =
             new Texture2D(
@@ -182,40 +293,51 @@ public class GridCell : MonoBehaviour
                 false
             );
 
+
         glowTexture.name =
             "GridCell_SquarePlacementGlow";
+
 
         glowTexture.wrapMode =
             TextureWrapMode.Clamp;
 
+
         glowTexture.filterMode =
             FilterMode.Bilinear;
 
+
         Color[] pixels =
             new Color[
-                textureSize * textureSize
+                textureSize *
+                textureSize
             ];
 
+
         float center =
-            (textureSize - 1) * 0.5f;
+            (textureSize - 1) *
+            0.5f;
+
 
         float halfSize =
             center;
 
 
         // -----------------------------------------------------
-        // SQUARE GLOW SETTINGS
+        // GLOW PROFILE
+        // -----------------------------------------------------
+        //
+        // The centre is completely transparent.
+        //
+        // The visible glow is concentrated close to the
+        // outside edge.
+        //
+        // This works with the GridCell being placed above it.
         // -----------------------------------------------------
 
-        // Transparent area around the tile.
-        //
-        // The glow starts close to the edge of the tile.
         const float innerEdge = 0.56f;
 
-        // Bright part of the glow.
         const float brightEdge = 0.72f;
 
-        // Maximum outer edge of the glow.
         const float outerEdge = 1.0f;
 
 
@@ -233,21 +355,13 @@ public class GridCell : MonoBehaviour
                         halfSize
                     );
 
+
                 float normalizedY =
                     Mathf.Abs(
                         (py - center) /
                         halfSize
                     );
 
-                // -------------------------------------------------
-                // SQUARE DISTANCE
-                // -------------------------------------------------
-                //
-                // Unlike the previous circular glow, this uses
-                // the larger of X/Y distance.
-                //
-                // That creates a square instead of a circle.
-                // -------------------------------------------------
 
                 float squareDistance =
                     Mathf.Max(
@@ -255,7 +369,9 @@ public class GridCell : MonoBehaviour
                         normalizedY
                     );
 
-                float alpha = 0f;
+
+                float alpha =
+                    0f;
 
 
                 // -------------------------------------------------
@@ -281,6 +397,7 @@ public class GridCell : MonoBehaviour
                             squareDistance
                         );
 
+
                     alpha =
                         Mathf.SmoothStep(
                             0f,
@@ -291,7 +408,7 @@ public class GridCell : MonoBehaviour
 
 
                 // -------------------------------------------------
-                // BRIGHT SQUARE BORDER
+                // BRIGHT EDGE
                 // -------------------------------------------------
 
                 else if (squareDistance <= 0.86f)
@@ -313,6 +430,7 @@ public class GridCell : MonoBehaviour
                             squareDistance
                         );
 
+
                     alpha =
                         Mathf.SmoothStep(
                             1f,
@@ -333,7 +451,8 @@ public class GridCell : MonoBehaviour
 
 
                 pixels[
-                    py * textureSize + px
+                    py * textureSize +
+                    px
                 ] =
                     new Color(
                         1f,
@@ -344,8 +463,13 @@ public class GridCell : MonoBehaviour
             }
         }
 
-        glowTexture.SetPixels(pixels);
+
+        glowTexture.SetPixels(
+            pixels
+        );
+
         glowTexture.Apply();
+
 
         glowSprite =
             Sprite.Create(
@@ -363,19 +487,25 @@ public class GridCell : MonoBehaviour
                 100f
             );
 
+
         glowSprite.name =
             "GridCell_SquarePlacementGlow";
+
 
         return glowSprite;
     }
 
 
     // =========================================================
-    // PLACEMENT INDICATOR
+    // PLACEMENT INDICATOR SETUP
     // =========================================================
 
     private void PreparePlacementIndicator()
     {
+        // -----------------------------------------------------
+        // CURSOR
+        // -----------------------------------------------------
+
         if (placementCursorImage == null)
         {
             GameObject cursorObject =
@@ -385,42 +515,66 @@ public class GridCell : MonoBehaviour
                     typeof(Image)
                 );
 
+
             cursorObject.transform.SetParent(
                 transform,
                 false
             );
 
+
             placementCursorImage =
                 cursorObject.GetComponent<Image>();
+
 
             placementCursorRectTransform =
                 cursorObject.GetComponent<RectTransform>();
 
+
             placementCursorImage.sprite =
                 GetCursorSprite();
+
 
             placementCursorImage.type =
                 Image.Type.Simple;
 
+
             placementCursorImage.preserveAspect =
                 false;
+
 
             placementCursorImage.raycastTarget =
                 false;
 
+
             placementCursorRectTransform.anchorMin =
-                new Vector2(0.5f, 0.5f);
+                new Vector2(
+                    0.5f,
+                    0.5f
+                );
+
 
             placementCursorRectTransform.anchorMax =
-                new Vector2(0.5f, 0.5f);
+                new Vector2(
+                    0.5f,
+                    0.5f
+                );
+
 
             placementCursorRectTransform.pivot =
-                new Vector2(0.5f, 0.5f);
+                new Vector2(
+                    0.5f,
+                    0.5f
+                );
+
 
             placementCursorRectTransform.anchoredPosition =
                 Vector2.zero;
         }
 
+
+        // -----------------------------------------------------
+        // BUILDING PREVIEW
+        // -----------------------------------------------------
 
         if (placementPreviewImage == null)
         {
@@ -431,40 +585,61 @@ public class GridCell : MonoBehaviour
                     typeof(Image)
                 );
 
+
             previewObject.transform.SetParent(
                 transform,
                 false
             );
 
+
             placementPreviewImage =
                 previewObject.GetComponent<Image>();
+
 
             placementPreviewRectTransform =
                 previewObject.GetComponent<RectTransform>();
 
+
             placementPreviewImage.type =
                 Image.Type.Simple;
+
 
             placementPreviewImage.preserveAspect =
                 true;
 
+
             placementPreviewImage.raycastTarget =
                 false;
 
+
             placementPreviewRectTransform.anchorMin =
-                new Vector2(0.5f, 0.5f);
+                new Vector2(
+                    0.5f,
+                    0.5f
+                );
+
 
             placementPreviewRectTransform.anchorMax =
-                new Vector2(0.5f, 0.5f);
+                new Vector2(
+                    0.5f,
+                    0.5f
+                );
+
 
             placementPreviewRectTransform.pivot =
-                new Vector2(0.5f, 0.5f);
+                new Vector2(
+                    0.5f,
+                    0.5f
+                );
+
 
             placementPreviewRectTransform.anchoredPosition =
                 Vector2.zero;
         }
 
+
         UpdatePlacementIndicatorOrder();
+
         HidePlacementIndicator();
     }
 
@@ -478,9 +653,6 @@ public class GridCell : MonoBehaviour
         // -----------------------------------------------------
         // GLOW
         // -----------------------------------------------------
-        //
-        // The glow MUST remain behind the tile.
-        // -----------------------------------------------------
 
         if (highlight != null)
         {
@@ -489,7 +661,7 @@ public class GridCell : MonoBehaviour
 
 
         // -----------------------------------------------------
-        // PLACEMENT CURSOR
+        // CURSOR
         // -----------------------------------------------------
 
         if (placementCursorImage != null)
@@ -520,8 +692,11 @@ public class GridCell : MonoBehaviour
             return cursorSprite;
         }
 
+
         const int textureSize = 64;
+
         const int borderSize = 4;
+
 
         cursorTexture =
             new Texture2D(
@@ -531,19 +706,25 @@ public class GridCell : MonoBehaviour
                 false
             );
 
+
         cursorTexture.name =
             "GridCell_PlacementCursor";
+
 
         cursorTexture.wrapMode =
             TextureWrapMode.Clamp;
 
+
         cursorTexture.filterMode =
             FilterMode.Bilinear;
 
+
         Color[] pixels =
             new Color[
-                textureSize * textureSize
+                textureSize *
+                textureSize
             ];
+
 
         for (int y = 0;
              y < textureSize;
@@ -559,8 +740,10 @@ public class GridCell : MonoBehaviour
                     y < borderSize ||
                     y >= textureSize - borderSize;
 
+
                 pixels[
-                    y * textureSize + x
+                    y * textureSize +
+                    x
                 ] =
                     border
                         ? Color.white
@@ -568,8 +751,13 @@ public class GridCell : MonoBehaviour
             }
         }
 
-        cursorTexture.SetPixels(pixels);
+
+        cursorTexture.SetPixels(
+            pixels
+        );
+
         cursorTexture.Apply();
+
 
         cursorSprite =
             Sprite.Create(
@@ -587,8 +775,10 @@ public class GridCell : MonoBehaviour
                 100f
             );
 
+
         cursorSprite.name =
             "GridCell_PlacementCursor";
+
 
         return cursorSprite;
     }
@@ -607,17 +797,27 @@ public class GridCell : MonoBehaviour
     {
         PreparePlacementIndicator();
 
+
         if (!visible)
         {
             HidePlacementIndicator();
             return;
         }
 
+
+        // -----------------------------------------------------
+        // CURSOR
+        // -----------------------------------------------------
+
         if (placementCursorImage != null)
         {
-            placementCursorImage.enabled = true;
-            placementCursorImage.color = color;
+            placementCursorImage.enabled =
+                true;
+
+            placementCursorImage.color =
+                color;
         }
+
 
         if (placementCursorRectTransform != null)
         {
@@ -628,25 +828,35 @@ public class GridCell : MonoBehaviour
                 );
         }
 
+
+        // -----------------------------------------------------
+        // BUILDING PREVIEW
+        // -----------------------------------------------------
+
         if (placementPreviewImage != null)
         {
             placementPreviewImage.sprite =
                 buildingSprite;
 
+
             placementPreviewImage.enabled =
                 buildingSprite != null;
 
+
             Color previewColor =
                 Color.white;
+
 
             previewColor.a =
                 Mathf.Clamp01(
                     previewAlpha
                 );
 
+
             placementPreviewImage.color =
                 previewColor;
         }
+
 
         if (placementPreviewRectTransform != null)
         {
@@ -657,6 +867,7 @@ public class GridCell : MonoBehaviour
                 );
         }
 
+
         UpdatePlacementIndicatorOrder();
     }
 
@@ -665,13 +876,18 @@ public class GridCell : MonoBehaviour
     {
         if (placementCursorImage != null)
         {
-            placementCursorImage.enabled = false;
+            placementCursorImage.enabled =
+                false;
         }
+
 
         if (placementPreviewImage != null)
         {
-            placementPreviewImage.enabled = false;
-            placementPreviewImage.sprite = null;
+            placementPreviewImage.enabled =
+                false;
+
+            placementPreviewImage.sprite =
+                null;
         }
     }
 
@@ -680,21 +896,28 @@ public class GridCell : MonoBehaviour
     // NORMAL HIGHLIGHT
     // =========================================================
 
-    public void SetHighlight(bool selected)
+    public void SetHighlight(
+        bool selected)
     {
         if (highlight == null)
         {
             return;
         }
 
+
         if (selected)
         {
             PrepareHighlight();
         }
 
-        highlight.SetActive(selected);
 
-        if (selected && highlightImage != null)
+        highlight.SetActive(
+            selected
+        );
+
+
+        if (selected &&
+            highlightImage != null)
         {
             highlightImage.color =
                 new Color(
@@ -710,11 +933,29 @@ public class GridCell : MonoBehaviour
     // =========================================================
     // PLACEMENT GLOW
     // =========================================================
+    //
+    // IMPORTANT CHANGE:
+    //
+    // "glowPadding" is NOT the size of the glow.
+    //
+    // It is how much larger than the ACTUAL GRID CELL
+    // the glow is allowed to be.
+    //
+    // Example:
+    //
+    // Cell = 50 x 50
+    // Padding = 6
+    //
+    // Glow = 56 x 56
+    //
+    // The GridCell itself sits in front of the glow,
+    // leaving only the 3px-ish halo around each side.
+    // =========================================================
 
     public void SetPlacementHighlight(
         bool selected,
         Color color,
-        float glowSize,
+        float glowPadding,
         float intensity)
     {
         if (highlight == null)
@@ -722,16 +963,18 @@ public class GridCell : MonoBehaviour
             return;
         }
 
+
         PrepareHighlight();
 
+
         // -----------------------------------------------------
-        // THIS CONTROLS WHETHER THE GLOW IS VISIBLE.
-        //
-        // BoardManager calls this with "true" when the player
-        // has selected a building and the cell is valid.
+        // TURN GLOW OFF
         // -----------------------------------------------------
 
-        highlight.SetActive(selected);
+        highlight.SetActive(
+            selected
+        );
+
 
         if (!selected ||
             highlightImage == null)
@@ -739,36 +982,58 @@ public class GridCell : MonoBehaviour
             return;
         }
 
-        // -----------------------------------------------------
-        // SIZE
-        // -----------------------------------------------------
-
-        if (highlightRectTransform != null)
-        {
-            highlightRectTransform.sizeDelta =
-                new Vector2(
-                    glowSize,
-                    glowSize
-                );
-        }
 
         // -----------------------------------------------------
-        // KEEP GLOW BEHIND TILE
+        // GET ACTUAL GRID CELL SIZE
+        // -----------------------------------------------------
+
+        Vector2 cellSize =
+            GetCellSize();
+
+
+        // -----------------------------------------------------
+        // ADD ONLY A SMALL AMOUNT AROUND THE CELL
+        // -----------------------------------------------------
+
+        float padding =
+            Mathf.Max(
+                0f,
+                glowPadding
+            );
+
+
+        highlightRectTransform.sizeDelta =
+            cellSize +
+            new Vector2(
+                padding,
+                padding
+            );
+
+
+        // -----------------------------------------------------
+        // KEEP GLOW DIRECTLY BEHIND CELL
         // -----------------------------------------------------
 
         highlight.transform.SetAsFirstSibling();
 
+
         // -----------------------------------------------------
-        // APPLY BUILDING COLOR
+        // APPLY COLOUR + INTENSITY
         // -----------------------------------------------------
 
-        color.a =
+        Color glowColor =
+            color;
+
+
+        glowColor.a =
             Mathf.Clamp01(
-                color.a * intensity
+                glowColor.a *
+                intensity
             );
 
+
         highlightImage.color =
-            color;
+            glowColor;
     }
 
 
@@ -792,6 +1057,7 @@ public class GridCell : MonoBehaviour
             return;
         }
 
+
         if (buildingImage == null)
         {
             Debug.LogWarning(
@@ -802,6 +1068,7 @@ public class GridCell : MonoBehaviour
 
             return;
         }
+
 
         if (buildingSprite == null)
         {
@@ -814,24 +1081,31 @@ public class GridCell : MonoBehaviour
             return;
         }
 
+
         buildingImage.sprite =
             buildingSprite;
 
+
         buildingImage.enabled =
             true;
+
 
         buildingHolder.SetActive(
             true
         );
 
+
         CurrentBuilding =
             buildingType;
+
 
         BuildingPopulation =
             population;
 
+
         IsOccupied =
             true;
+
 
         Debug.Log(
             "Building placed on Cell (" +
@@ -854,22 +1128,34 @@ public class GridCell : MonoBehaviour
     {
         HidePlacementIndicator();
 
+
         if (buildingHolder != null)
         {
-            buildingHolder.SetActive(false);
+            buildingHolder.SetActive(
+                false
+            );
         }
+
 
         if (buildingImage != null)
         {
-            buildingImage.sprite = null;
-            buildingImage.enabled = false;
+            buildingImage.sprite =
+                null;
+
+            buildingImage.enabled =
+                false;
         }
 
-        IsOccupied = false;
+
+        IsOccupied =
+            false;
+
 
         CurrentBuilding =
             BuildingType.None;
 
-        BuildingPopulation = 0;
+
+        BuildingPopulation =
+            0;
     }
 }

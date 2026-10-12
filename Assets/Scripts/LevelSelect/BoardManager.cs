@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,14 +8,26 @@ public class BoardManager : MonoBehaviour
     [SerializeField] private Transform gridRoot;
 
     [Header("Placement Glow")]
-    [SerializeField] private float placementGlowSize = 200f;
-    [SerializeField] private float placementGlowIntensity = 2.0f;
+    [SerializeField] private float placementGlowPadding = 6f;
+    [SerializeField] private float placementGlowIntensity = 0.7f;
     [SerializeField] private float placementIndicatorSize = 88f;
     [SerializeField] private float placementPreviewAlpha = 0.55f;
-    [SerializeField] private Color bluePlacementColor = new Color(0.15f, 0.55f, 1f, 0.85f);
-    [SerializeField] private Color redPlacementColor = new Color(1f, 0.2f, 0.2f, 0.85f);
-    [SerializeField] private Color greenPlacementColor = new Color(0.2f, 0.9f, 0.25f, 0.85f);
-    [SerializeField] private Color yellowPlacementColor = new Color(1f, 0.85f, 0.1f, 0.9f);
+
+    [SerializeField]
+    private Color bluePlacementColor =
+        new Color(0.15f, 0.55f, 1f, 0.85f);
+
+    [SerializeField]
+    private Color redPlacementColor =
+        new Color(1f, 0.2f, 0.2f, 0.85f);
+
+    [SerializeField]
+    private Color greenPlacementColor =
+        new Color(0.2f, 0.9f, 0.25f, 0.85f);
+
+    [SerializeField]
+    private Color yellowPlacementColor =
+        new Color(1f, 0.85f, 0.1f, 0.9f);
 
     [Header("Building Sprites")]
     [SerializeField] private Sprite blueBuildingSprite;
@@ -27,6 +40,7 @@ public class BoardManager : MonoBehaviour
 
     private GridCell currentlySelectedCell;
     private int currentPlacementBuildingIndex = -1;
+    private bool placementModeActive = false;
 
 
     // =========================================================
@@ -35,8 +49,103 @@ public class BoardManager : MonoBehaviour
 
     private void Awake()
     {
+        placementModeActive = false;
+        currentPlacementBuildingIndex = -1;
+
         FindGridRoot();
         BuildGridReference();
+
+        ClearPlacementHighlights();
+    }
+
+
+    // =========================================================
+    // EXPLICIT PLACEMENT MODE
+    // =========================================================
+
+    public bool IsPlacementModeActive()
+    {
+        return placementModeActive;
+    }
+
+
+    /// <summary>
+    /// Starts board placement mode and chooses the first valid
+    /// cell for the newly selected building.
+    /// </summary>
+    public void BeginPlacementMode(int buildingIndex)
+    {
+        GridCell.BuildingType buildingType =
+            GetBuildingType(buildingIndex);
+
+        if (buildingType == GridCell.BuildingType.None)
+        {
+            Debug.LogWarning(
+                "BoardManager: Cannot begin placement mode. " +
+                "Invalid building index: " + buildingIndex
+            );
+
+            EndPlacementMode();
+            return;
+        }
+
+        placementModeActive = true;
+        currentPlacementBuildingIndex = buildingIndex;
+
+        // Refresh the grid before looking for a starting cell.
+        RefreshBoardAnalysis();
+
+        // IMPORTANT:
+        // A newly selected building starts at its first valid
+        // placement or replacement cell, rather than reusing
+        // the cell selected for the previous building.
+        GridCell firstValidCell =
+            FindFirstValidPlacementCell(buildingType);
+
+        if (firstValidCell != null)
+        {
+            currentlySelectedCell = firstValidCell;
+        }
+        else if (currentlySelectedCell == null ||
+                 !currentlySelectedCell.gameObject.activeInHierarchy)
+        {
+            currentlySelectedCell = GetFirstBoardCell();
+        }
+
+        // Draw the highlights and preview at the chosen cell.
+        // ShowPlacementHighlights does not reset a valid,
+        // already selected cursor, so movement remains intact.
+        ShowPlacementHighlights(buildingIndex);
+
+        Debug.Log(
+            "BoardManager: Placement Mode STARTED for " +
+            buildingType
+        );
+    }
+
+
+    /// <summary>
+    /// Completely exits board placement mode.
+    /// Removes every glow, cursor and building preview.
+    /// </summary>
+    public void EndPlacementMode()
+    {
+        placementModeActive = false;
+        currentPlacementBuildingIndex = -1;
+
+        foreach (GridCell cell in GetAllActiveCells())
+        {
+            if (cell != null)
+            {
+                cell.SetHighlight(false);
+                cell.HidePlacementIndicator();
+            }
+        }
+
+        Debug.Log(
+            "BoardManager: Placement Mode ENDED. " +
+            "All placement visuals cleared."
+        );
     }
 
 
@@ -51,8 +160,7 @@ public class BoardManager : MonoBehaviour
             return;
         }
 
-        GameObject gridObject =
-            GameObject.Find("Grid");
+        GameObject gridObject = GameObject.Find("Grid");
 
         if (gridObject != null)
         {
@@ -104,9 +212,7 @@ public class BoardManager : MonoBehaviour
             {
                 Debug.LogWarning(
                     "BoardManager: Multiple GridCells use coordinates " +
-                    position +
-                    ". Cell " +
-                    cell.name +
+                    position + ". Cell " + cell.name +
                     " will be ignored."
                 );
 
@@ -117,9 +223,7 @@ public class BoardManager : MonoBehaviour
         }
 
         Debug.Log(
-            "BoardManager: Found " +
-            gridCells.Count +
-            " GridCells."
+            "BoardManager: Found " + gridCells.Count + " GridCells."
         );
     }
 
@@ -134,8 +238,7 @@ public class BoardManager : MonoBehaviour
 
         Debug.Log(
             "BoardManager: Board analysis refreshed. " +
-            "Current occupied cells: " +
-            GetTotalBuildingCount()
+            "Current occupied cells: " + GetTotalBuildingCount()
         );
     }
 
@@ -146,22 +249,14 @@ public class BoardManager : MonoBehaviour
 
     public GridCell GetCell(int x, int y)
     {
-        Vector2Int position =
-            new Vector2Int(x, y);
+        Vector2Int position = new Vector2Int(x, y);
 
-        if (!gridCells.TryGetValue(
-            position,
-            out GridCell cell))
+        if (!gridCells.TryGetValue(position, out GridCell cell))
         {
             return null;
         }
 
-        if (cell == null)
-        {
-            return null;
-        }
-
-        if (!cell.gameObject.activeInHierarchy)
+        if (cell == null || !cell.gameObject.activeInHierarchy)
         {
             return null;
         }
@@ -186,8 +281,7 @@ public class BoardManager : MonoBehaviour
     {
         foreach (GridCell cell in gridCells.Values)
         {
-            if (cell != null &&
-                cell.gameObject.activeInHierarchy)
+            if (cell != null && cell.gameObject.activeInHierarchy)
             {
                 yield return cell;
             }
@@ -209,31 +303,22 @@ public class BoardManager : MonoBehaviour
             return null;
         }
 
-        int targetX =
-            currentCell.X + directionX;
-
-        int targetY =
-            currentCell.Y + directionY;
+        int targetX = currentCell.X + directionX;
+        int targetY = currentCell.Y + directionY;
 
         return GetCell(targetX, targetY);
     }
 
 
-    public void SetSelectedCell(
-        int x,
-        int y)
+    public void SetSelectedCell(int x, int y)
     {
-        GridCell cell =
-            GetCell(x, y);
+        GridCell cell = GetCell(x, y);
 
         if (cell == null)
         {
             Debug.Log(
                 "BoardManager: No active GridCell at (" +
-                x +
-                ", " +
-                y +
-                ")."
+                x + ", " + y + ")."
             );
 
             return;
@@ -245,17 +330,13 @@ public class BoardManager : MonoBehaviour
 
     public void SetSelectedCell(GridCell cell)
     {
-        if (cell == null)
+        if (cell == null || !cell.gameObject.activeInHierarchy)
         {
             return;
         }
 
-        if (!cell.gameObject.activeInHierarchy)
-        {
-            return;
-        }
-
-        if (currentlySelectedCell != null)
+        if (currentlySelectedCell != null &&
+            currentlySelectedCell != cell)
         {
             currentlySelectedCell.SetHighlight(false);
             currentlySelectedCell.HidePlacementIndicator();
@@ -265,13 +346,11 @@ public class BoardManager : MonoBehaviour
 
         UpdateSelectedBuildingScore();
 
-        // A board glow/placement cursor should only exist while
-        // the player has selected a building to place.
-        if (currentPlacementBuildingIndex >= 0)
+        // Refresh visuals without changing the cursor position.
+        if (placementModeActive &&
+            currentPlacementBuildingIndex >= 0)
         {
-            ShowPlacementHighlights(
-                currentPlacementBuildingIndex
-            );
+            ShowPlacementHighlights(currentPlacementBuildingIndex);
         }
         else
         {
@@ -288,40 +367,23 @@ public class BoardManager : MonoBehaviour
             return;
         }
 
-        if (currentlySelectedCell == null)
+        if (currentlySelectedCell == null ||
+            !currentlySelectedCell.IsOccupied)
         {
-            BuildingScoreManager.Instance
-                .ClearExistingBuildingScore();
-
-            return;
-        }
-
-        if (!currentlySelectedCell.IsOccupied)
-        {
-            BuildingScoreManager.Instance
-                .ClearExistingBuildingScore();
-
+            BuildingScoreManager.Instance.ClearExistingBuildingScore();
             return;
         }
 
         int score =
-            GridCell.GetBuildingScore(
-                currentlySelectedCell.CurrentBuilding
-            );
+            GridCell.GetBuildingScore(currentlySelectedCell.CurrentBuilding);
 
-        BuildingScoreManager.Instance
-            .SetExistingBuildingScore(score);
+        BuildingScoreManager.Instance.SetExistingBuildingScore(score);
 
         Debug.Log(
-            "Selected Existing Building Score: " +
-            score +
-            " | Building: " +
-            currentlySelectedCell.CurrentBuilding +
-            " | Cell: (" +
-            currentlySelectedCell.X +
-            ", " +
-            currentlySelectedCell.Y +
-            ")"
+            "Selected Existing Building Score: " + score +
+            " | Building: " + currentlySelectedCell.CurrentBuilding +
+            " | Cell: (" + currentlySelectedCell.X +
+            ", " + currentlySelectedCell.Y + ")"
         );
     }
 
@@ -332,11 +394,9 @@ public class BoardManager : MonoBehaviour
 
     public GridCell GetFirstAvailableCell()
     {
-        GridCell cellAtOrigin =
-            GetCell(0, 0);
+        GridCell cellAtOrigin = GetCell(0, 0);
 
-        if (cellAtOrigin != null &&
-            !cellAtOrigin.IsOccupied)
+        if (cellAtOrigin != null && !cellAtOrigin.IsOccupied)
         {
             return cellAtOrigin;
         }
@@ -357,8 +417,7 @@ public class BoardManager : MonoBehaviour
 
     public GridCell GetFirstBoardCell()
     {
-        GridCell cellAtOrigin =
-            GetCell(0, 0);
+        GridCell cellAtOrigin = GetCell(0, 0);
 
         if (cellAtOrigin != null)
         {
@@ -367,8 +426,7 @@ public class BoardManager : MonoBehaviour
 
         foreach (GridCell cell in gridCells.Values)
         {
-            if (cell != null &&
-                cell.gameObject.activeInHierarchy)
+            if (cell != null && cell.gameObject.activeInHierarchy)
             {
                 return cell;
             }
@@ -384,6 +442,19 @@ public class BoardManager : MonoBehaviour
 
     public void ShowPlacementHighlights(int buildingIndex)
     {
+        // Never show placement visuals outside placement mode.
+        if (!placementModeActive)
+        {
+            ClearPlacementHighlights();
+
+            Debug.Log(
+                "BoardManager: Ignored placement highlight request " +
+                "because Placement Mode is not active."
+            );
+
+            return;
+        }
+
         GridCell.BuildingType buildingType =
             GetBuildingType(buildingIndex);
 
@@ -397,9 +468,9 @@ public class BoardManager : MonoBehaviour
 
         RefreshBoardAnalysis();
 
-        // When a building is selected before OK is pressed, there may not
-        // be a board cursor yet. Choose the first valid target so the
-        // placement cursor/preview appears together with the valid-cell glow.
+        // Only select a starting cell if the current selection
+        // is missing or inactive. Normal cursor movement is
+        // therefore not reset by highlight refreshes.
         if (currentlySelectedCell == null ||
             !currentlySelectedCell.gameObject.activeInHierarchy)
         {
@@ -412,11 +483,8 @@ public class BoardManager : MonoBehaviour
             }
         }
 
-        Color glowColor =
-            GetPlacementGlowColor(buildingType);
-
-        Sprite buildingSprite =
-            GetBuildingSprite(buildingIndex);
+        Color glowColor = GetPlacementGlowColor(buildingType);
+        Sprite buildingSprite = GetBuildingSprite(buildingIndex);
 
         foreach (GridCell cell in GetAllActiveCells())
         {
@@ -430,35 +498,25 @@ public class BoardManager : MonoBehaviour
             if (cell.IsOccupied)
             {
                 validPlacement =
-                    CanReplaceBuildingAtCell(
-                        cell,
-                        buildingType
-                    );
+                    CanReplaceBuildingAtCell(cell, buildingType);
             }
             else
             {
                 validPlacement =
-                    CanPlaceBuilding(
-                        cell,
-                        buildingType
-                    );
+                    CanPlaceBuilding(cell, buildingType);
             }
 
-            // The circular glow is only shown on cells where
-            // the selected building can actually be placed/replaced.
             cell.SetPlacementHighlight(
                 validPlacement,
                 glowColor,
-                placementGlowSize,
+                placementGlowPadding,
                 placementGlowIntensity
             );
 
-            // Remove the preview from every cell first.
             cell.HidePlacementIndicator();
         }
 
-        // Show the selected building itself at the board cursor.
-        // This is the placement preview, not the real building.
+        // Display the preview at the currently selected cell.
         if (currentlySelectedCell != null &&
             currentlySelectedCell.gameObject.activeInHierarchy)
         {
@@ -485,14 +543,7 @@ public class BoardManager : MonoBehaviour
 
             if (!selectedCellCanPlace)
             {
-                // Keep the cursor obvious, but make an invalid
-                // location visually distinct from a valid one.
-                indicatorColor = new Color(
-                    1f,
-                    0.25f,
-                    0.25f,
-                    0.95f
-                );
+                indicatorColor = new Color(1f, 0.25f, 0.25f, 0.95f);
             }
 
             currentlySelectedCell.SetPlacementIndicator(
@@ -504,6 +555,7 @@ public class BoardManager : MonoBehaviour
             );
         }
     }
+
 
     private GridCell FindFirstValidPlacementCell(
         GridCell.BuildingType buildingType)
@@ -519,17 +571,11 @@ public class BoardManager : MonoBehaviour
 
             if (cell.IsOccupied)
             {
-                valid = CanReplaceBuildingAtCell(
-                    cell,
-                    buildingType
-                );
+                valid = CanReplaceBuildingAtCell(cell, buildingType);
             }
             else
             {
-                valid = CanPlaceBuilding(
-                    cell,
-                    buildingType
-                );
+                valid = CanPlaceBuilding(cell, buildingType);
             }
 
             if (valid)
@@ -555,6 +601,7 @@ public class BoardManager : MonoBehaviour
             }
         }
     }
+
 
     private Color GetPlacementGlowColor(
         GridCell.BuildingType buildingType)
@@ -585,17 +632,9 @@ public class BoardManager : MonoBehaviour
 
     public bool CanPlaceBuilding(int buildingIndex)
     {
-        if (currentlySelectedCell == null)
-        {
-            return false;
-        }
-
-        if (!currentlySelectedCell.gameObject.activeInHierarchy)
-        {
-            return false;
-        }
-
-        if (currentlySelectedCell.IsOccupied)
+        if (currentlySelectedCell == null ||
+            !currentlySelectedCell.gameObject.activeInHierarchy ||
+            currentlySelectedCell.IsOccupied)
         {
             return false;
         }
@@ -603,10 +642,7 @@ public class BoardManager : MonoBehaviour
         GridCell.BuildingType buildingType =
             GetBuildingType(buildingIndex);
 
-        return CanPlaceBuilding(
-            currentlySelectedCell,
-            buildingType
-        );
+        return CanPlaceBuilding(currentlySelectedCell, buildingType);
     }
 
 
@@ -614,25 +650,14 @@ public class BoardManager : MonoBehaviour
         GridCell cell,
         GridCell.BuildingType buildingType)
     {
-        if (cell == null)
+        if (cell == null ||
+            !cell.gameObject.activeInHierarchy ||
+            cell.IsOccupied)
         {
             return false;
         }
 
-        if (!cell.gameObject.activeInHierarchy)
-        {
-            return false;
-        }
-
-        if (cell.IsOccupied)
-        {
-            return false;
-        }
-
-        return CanBuildingExistAtCell(
-            cell,
-            buildingType
-        );
+        return CanBuildingExistAtCell(cell, buildingType);
     }
 
 
@@ -648,53 +673,26 @@ public class BoardManager : MonoBehaviour
         switch (buildingType)
         {
             case GridCell.BuildingType.Blue:
-
                 return true;
 
-
             case GridCell.BuildingType.Red:
-
                 return HasNeighbourBuilding(
                     cell,
                     GridCell.BuildingType.Blue
                 );
 
-
             case GridCell.BuildingType.Green:
-
                 return
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Blue
-                    )
-                    &&
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Red
-                    );
-
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Blue) &&
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Red);
 
             case GridCell.BuildingType.Yellow:
-
                 return
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Blue
-                    )
-                    &&
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Red
-                    )
-                    &&
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Green
-                    );
-
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Blue) &&
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Red) &&
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Green);
 
             default:
-
                 return false;
         }
     }
@@ -707,9 +705,7 @@ public class BoardManager : MonoBehaviour
 
         foreach (GridCell cell in GetAllActiveCells())
         {
-            if (CanPlaceBuilding(
-                cell,
-                buildingType))
+            if (CanPlaceBuilding(cell, buildingType))
             {
                 return true;
             }
@@ -723,24 +719,17 @@ public class BoardManager : MonoBehaviour
     // PLACEMENT OR REPLACEMENT
     // =========================================================
 
-    public bool HasValidPlacementOrReplacement(
-        int buildingIndex)
+    public bool HasValidPlacementOrReplacement(int buildingIndex)
     {
         GridCell.BuildingType buildingType =
             GetBuildingType(buildingIndex);
 
-        if (buildingType ==
-            GridCell.BuildingType.None)
+        if (buildingType == GridCell.BuildingType.None)
         {
             return false;
         }
 
         RefreshBoardAnalysis();
-
-
-        // -----------------------------------------------------
-        // NORMAL EMPTY-CELL PLACEMENT
-        // -----------------------------------------------------
 
         if (HasValidPlacement(buildingIndex))
         {
@@ -752,11 +741,6 @@ public class BoardManager : MonoBehaviour
             return true;
         }
 
-
-        // -----------------------------------------------------
-        // REPLACEMENT
-        // -----------------------------------------------------
-
         foreach (GridCell cell in GetAllActiveCells())
         {
             if (!cell.IsOccupied)
@@ -764,19 +748,12 @@ public class BoardManager : MonoBehaviour
                 continue;
             }
 
-            if (CanReplaceBuildingAtCell(
-                cell,
-                buildingType))
+            if (CanReplaceBuildingAtCell(cell, buildingType))
             {
                 Debug.Log(
-                    "BoardManager: Valid replacement exists. " +
-                    "Replace " +
-                    cell.CurrentBuilding +
-                    " at (" +
-                    cell.X +
-                    ", " +
-                    cell.Y +
-                    ") with " +
+                    "BoardManager: Valid replacement exists. Replace " +
+                    cell.CurrentBuilding + " at (" +
+                    cell.X + ", " + cell.Y + ") with " +
                     buildingType
                 );
 
@@ -817,8 +794,7 @@ public class BoardManager : MonoBehaviour
             return false;
         }
 
-        Sprite spriteToPlace =
-            GetBuildingSprite(buildingIndex);
+        Sprite spriteToPlace = GetBuildingSprite(buildingIndex);
 
         if (spriteToPlace == null)
         {
@@ -832,10 +808,7 @@ public class BoardManager : MonoBehaviour
         GridCell.BuildingType buildingType =
             GetBuildingType(buildingIndex);
 
-        int population =
-            GridCell.GetBuildingScore(
-                buildingType
-            );
+        int population = GridCell.GetBuildingScore(buildingType);
 
         currentlySelectedCell.SetBuilding(
             spriteToPlace,
@@ -843,22 +816,14 @@ public class BoardManager : MonoBehaviour
             population
         );
 
-        // Placement is complete. Remove both the placement glow
-        // and the temporary building preview.
-        ClearPlacementHighlights();
-
+        EndPlacementMode();
         UpdateSelectedBuildingScore();
 
         Debug.Log(
-            "BoardManager: " +
-            buildingType +
-            " placed at (" +
-            currentlySelectedCell.X +
-            ", " +
-            currentlySelectedCell.Y +
-            ")" +
-            " | Population: " +
-            population
+            "BoardManager: " + buildingType +
+            " placed at (" + currentlySelectedCell.X +
+            ", " + currentlySelectedCell.Y + ")" +
+            " | Population: " + population
         );
 
         return true;
@@ -869,20 +834,11 @@ public class BoardManager : MonoBehaviour
     // REPLACEMENT
     // =========================================================
 
-    public bool CanReplaceBuilding(
-        int buildingIndex)
+    public bool CanReplaceBuilding(int buildingIndex)
     {
-        if (currentlySelectedCell == null)
-        {
-            return false;
-        }
-
-        if (!currentlySelectedCell.gameObject.activeInHierarchy)
-        {
-            return false;
-        }
-
-        if (!currentlySelectedCell.IsOccupied)
+        if (currentlySelectedCell == null ||
+            !currentlySelectedCell.gameObject.activeInHierarchy ||
+            !currentlySelectedCell.IsOccupied)
         {
             return false;
         }
@@ -890,8 +846,7 @@ public class BoardManager : MonoBehaviour
         GridCell.BuildingType replacementType =
             GetBuildingType(buildingIndex);
 
-        if (replacementType ==
-            GridCell.BuildingType.None)
+        if (replacementType == GridCell.BuildingType.None)
         {
             return false;
         }
@@ -905,15 +860,10 @@ public class BoardManager : MonoBehaviour
     }
 
 
-    public bool CanPlaceOrReplaceBuilding(
-        int buildingIndex)
+    public bool CanPlaceOrReplaceBuilding(int buildingIndex)
     {
-        if (currentlySelectedCell == null)
-        {
-            return false;
-        }
-
-        if (!currentlySelectedCell.gameObject.activeInHierarchy)
+        if (currentlySelectedCell == null ||
+            !currentlySelectedCell.gameObject.activeInHierarchy)
         {
             return false;
         }
@@ -932,53 +882,15 @@ public class BoardManager : MonoBehaviour
     // =========================================================
     // REPLACEMENT VALIDATION
     // =========================================================
-    //
-    // IMPORTANT GAME RULE:
-    //
-    // Replacement only checks whether the NEW building
-    // satisfies its own placement requirements.
-    //
-    // Existing buildings are NOT revalidated.
-    //
-    // Example:
-    //
-    //     Red Blue Blue
-    //
-    // Replace middle Blue with Green:
-    //
-    //     Red Green Blue
-    //
-    // Green has:
-    //     Red on the left
-    //     Blue on the right
-    //
-    // Therefore the replacement is valid.
-    //
-    // We do NOT check whether the existing Red still
-    // has a Blue neighbour.
-    // =========================================================
 
     private bool CanReplaceBuildingAtCell(
         GridCell replacementCell,
         GridCell.BuildingType replacementType)
     {
-        if (replacementCell == null)
-        {
-            return false;
-        }
-
-        if (!replacementCell.gameObject.activeInHierarchy)
-        {
-            return false;
-        }
-
-        if (!replacementCell.IsOccupied)
-        {
-            return false;
-        }
-
-        if (replacementType ==
-            GridCell.BuildingType.None)
+        if (replacementCell == null ||
+            !replacementCell.gameObject.activeInHierarchy ||
+            !replacementCell.IsOccupied ||
+            replacementType == GridCell.BuildingType.None)
         {
             return false;
         }
@@ -1002,57 +914,26 @@ public class BoardManager : MonoBehaviour
         switch (buildingType)
         {
             case GridCell.BuildingType.Blue:
-
-                // Blue can always be placed/replaced.
                 return true;
 
-
             case GridCell.BuildingType.Red:
-
-                // Red requires Blue.
                 return HasNeighbourBuilding(
                     cell,
                     GridCell.BuildingType.Blue
                 );
 
-
             case GridCell.BuildingType.Green:
-
-                // Green requires Blue AND Red.
                 return
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Blue
-                    )
-                    &&
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Red
-                    );
-
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Blue) &&
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Red);
 
             case GridCell.BuildingType.Yellow:
-
-                // Yellow requires Blue AND Red AND Green.
                 return
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Blue
-                    )
-                    &&
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Red
-                    )
-                    &&
-                    HasNeighbourBuilding(
-                        cell,
-                        GridCell.BuildingType.Green
-                    );
-
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Blue) &&
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Red) &&
+                    HasNeighbourBuilding(cell, GridCell.BuildingType.Green);
 
             default:
-
                 return false;
         }
     }
@@ -1086,30 +967,20 @@ public class BoardManager : MonoBehaviour
         GridCell.BuildingType replacementType =
             GetBuildingType(buildingIndex);
 
-        if (replacementType ==
-            GridCell.BuildingType.None)
+        if (replacementType == GridCell.BuildingType.None)
         {
             return false;
         }
-
-
-        // -----------------------------------------------------
-        // ONLY VALIDATE THE NEW BUILDING
-        // -----------------------------------------------------
 
         if (!CanReplaceBuildingAtCell(
             currentlySelectedCell,
             replacementType))
         {
             Debug.Log(
-                "BoardManager: " +
-                replacementType +
-                " cannot replace " +
-                currentlySelectedCell.CurrentBuilding +
-                " at (" +
-                currentlySelectedCell.X +
-                ", " +
-                currentlySelectedCell.Y +
+                "BoardManager: " + replacementType +
+                " cannot replace " + currentlySelectedCell.CurrentBuilding +
+                " at (" + currentlySelectedCell.X +
+                ", " + currentlySelectedCell.Y +
                 ") because the NEW building's " +
                 "placement requirements are not satisfied."
             );
@@ -1117,13 +988,7 @@ public class BoardManager : MonoBehaviour
             return false;
         }
 
-
-        // -----------------------------------------------------
-        // GET SPRITE
-        // -----------------------------------------------------
-
-        Sprite spriteToPlace =
-            GetBuildingSprite(buildingIndex);
+        Sprite spriteToPlace = GetBuildingSprite(buildingIndex);
 
         if (spriteToPlace == null)
         {
@@ -1134,11 +999,6 @@ public class BoardManager : MonoBehaviour
             return false;
         }
 
-
-        // -----------------------------------------------------
-        // REPLACE
-        // -----------------------------------------------------
-
         GridCell.BuildingType oldBuildingType =
             currentlySelectedCell.CurrentBuilding;
 
@@ -1146,9 +1006,7 @@ public class BoardManager : MonoBehaviour
             currentlySelectedCell.BuildingPopulation;
 
         int newPopulation =
-            GridCell.GetBuildingScore(
-                replacementType
-            );
+            GridCell.GetBuildingScore(replacementType);
 
         currentlySelectedCell.SetBuilding(
             spriteToPlace,
@@ -1156,26 +1014,16 @@ public class BoardManager : MonoBehaviour
             newPopulation
         );
 
-        // Placement is complete. Remove both the placement glow
-        // and the temporary building preview.
-        ClearPlacementHighlights();
-
+        EndPlacementMode();
         UpdateSelectedBuildingScore();
 
         Debug.Log(
-            "BoardManager: Replaced " +
-            oldBuildingType +
-            " with " +
-            replacementType +
-            " at (" +
-            currentlySelectedCell.X +
-            ", " +
-            currentlySelectedCell.Y +
-            ")" +
-            " | Old Population: " +
-            oldPopulation +
-            " | New Population: " +
-            newPopulation
+            "BoardManager: Replaced " + oldBuildingType +
+            " with " + replacementType +
+            " at (" + currentlySelectedCell.X +
+            ", " + currentlySelectedCell.Y + ")" +
+            " | Old Population: " + oldPopulation +
+            " | New Population: " + newPopulation
         );
 
         return true;
@@ -1188,6 +1036,12 @@ public class BoardManager : MonoBehaviour
 
     public void RefreshPlacementHighlights(int buildingIndex)
     {
+        if (!placementModeActive)
+        {
+            ClearPlacementHighlights();
+            return;
+        }
+
         ShowPlacementHighlights(buildingIndex);
     }
 
@@ -1220,9 +1074,8 @@ public class BoardManager : MonoBehaviour
 
     public bool IsSelectedCellOccupied()
     {
-        return
-            currentlySelectedCell != null &&
-            currentlySelectedCell.IsOccupied;
+        return currentlySelectedCell != null &&
+               currentlySelectedCell.IsOccupied;
     }
 
 
@@ -1230,15 +1083,13 @@ public class BoardManager : MonoBehaviour
     // BUILDING COUNTS
     // =========================================================
 
-    public int GetBuildingCount(
-        GridCell.BuildingType buildingType)
+    public int GetBuildingCount(GridCell.BuildingType buildingType)
     {
         int count = 0;
 
         foreach (GridCell cell in GetAllActiveCells())
         {
-            if (cell.CurrentBuilding ==
-                buildingType)
+            if (cell.CurrentBuilding == buildingType)
             {
                 count++;
             }
@@ -1250,43 +1101,34 @@ public class BoardManager : MonoBehaviour
 
     public int GetBlueCount()
     {
-        return GetBuildingCount(
-            GridCell.BuildingType.Blue
-        );
+        return GetBuildingCount(GridCell.BuildingType.Blue);
     }
 
 
     public int GetRedCount()
     {
-        return GetBuildingCount(
-            GridCell.BuildingType.Red
-        );
+        return GetBuildingCount(GridCell.BuildingType.Red);
     }
 
 
     public int GetGreenCount()
     {
-        return GetBuildingCount(
-            GridCell.BuildingType.Green
-        );
+        return GetBuildingCount(GridCell.BuildingType.Green);
     }
 
 
     public int GetYellowCount()
     {
-        return GetBuildingCount(
-            GridCell.BuildingType.Yellow
-        );
+        return GetBuildingCount(GridCell.BuildingType.Yellow);
     }
 
 
     public int GetTotalBuildingCount()
     {
-        return
-            GetBlueCount() +
-            GetRedCount() +
-            GetGreenCount() +
-            GetYellowCount();
+        return GetBlueCount() +
+               GetRedCount() +
+               GetGreenCount() +
+               GetYellowCount();
     }
 
 
@@ -1294,18 +1136,15 @@ public class BoardManager : MonoBehaviour
     // POPULATION
     // =========================================================
 
-    public int GetPopulation(
-        GridCell.BuildingType buildingType)
+    public int GetPopulation(GridCell.BuildingType buildingType)
     {
         int population = 0;
 
         foreach (GridCell cell in GetAllActiveCells())
         {
-            if (cell.CurrentBuilding ==
-                buildingType)
+            if (cell.CurrentBuilding == buildingType)
             {
-                population +=
-                    cell.BuildingPopulation;
+                population += cell.BuildingPopulation;
             }
         }
 
@@ -1315,43 +1154,34 @@ public class BoardManager : MonoBehaviour
 
     public int GetBluePopulation()
     {
-        return GetPopulation(
-            GridCell.BuildingType.Blue
-        );
+        return GetPopulation(GridCell.BuildingType.Blue);
     }
 
 
     public int GetRedPopulation()
     {
-        return GetPopulation(
-            GridCell.BuildingType.Red
-        );
+        return GetPopulation(GridCell.BuildingType.Red);
     }
 
 
     public int GetGreenPopulation()
     {
-        return GetPopulation(
-            GridCell.BuildingType.Green
-        );
+        return GetPopulation(GridCell.BuildingType.Green);
     }
 
 
     public int GetYellowPopulation()
     {
-        return GetPopulation(
-            GridCell.BuildingType.Yellow
-        );
+        return GetPopulation(GridCell.BuildingType.Yellow);
     }
 
 
     public int GetTotalPopulation()
     {
-        return
-            GetBluePopulation() +
-            GetRedPopulation() +
-            GetGreenPopulation() +
-            GetYellowPopulation();
+        return GetBluePopulation() +
+               GetRedPopulation() +
+               GetGreenPopulation() +
+               GetYellowPopulation();
     }
 
 
@@ -1365,10 +1195,12 @@ public class BoardManager : MonoBehaviour
         {
             cell.ClearBuilding();
             cell.SetHighlight(false);
+            cell.HidePlacementIndicator();
         }
 
         currentlySelectedCell = null;
-        currentPlacementBuildingIndex = -1;
+
+        EndPlacementMode();
 
         if (BuildingScoreManager.Instance != null)
         {
@@ -1396,16 +1228,8 @@ public class BoardManager : MonoBehaviour
 
         GridCell neighbour;
 
-
-        // -----------------------------------------------------
         // RIGHT
-        // -----------------------------------------------------
-
-        neighbour =
-            GetCell(
-                cell.X + 1,
-                cell.Y
-            );
+        neighbour = GetCell(cell.X + 1, cell.Y);
 
         if (neighbour != null &&
             neighbour.CurrentBuilding == buildingType)
@@ -1413,16 +1237,8 @@ public class BoardManager : MonoBehaviour
             return true;
         }
 
-
-        // -----------------------------------------------------
         // LEFT
-        // -----------------------------------------------------
-
-        neighbour =
-            GetCell(
-                cell.X - 1,
-                cell.Y
-            );
+        neighbour = GetCell(cell.X - 1, cell.Y);
 
         if (neighbour != null &&
             neighbour.CurrentBuilding == buildingType)
@@ -1430,16 +1246,8 @@ public class BoardManager : MonoBehaviour
             return true;
         }
 
-
-        // -----------------------------------------------------
         // UP
-        // -----------------------------------------------------
-
-        neighbour =
-            GetCell(
-                cell.X,
-                cell.Y + 1
-            );
+        neighbour = GetCell(cell.X, cell.Y + 1);
 
         if (neighbour != null &&
             neighbour.CurrentBuilding == buildingType)
@@ -1447,23 +1255,14 @@ public class BoardManager : MonoBehaviour
             return true;
         }
 
-
-        // -----------------------------------------------------
         // DOWN
-        // -----------------------------------------------------
-
-        neighbour =
-            GetCell(
-                cell.X,
-                cell.Y - 1
-            );
+        neighbour = GetCell(cell.X, cell.Y - 1);
 
         if (neighbour != null &&
             neighbour.CurrentBuilding == buildingType)
         {
             return true;
         }
-
 
         return false;
     }
@@ -1473,8 +1272,7 @@ public class BoardManager : MonoBehaviour
     // BUILDING TYPE
     // =========================================================
 
-    private GridCell.BuildingType GetBuildingType(
-        int buildingIndex)
+    private GridCell.BuildingType GetBuildingType(int buildingIndex)
     {
         switch (buildingIndex)
         {
@@ -1500,8 +1298,7 @@ public class BoardManager : MonoBehaviour
     // BUILDING SPRITE
     // =========================================================
 
-    private Sprite GetBuildingSprite(
-        int buildingIndex)
+    private Sprite GetBuildingSprite(int buildingIndex)
     {
         switch (buildingIndex)
         {
@@ -1556,10 +1353,15 @@ public class BoardManager : MonoBehaviour
         RefreshBoardAnalysis();
     }
 
+
+    // =========================================================
+    // RESTORE BUILDING
+    // =========================================================
+
     public void RestoreBuilding(
-    GridCell cell,
-    GridCell.BuildingType buildingType,
-    int population)
+        GridCell cell,
+        GridCell.BuildingType buildingType,
+        int population)
     {
         if (cell == null)
         {
@@ -1572,9 +1374,7 @@ public class BoardManager : MonoBehaviour
         }
 
         Sprite buildingSprite =
-            GetBuildingSprite(
-                GetBuildingIndex(buildingType)
-            );
+            GetBuildingSprite(GetBuildingIndex(buildingType));
 
         if (buildingType == GridCell.BuildingType.None)
         {
@@ -1585,8 +1385,7 @@ public class BoardManager : MonoBehaviour
         if (buildingSprite == null)
         {
             Debug.LogWarning(
-                "BoardManager: Cannot restore " +
-                buildingType +
+                "BoardManager: Cannot restore " + buildingType +
                 " because its sprite is missing."
             );
 
@@ -1600,8 +1399,8 @@ public class BoardManager : MonoBehaviour
         );
     }
 
-    private int GetBuildingIndex(
-    GridCell.BuildingType buildingType)
+
+    private int GetBuildingIndex(GridCell.BuildingType buildingType)
     {
         switch (buildingType)
         {
