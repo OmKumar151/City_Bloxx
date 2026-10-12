@@ -8,6 +8,7 @@ public class GameManager : MonoBehaviour
     public GameObject blockPrefab;
     public GameObject roofPrefab;
     public CameraFollow cameraFollow;
+    public CraneController craneController;
 
     [Header("Game Settings")]
     public int lives = 3;
@@ -17,9 +18,10 @@ public class GameManager : MonoBehaviour
     public int floorsBuilt = 0;
     public int targetFloors = 10;
 
-    [Header("Combo / Accuracy (Tower Bloxx style)")]
-    [Tooltip("Overlap ratio (0-1) required for a drop to count as 'perfect' and build combo.")]
+    [Header("Combo / Accuracy")]
+    [Range(0f, 1f)]
     public float perfectAccuracyThreshold = 0.85f;
+
     public int maxCombo = 5;
     public int baseFloorScore = 50;
 
@@ -31,8 +33,6 @@ public class GameManager : MonoBehaviour
 
     private GameObject lastPlacedBlock;
 
-    // Lets BlockLanding check whether a collision is against the CURRENT
-    // top block, instead of just matching any "Building"-tagged object.
     public GameObject LastPlacedBlock => lastPlacedBlock;
 
     private void Awake()
@@ -42,19 +42,38 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        // Reset time in case the previous game ended.
+        Time.timeScale = 1f;
+
         // Find the foundation.
         lastPlacedBlock = GameObject.Find("Foundation");
 
         if (lastPlacedBlock == null)
         {
-            Debug.LogError("Foundation not found!");
+            Debug.LogError(
+                "GameManager: Foundation was not found!"
+            );
+            enabled = false;
             return;
         }
 
-        // Start camera at the foundation.
+        // Find the camera-follow component if not assigned.
+        if (cameraFollow == null && Camera.main != null)
+        {
+            cameraFollow =
+                Camera.main.GetComponent<CameraFollow>();
+        }
+
         if (cameraFollow != null)
         {
             cameraFollow.SetTarget(lastPlacedBlock.transform);
+        }
+
+        // Find the crane if not assigned.
+        if (craneController == null)
+        {
+            craneController =
+                FindFirstObjectByType<CraneController>();
         }
 
         // Reset game values.
@@ -64,68 +83,63 @@ public class GameManager : MonoBehaviour
         comboCount = 0;
         isGameOver = false;
 
+        // Update the UI.
         if (UIManager.Instance != null)
         {
             UIManager.Instance.UpdateScore(score);
             UIManager.Instance.UpdateLives(lives);
             UIManager.Instance.UpdateFloors(floorsBuilt);
+            UIManager.Instance.UpdateCombo(
+                comboCount,
+                maxCombo,
+                false
+            );
         }
+
+        if (craneController == null)
+        {
+            Debug.LogError(
+                "GameManager: No CraneController found!"
+            );
+        }
+
+        // IMPORTANT:
+        // CraneController is responsible for spawning
+        // and moving the first hanging block.
     }
 
-    // =========================================================
+    // =====================================================
     // SPAWN NEXT BLOCK
-    // =========================================================
+    // =====================================================
 
     public void SpawnNextBlock()
     {
         if (isGameOver)
             return;
 
-        // STOP spawning after 10 floors.
         if (floorsBuilt >= targetFloors)
         {
             BuildingComplete();
             return;
         }
 
-        if (lastPlacedBlock == null)
+        if (craneController == null)
         {
-            Debug.LogError("Last placed block is missing!");
+            Debug.LogError(
+                "GameManager: Cannot spawn block because " +
+                "CraneController is missing."
+            );
             return;
         }
 
-        float spawnY = lastPlacedBlock.transform.position.y + 3f;
-
-        GameObject newBlock = Instantiate(
-            blockPrefab,
-            new Vector3(0f, spawnY, 0f),
-            Quaternion.identity
-        );
-
-        Rigidbody2D rb = newBlock.GetComponent<Rigidbody2D>();
-
-        if (rb != null)
-        {
-            rb.bodyType = RigidbodyType2D.Dynamic;
-            rb.gravityScale = 0f;
-            rb.linearVelocity = Vector2.zero;
-            rb.angularVelocity = 0f;
-            rb.freezeRotation = true;
-        }
-
-        // IMPORTANT:
-        // The block can move left/right while hanging.
-        BlockSwing swing = newBlock.GetComponent<BlockSwing>();
-
-        if (swing != null)
-        {
-            swing.enabled = true;
-        }
+        // The crane owns the hanging block lifecycle.
+        // Do not Instantiate another block here.
+        craneController.PrepareNextBlock();
     }
 
-    // =========================================================
-    // BLOCK SUCCESSFULLY PLACED
-    // =========================================================
+    // =====================================================
+    // UPDATE TOP BLOCK AND CAMERA TARGET
+    // =====================================================
 
     public void SetLastPlacedBlock(GameObject block)
     {
@@ -134,34 +148,40 @@ public class GameManager : MonoBehaviour
 
         lastPlacedBlock = block;
 
-        // Move camera target to the NEW highest block.
         if (cameraFollow != null)
         {
             cameraFollow.SetTarget(block.transform);
         }
     }
 
-    // =========================================================
-    // FLOOR COUNT + COMBO/ACCURACY SCORING
-    // =========================================================
+    // =====================================================
+    // FLOOR COUNT, COMBO AND SCORING
+    // =====================================================
 
-    // accuracy: 0-1, how centered the block was on the one below it.
-    // Called by BlockLanding once a drop is confirmed as a valid stack.
     public void AddFloor(float accuracy)
     {
         if (isGameOver)
             return;
 
+        // Prevent counting more than the target number.
+        if (floorsBuilt >= targetFloors)
+            return;
+
         floorsBuilt++;
+        if (craneController != null)
+{
+    craneController.RaiseCraneForNextFloor(floorsBuilt);
+}
 
-        bool wasPerfect = accuracy >= perfectAccuracyThreshold;
+        bool wasPerfect =
+            accuracy >= perfectAccuracyThreshold;
 
-        // Perfect (well-centered) drops build the combo, like the real
-        // Tower Bloxx star meter. A sloppy-but-valid drop just resets the
-        // combo back to x1 — it does NOT cost a life or count as a miss.
         if (wasPerfect)
         {
-            comboCount = Mathf.Min(comboCount + 1, maxCombo);
+            comboCount = Mathf.Min(
+                comboCount + 1,
+                maxCombo
+            );
         }
         else
         {
@@ -182,18 +202,24 @@ public class GameManager : MonoBehaviour
         if (UIManager.Instance != null)
         {
             UIManager.Instance.UpdateFloors(floorsBuilt);
-            UIManager.Instance.UpdateCombo(comboCount, maxCombo, wasPerfect);
+
+            UIManager.Instance.UpdateCombo(
+                comboCount,
+                maxCombo,
+                wasPerfect
+            );
         }
 
+        // Finish after the tenth successfully placed block.
         if (floorsBuilt >= targetFloors)
         {
             BuildingComplete();
         }
     }
 
-    // =========================================================
+    // =====================================================
     // SCORE
-    // =========================================================
+    // =====================================================
 
     public void AddScore(int points)
     {
@@ -210,26 +236,29 @@ public class GameManager : MonoBehaviour
         Debug.Log("Score: " + score);
     }
 
-    // =========================================================
+    // =====================================================
     // LOSE LIFE
-    // =========================================================
+    // =====================================================
 
     public void LoseLife()
     {
         if (isGameOver)
             return;
 
-        lives--;
+        lives = Mathf.Max(0, lives - 1);
 
-        lives = Mathf.Max(lives, 0);
-
-        // A miss also breaks the combo.
+        // A missed block breaks the combo.
         comboCount = 0;
 
         if (UIManager.Instance != null)
         {
             UIManager.Instance.UpdateLives(lives);
-            UIManager.Instance.UpdateCombo(comboCount, maxCombo, false);
+
+            UIManager.Instance.UpdateCombo(
+                comboCount,
+                maxCombo,
+                false
+            );
         }
 
         Debug.Log("Lives Remaining: " + lives);
@@ -240,9 +269,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // =========================================================
+    // =====================================================
     // BUILDING COMPLETE
-    // =========================================================
+    // =====================================================
 
     private void BuildingComplete()
     {
@@ -251,11 +280,15 @@ public class GameManager : MonoBehaviour
 
         isGameOver = true;
 
-        Debug.Log("=================================");
         Debug.Log("BUILDING COMPLETE!");
-        Debug.Log("10 FLOORS BUILT!");
-        Debug.Log("FINAL SCORE: " + score);
-        Debug.Log("=================================");
+        Debug.Log("Floors Built: " + floorsBuilt);
+        Debug.Log("Final Score: " + score);
+
+        // Stop the crane from spawning more blocks.
+        if (craneController != null)
+        {
+            craneController.CancelInvoke();
+        }
 
         if (UIManager.Instance != null)
         {
@@ -265,9 +298,9 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0f;
     }
 
-    // =========================================================
+    // =====================================================
     // GAME OVER
-    // =========================================================
+    // =====================================================
 
     private void GameOver()
     {
@@ -278,11 +311,25 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("GAME OVER");
 
+        // Stop pending block spawns.
+        if (craneController != null)
+        {
+            craneController.CancelInvoke();
+        }
+
         if (UIManager.Instance != null)
         {
             UIManager.Instance.ShowGameOver();
         }
 
         Time.timeScale = 0f;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
 }
