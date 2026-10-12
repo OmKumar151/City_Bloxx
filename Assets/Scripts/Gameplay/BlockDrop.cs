@@ -4,25 +4,27 @@ public class BlockDrop : MonoBehaviour
 {
     private bool dropped = false;
 
-    void Update()
+    private void Update()
     {
-        if (!dropped && Input.GetMouseButtonDown(0))
+        if (dropped)
+            return;
+
+        if (Input.GetMouseButtonDown(0))
         {
             dropped = true;
 
-            BlockSwing swing = GetComponent<BlockSwing>();
-            if (swing != null)
-            {
-                swing.enabled = false;
-            }
-
-            // IMPORTANT: release through the crane (not just locally), so
-            // CraneController.currentBlock gets cleared. Without this the
-            // crane thinks a block is still active and refuses to spawn
-            // the next one — that's what was causing the game to get stuck.
+            // Release the block through the crane controller.
+            // BlockSwing is no longer needed because the crane
+            // now controls the hanging block's movement.
             if (CraneController.Instance != null)
             {
                 CraneController.Instance.ReleaseBlock();
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "BlockDrop: CraneController instance was not found."
+                );
             }
         }
     }
