@@ -1,105 +1,79 @@
-
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
 public class InfoPanelUI : MonoBehaviour
 {
-    private enum MessageStyle
+    public enum MessageType
     {
         Normal,
-        Reward,
-        Unlock,
-        Warning
+        ImportantReward,
+        PlacementDeclined
     }
 
     [Header("UI References")]
     [SerializeField] private GameObject background;
     [SerializeField] private TMP_Text messageText;
+    [SerializeField] private Image backgroundImage;
+
+    [Header("Message Timing")]
+    [Tooltip("How long the info panel stays visible before disappearing.")]
+    [SerializeField, Min(0.1f)]
+    private float messageDuration = 3.5f;
+
+    private Coroutine hideCoroutine;
 
     [Header("Panel Colours")]
-    [Tooltip("White preserves the original brown/beige artwork.")]
-    [SerializeField] private Color normalColor = Color.white;
+    [Tooltip("White preserves the original background artwork.")]
+    [SerializeField]
+    private Color normalColor = Color.white;
 
-    [Tooltip("Gold tint for stars, checkpoints and rewards.")]
+    [Tooltip("Deep antique gold for rewards and unlocks.")]
     [SerializeField]
     private Color rewardColor =
-        new Color(1f, 0.82f, 0.48f, 1f);
+        new Color(0.75f, 0.54f, 0.14f, 1f);
 
-    [Tooltip("Green-gold tint for major unlocks.")]
+    [Tooltip("Warm red for declined or invalid placement.")]
     [SerializeField]
-    private Color unlockColor =
-        new Color(0.78f, 0.91f, 0.57f, 1f);
-
-    [Tooltip("Red tint for resets and destructive events.")]
-    [SerializeField]
-    private Color warningColor =
-        new Color(1f, 0.62f, 0.58f, 1f);
-
-    private Image backgroundImage;
+    private Color placementDeclinedColor =
+        new Color(0.85f, 0.16f, 0.18f, 1f);
 
     private void Awake()
     {
-        FindBackgroundImage();
+        if (backgroundImage == null && background != null)
+        {
+            backgroundImage = background.GetComponent<Image>();
+        }
+
+        RestoreNormalColour();
 
         if (messageText != null)
         {
-            messageText.text = "Message";
-        }
-
-        ApplyStyle(MessageStyle.Normal);
-    }
-
-    private void FindBackgroundImage()
-    {
-        if (background == null)
-        {
-            Debug.LogWarning(
-                "InfoPanelUI: Background is not assigned."
-            );
-
-            return;
-        }
-
-        backgroundImage = background.GetComponent<Image>();
-
-        if (backgroundImage == null)
-        {
-            backgroundImage =
-                background.GetComponentInChildren<Image>(true);
-        }
-
-        if (backgroundImage == null)
-        {
-            Debug.LogWarning(
-                "InfoPanelUI: No Image component was found " +
-                "on the Background or its children."
-            );
+            messageText.text = "";
         }
     }
-
-    // =========================================================
-    // GENERAL MESSAGE
-    // =========================================================
 
     public void ShowMessage(string message)
     {
-        MessageStyle style = GetStyleForMessage(message);
-
-        ShowMessage(message, style);
+        ShowMessage(message, MessageType.Normal);
     }
 
-    private void ShowMessage(
-        string message,
-        MessageStyle style)
+    public void ShowMessage(string message, MessageType type)
     {
         if (messageText == null)
         {
             Debug.LogWarning(
                 "InfoPanelUI: Message Text is not assigned."
             );
-
             return;
+        }
+
+        // Cancel the previous timer when a new message appears.
+        if (hideCoroutine != null)
+        {
+            StopCoroutine(hideCoroutine);
+            hideCoroutine = null;
         }
 
         messageText.text = message;
@@ -109,84 +83,47 @@ public class InfoPanelUI : MonoBehaviour
             background.SetActive(true);
         }
 
-        ApplyStyle(style);
+        if (backgroundImage != null)
+        {
+            switch (type)
+            {
+                case MessageType.ImportantReward:
+                    backgroundImage.color = rewardColor;
+                    break;
+
+                case MessageType.PlacementDeclined:
+                    backgroundImage.color = placementDeclinedColor;
+                    break;
+
+                default:
+                    backgroundImage.color = normalColor;
+                    break;
+            }
+        }
 
         Debug.Log("Info Panel: " + message);
+
+        // Automatically hide the message after the duration.
+        hideCoroutine = StartCoroutine(HideAfterDelay());
     }
 
-    private MessageStyle GetStyleForMessage(string message)
+    private IEnumerator HideAfterDelay()
     {
-        if (string.IsNullOrEmpty(message))
+        yield return new WaitForSecondsRealtime(messageDuration);
+
+        hideCoroutine = null;
+
+        // Clear only the message text.
+        if (messageText != null)
         {
-            return MessageStyle.Normal;
+            messageText.text = "";
         }
 
-        string text = message.ToLowerInvariant();
+        // Restore the original panel colour.
+        RestoreNormalColour();
 
-        // Major positive events.
-        if (text.Contains("map unlocked") ||
-            text.Contains("building unlocked") ||
-            text.Contains("new map") ||
-            text.Contains("new building unlocked"))
-        {
-            return MessageStyle.Unlock;
-        }
-
-        // Rewards and checkpoints.
-        if (text.Contains("star achieved") ||
-            text.Contains("checkpoint") ||
-            text.Contains("milestone") ||
-            text.Contains("reward achieved"))
-        {
-            return MessageStyle.Reward;
-        }
-
-        // Destructive or cautionary events.
-        if (text.Contains("map reset") ||
-            text.Contains("building destroyed") ||
-            text.Contains("building demolished"))
-        {
-            return MessageStyle.Warning;
-        }
-
-        return MessageStyle.Normal;
+        // Do NOT deactivate the background.
     }
-
-    // =========================================================
-    // PANEL COLOUR
-    // =========================================================
-
-    private void ApplyStyle(MessageStyle style)
-    {
-        if (backgroundImage == null)
-        {
-            return;
-        }
-
-        switch (style)
-        {
-            case MessageStyle.Reward:
-                backgroundImage.color = rewardColor;
-                break;
-
-            case MessageStyle.Unlock:
-                backgroundImage.color = unlockColor;
-                break;
-
-            case MessageStyle.Warning:
-                backgroundImage.color = warningColor;
-                break;
-
-            default:
-                backgroundImage.color = normalColor;
-                break;
-        }
-    }
-
-    // =========================================================
-    // EXISTING GAMEPLAY MESSAGES
-    // =========================================================
-
     public void ShowBuildingSelected(string buildingName)
     {
         ShowMessage(buildingName);
@@ -199,13 +136,17 @@ public class InfoPanelUI : MonoBehaviour
 
     public void ShowBuildingCannotBePlaced()
     {
-        ShowMessage("Building cannot be placed");
+        ShowMessage(
+            "Building cannot be placed",
+            MessageType.PlacementDeclined
+        );
     }
 
     public void ShowNoValidPlacement(string buildingName)
     {
         ShowMessage(
-            buildingName + " cannot be placed anywhere"
+            buildingName + " cannot be placed anywhere",
+            MessageType.PlacementDeclined
         );
     }
 
@@ -219,86 +160,115 @@ public class InfoPanelUI : MonoBehaviour
         ShowMessage("Building demolished");
     }
 
-    // =========================================================
-    // CHECKPOINTS AND REWARDS
-    // =========================================================
-
-    public void ShowStarAchieved()
+    public void ShowStarAchieved(string starName)
     {
         ShowMessage(
-            "Star Achieved!",
-            MessageStyle.Reward
+            starName + " star unlocked!",
+            MessageType.ImportantReward
         );
     }
 
-    public void ShowCheckpointReached()
+    public void ShowCheckpointReached(string message)
     {
-        ShowMessage(
-            "Checkpoint Reached!",
-            MessageStyle.Reward
-        );
+        ShowMessage(message, MessageType.ImportantReward);
     }
 
-    public void ShowRewardAchieved(string rewardName)
+    public void ShowNextMapUnlocked(string mapName)
     {
         ShowMessage(
-            rewardName + " Achieved!",
-            MessageStyle.Reward
-        );
-    }
-
-    // =========================================================
-    // UNLOCKS
-    // =========================================================
-
-    public void ShowNextMapUnlocked()
-    {
-        ShowMessage(
-            "Next Map Unlocked!",
-            MessageStyle.Unlock
-        );
-    }
-
-    public void ShowNewBuildingUnlocked(string buildingName)
-    {
-        ShowMessage(
-            "New Building Unlocked: " + buildingName,
-            MessageStyle.Unlock
-        );
-    }
-
-    // =========================================================
-    // DESTRUCTIVE EVENTS
-    // =========================================================
-
-    public void ShowBuildingDestroyed()
-    {
-        ShowMessage(
-            "Building Destroyed",
-            MessageStyle.Warning
+            mapName + " unlocked!",
+            MessageType.ImportantReward
         );
     }
 
     public void ShowMapReset()
     {
+        ShowMessage("Map Reset");
+    }
+
+    public void ShowMapSaved()
+    {
+        ShowMessage("Map Saved");
+    }
+
+    public void ShowBuildingDestroyed(string buildingName)
+    {
         ShowMessage(
-            "Map Reset",
-            MessageStyle.Warning
+            buildingName + " destroyed",
+            MessageType.PlacementDeclined
         );
     }
 
-    // =========================================================
-    // HIDE
-    // =========================================================
+    public void ShowBuildingUnlocked(string buildingName)
+    {
+        ShowMessage(
+            buildingName + " unlocked!",
+            MessageType.ImportantReward
+        );
+    }
+
+    public void ShowRewardUnlocked(
+        PopulationProgressionManager.RewardType reward)
+    {
+        switch (reward)
+        {
+            case PopulationProgressionManager.RewardType.BlueBuilding:
+                ShowBuildingUnlocked("Blue Building");
+                break;
+
+            case PopulationProgressionManager.RewardType.RedBuilding:
+                ShowBuildingUnlocked("Red Building");
+                break;
+
+            case PopulationProgressionManager.RewardType.GreenBuilding:
+                ShowBuildingUnlocked("Green Building");
+                break;
+
+            case PopulationProgressionManager.RewardType.YellowBuilding:
+                ShowBuildingUnlocked("Yellow Building");
+                break;
+
+            case PopulationProgressionManager.RewardType.BlueStar:
+                ShowStarAchieved("Blue");
+                break;
+
+            case PopulationProgressionManager.RewardType.RedStar:
+                ShowStarAchieved("Red");
+                break;
+
+            case PopulationProgressionManager.RewardType.GreenStar:
+                ShowStarAchieved("Green");
+                break;
+
+            case PopulationProgressionManager.RewardType.YellowStar:
+                ShowStarAchieved("Yellow");
+                break;
+        }
+    }
 
     public void Hide()
     {
-        if (background != null)
+        if (hideCoroutine != null)
         {
-            background.SetActive(false);
+            StopCoroutine(hideCoroutine);
+            hideCoroutine = null;
         }
 
-        // Restore the default tint for the next message.
-        ApplyStyle(MessageStyle.Normal);
+        // Clear only the message text.
+        if (messageText != null)
+        {
+            messageText.text = "";
+        }
+
+        // Keep the panel background visible.
+        RestoreNormalColour();
+    }
+
+    public void RestoreNormalColour()
+    {
+        if (backgroundImage != null)
+        {
+            backgroundImage.color = normalColor;
+        }
     }
 }
