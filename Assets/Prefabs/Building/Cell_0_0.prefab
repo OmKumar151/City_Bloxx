@@ -34,8 +34,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 18.2}
-  m_SizeDelta: {x: 100, y: 100}
+  m_AnchoredPosition: {x: 0, y: 5}
+  m_SizeDelta: {x: 90, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5928168751662134142
 CanvasRenderer:
@@ -206,6 +206,7 @@ MonoBehaviour:
   highlight: {fileID: 6334081148819733287}
   buildingHolder: {fileID: 9105545046594913493}
   buildingImage: {fileID: 4462485153705945326}
+  defaultGlowPadding: 6
 --- !u!1 &9094007612892889254
 GameObject:
   m_ObjectHideFlags: 0

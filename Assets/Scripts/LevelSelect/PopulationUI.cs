@@ -22,30 +22,27 @@ public class PopulationUI : MonoBehaviour
 
     private void FindBoardManager()
     {
-        if (boardManager != null)
-        {
-            return;
-        }
-
-        boardManager =
-            FindFirstObjectByType<BoardManager>();
+        if (boardManager == null)
+            boardManager = FindAnyObjectByType<BoardManager>();
     }
 
     private void UpdatePopulation()
     {
         if (populationText == null)
-        {
             return;
-        }
 
         if (boardManager == null)
         {
-            populationText.text = "0";
-            return;
+            FindBoardManager();
+
+            if (boardManager == null)
+            {
+                populationText.text = "0";
+                return;
+            }
         }
 
         populationText.text =
-            boardManager.GetTotalPopulation()
-            .ToString();
+            boardManager.GetTotalPopulation().ToString();
     }
 }

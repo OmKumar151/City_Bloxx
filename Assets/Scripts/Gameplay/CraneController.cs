@@ -1,125 +1,338 @@
 
+using System.Collections;
 using UnityEngine;
 
 public class CraneController : MonoBehaviour
 {
-    public static CraneController Instance;
+    public static CraneController Instance { get; private set; }
 
     [Header("Crane References")]
     public Transform craneRoot;
     public Transform swingPivot;
     public Transform hook;
-    public Transform rope;
+    public LineRenderer rope;
     public GameObject hangingBlockPrefab;
 
-    [Header("Pendulum Settings")]
-    public float blockBelowHook = 0.65f;
+    [Header("Block Settings")]
+    [Min(0f)] public float blockBelowHook = 0.65f;
 
-    [Header("Crane Height")]
-    public float verticalClearance = 1.5f;
-    public float craneMoveSpeed = 3f;
+    [Header("Crane Movement")]
+    [Min(0f)] public float verticalClearance = 1.5f;
+    [Min(0f)] public float craneMoveSpeed = 3f;
+
+    [Header("Block Sequence")]
+    [Min(0f)] public float nextBlockDelay = 0.3f;
 
     private GameObject currentBlock;
-    private bool stopped = false;
-    private bool movingCraneUp = false;
+    private SwingPivotController swingController;
+    private RopeController ropeController;
+    private Transform ropeTopPoint;
+
+    private bool stopped;
+    private bool movingCraneUp;
+    private bool spawnScheduled;
 
     private float targetCraneY;
-    private int lastHeightFloor = 0;
+    private int lastHeightFloor;
 
-    private SwingPivotController swingController;
+    private Coroutine spawnCoroutine;
+
+    public GameObject CurrentBlock => currentBlock;
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning(
+                "Duplicate CraneController found. Destroying duplicate.",
+                this
+            );
+
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
     }
 
     private void Start()
     {
-        if (craneRoot == null ||
-            swingPivot == null ||
-            hook == null)
+        if (craneRoot == null)
         {
             Debug.LogError(
-                "CraneController: Assign Crane Root, " +
-                "Swing Pivot, and Hook in the Inspector."
+                "CraneController: Crane Root is not assigned.",
+                this
             );
-
-            enabled = false;
             return;
         }
 
-        if (!swingPivot.IsChildOf(craneRoot))
+        if (swingPivot == null)
         {
             Debug.LogError(
-                "Swing Pivot must be a child of Crane Root."
+                "CraneController: Swing Pivot is not assigned.",
+                this
             );
-
-            enabled = false;
             return;
         }
 
-        swingController =
-            swingPivot.GetComponent<SwingPivotController>();
+        if (hook == null)
+        {
+            Debug.LogError(
+                "CraneController: Hook is not assigned.",
+                this
+            );
+            return;
+        }
+
+        if (hangingBlockPrefab == null)
+        {
+            Debug.LogError(
+                "CraneController: Hanging Block Prefab is not assigned.",
+                this
+            );
+            return;
+        }
+
+        GameManager manager = GameManager.Instance;
+
+        if (manager == null)
+        {
+            Debug.LogError(
+                "CraneController: GameManager.Instance was not found.",
+                this
+            );
+            return;
+        }
+
+        if (manager.LastPlacedBlock == null)
+        {
+            Debug.LogError(
+                "CraneController: GameManager has no starting building. " +
+                "Assign the Starting Building in GameManager.",
+                this
+            );
+            return;
+        }
+
+        swingController = swingPivot.GetComponent<SwingPivotController>();
 
         if (swingController == null)
         {
-            Debug.LogError(
-                "SwingPivotController is missing from Swing Pivot!"
+            Debug.LogWarning(
+                "CraneController: No SwingPivotController was found " +
+                "on the Swing Pivot.",
+                swingPivot
             );
-
-            enabled = false;
-            return;
         }
 
-        targetCraneY = craneRoot.position.y;
+        ropeController = GetComponent<RopeController>();
 
+        if (ropeController == null)
+            ropeController = GetComponentInChildren<RopeController>();
+
+        ropeTopPoint = craneRoot.Find("Pulley");
+
+        if (ropeTopPoint == null)
+            ropeTopPoint = craneRoot;
+
+        targetCraneY = craneRoot.position.y;
+        lastHeightFloor = manager.floorsBuilt;
+
+        ConfigureRope();
         SpawnBlock();
     }
 
     private void Update()
     {
-        if (!stopped)
-        {
-            KeepHangingBlockUpright();
-            UpdateRope();
-        }
-
-        MoveCraneUp();
-    }
-
-    private void KeepHangingBlockUpright()
-    {
-        if (currentBlock == null)
+        if (stopped)
             return;
 
-        currentBlock.transform.rotation =
-            Quaternion.identity;
+        if (movingCraneUp)
+            MoveCraneUp();
     }
 
-    private void UpdateRope()
+    public void ReleaseBlock()
     {
-        if (rope == null || hook == null)
+        if (stopped || currentBlock == null)
             return;
 
-        RopeController ropeController =
-            rope.GetComponent<RopeController>();
+        GameManager manager = GameManager.Instance;
 
-        if (ropeController != null)
+        if (manager == null ||
+            manager.isGameOver ||
+            manager.isBuildingComplete)
         {
-            // Use the actual pulley as the rope's top endpoint.
-            Transform pulley = craneRoot.Find("Pulley");
-
-            if (pulley != null)
-                ropeController.topPoint = pulley;
-
-            ropeController.hook = hook;
+            return;
         }
+
+        GameObject releasedBlock = currentBlock;
+
+        Rigidbody2D rb = releasedBlock.GetComponent<Rigidbody2D>();
+        BlockLanding landing = releasedBlock.GetComponent<BlockLanding>();
+
+        if (rb == null)
+        {
+            Debug.LogError(
+                "CraneController: Released block has no Rigidbody2D.",
+                releasedBlock
+            );
+            return;
+        }
+
+        if (landing == null)
+        {
+            Debug.LogError(
+                "CraneController: Released block has no BlockLanding component.",
+                releasedBlock
+            );
+            return;
+        }
+
+        // Clear the reference first to prevent duplicate release attempts.
+        currentBlock = null;
+
+        // Detach while preserving the block's world position.
+        releasedBlock.transform.SetParent(null, true);
+
+        // Stop swinging while leaving the crane itself operational.
+        if (swingController != null)
+            swingController.StopSwing();
+
+        // Configure physics for the released block.
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.gravityScale = 1f;
+        rb.freezeRotation = true;
+        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        rb.bodyType = RigidbodyType2D.Dynamic;
+
+        // IMPORTANT: Allow BlockLanding to process collisions after release.
+        landing.MarkAsReleased();
+
+        ConfigureRope();
+
+        Debug.Log(
+            $"CraneController: Released '{releasedBlock.name}'. " +
+            "BlockLanding.MarkAsReleased() was called.",
+            releasedBlock
+        );
+    }
+
+    public void PrepareNextBlock()
+    {
+        if (stopped || currentBlock != null || spawnScheduled)
+            return;
+
+        GameManager manager = GameManager.Instance;
+
+        if (manager == null ||
+            manager.isGameOver ||
+            manager.isBuildingComplete)
+        {
+            return;
+        }
+
+        spawnScheduled = true;
+
+        if (spawnCoroutine != null)
+            StopCoroutine(spawnCoroutine);
+
+        spawnCoroutine = StartCoroutine(SpawnScheduledBlock());
+    }
+
+    private IEnumerator SpawnScheduledBlock()
+    {
+        yield return new WaitForSeconds(nextBlockDelay);
+
+        spawnScheduled = false;
+        spawnCoroutine = null;
+
+        if (stopped || currentBlock != null)
+            yield break;
+
+        GameManager manager = GameManager.Instance;
+
+        if (manager == null ||
+            manager.isGameOver ||
+            manager.isBuildingComplete)
+        {
+            yield break;
+        }
+
+        SpawnBlock();
+    }
+
+    private void SpawnBlock()
+    {
+        if (stopped || currentBlock != null)
+            return;
+
+        if (hook == null || hangingBlockPrefab == null)
+        {
+            Debug.LogError(
+                "CraneController: Cannot spawn block. Hook or prefab is missing.",
+                this
+            );
+            return;
+        }
+
+        GameObject block = Instantiate(
+            hangingBlockPrefab,
+            hook.position,
+            Quaternion.identity
+        );
+
+        Rigidbody2D rb = block.GetComponent<Rigidbody2D>();
+        Collider2D blockCollider = block.GetComponent<Collider2D>();
+        BlockLanding landing = block.GetComponent<BlockLanding>();
+
+        if (rb == null || blockCollider == null || landing == null)
+        {
+            Debug.LogError(
+                "CraneController: Hanging Block Prefab must have a " +
+                "Rigidbody2D, Collider2D, and BlockLanding on its root.",
+                block
+            );
+
+            Destroy(block);
+            return;
+        }
+
+        currentBlock = block;
+
+        block.transform.SetParent(hook, true);
+        block.transform.localPosition = new Vector3(
+            0f,
+            -blockBelowHook,
+            0f
+        );
+
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.gravityScale = 0f;
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.freezeRotation = true;
+
+        // The new block must not be treated as released yet.
+        // ReleaseBlock() calls MarkAsReleased() when the player drops it.
+
+        if (swingController != null)
+            swingController.StartSwing();
+
+        ConfigureRope();
+
+        Debug.Log(
+            $"CraneController: Spawned '{block.name}'.",
+            block
+        );
     }
 
     public void RaiseCraneForNextFloor(int floorsBuilt)
     {
-        if (craneRoot == null ||
-            floorsBuilt <= lastHeightFloor)
+        if (stopped || craneRoot == null)
+            return;
+
+        if (floorsBuilt <= lastHeightFloor)
             return;
 
         lastHeightFloor = floorsBuilt;
@@ -130,8 +343,11 @@ public class CraneController : MonoBehaviour
 
     private void MoveCraneUp()
     {
-        if (!movingCraneUp || craneRoot == null)
+        if (craneRoot == null)
+        {
+            movingCraneUp = false;
             return;
+        }
 
         Vector3 position = craneRoot.position;
 
@@ -143,95 +359,48 @@ public class CraneController : MonoBehaviour
 
         craneRoot.position = position;
 
+        ConfigureRope();
+
         if (Mathf.Approximately(position.y, targetCraneY))
             movingCraneUp = false;
     }
 
-    public void SpawnBlock()
+    public void StopCrane()
     {
-        if (currentBlock != null)
-            return;
-
-        if (GameManager.Instance != null &&
-            GameManager.Instance.isGameOver)
-            return;
-
-        if (hangingBlockPrefab == null)
-        {
-            Debug.LogError(
-                "Hanging Block Prefab is not assigned!"
-            );
-
-            return;
-        }
-
-        stopped = false;
-
-        currentBlock = Instantiate(
-            hangingBlockPrefab,
-            hook.position,
-            Quaternion.identity
-        );
-
-        currentBlock.transform.SetParent(hook);
-
-        currentBlock.transform.localPosition =
-            new Vector3(0f, -blockBelowHook, 0f);
-
-        currentBlock.transform.rotation =
-            Quaternion.identity;
-
-        Rigidbody2D rb =
-            currentBlock.GetComponent<Rigidbody2D>();
-
-        if (rb != null)
-        {
-            rb.bodyType = RigidbodyType2D.Kinematic;
-            rb.gravityScale = 0f;
-            rb.linearVelocity = Vector2.zero;
-            rb.angularVelocity = 0f;
-            rb.freezeRotation = true;
-        }
-
-        swingController.StartSwing();
-        UpdateRope();
-    }
-
-    public void ReleaseBlock()
-    {
-        if (currentBlock == null)
-            return;
-
         stopped = true;
-        swingController.StopSwing();
+        movingCraneUp = false;
+        spawnScheduled = false;
 
-        currentBlock.transform.rotation =
-            Quaternion.identity;
-
-        currentBlock.transform.SetParent(null);
-
-        Rigidbody2D rb =
-            currentBlock.GetComponent<Rigidbody2D>();
-
-        if (rb != null)
+        if (spawnCoroutine != null)
         {
-            rb.linearVelocity = Vector2.zero;
-            rb.angularVelocity = 0f;
-            rb.freezeRotation = true;
-            rb.gravityScale = 1f;
-            rb.bodyType = RigidbodyType2D.Dynamic;
+            StopCoroutine(spawnCoroutine);
+            spawnCoroutine = null;
         }
 
-        currentBlock = null;
+        if (swingController != null)
+            swingController.StopSwing();
     }
 
-    public void PrepareNextBlock()
+    private void ConfigureRope()
     {
-        if (GameManager.Instance != null &&
-            GameManager.Instance.isGameOver)
+        if (ropeController != null)
+        {
+            ropeController.UpdateRope();
+            return;
+        }
+
+        if (rope == null || hook == null || ropeTopPoint == null)
             return;
 
-        CancelInvoke(nameof(SpawnBlock));
-        Invoke(nameof(SpawnBlock), 0.3f);
+        rope.positionCount = 2;
+        rope.useWorldSpace = true;
+        rope.SetPosition(0, ropeTopPoint.position);
+        rope.SetPosition(1, hook.position);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 }

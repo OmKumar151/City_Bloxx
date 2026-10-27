@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 3228654451244042161}
   - component: {fileID: 8561800838495575297}
   - component: {fileID: 5753979192116376787}
-  - component: {fileID: 8546844795838902115}
   - component: {fileID: 9100744240261391800}
   - component: {fileID: 1957485127722664485}
   m_Layer: 0
@@ -167,20 +166,8 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 4
---- !u!114 &8546844795838902115
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4873505803641195100}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae8f03b3c730ea5428763d30d07b8172, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BlockDrop
 --- !u!114 &9100744240261391800
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -194,7 +181,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockLanding
   minOverlap: 0.3
+  landingHeightTolerance: 0.2
   missedBlockLifetime: 0.4
+  missYPosition: -10
+  unresolvedContactTimeout: 0.75
+  stationaryMissTimeout: 0.5
+  stationaryVelocityThreshold: 0.15
+  enableDebugLogs: 1
 --- !u!114 &1957485127722664485
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -220,7 +213,3 @@ MonoBehaviour:
     floorsPerTier: 3
     sprites: []
     fallbackColor: {r: 0.85, g: 0.55, b: 0.35, a: 1}
-  - tierName: Penthouse
-    floorsPerTier: 3
-    sprites: []
-    fallbackColor: {r: 0.65, g: 0.85, b: 0.95, a: 1}

@@ -1,10 +1,11 @@
+
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
-    public static UIManager Instance;
+    public static UIManager Instance { get; private set; }
 
     [Header("Main UI References")]
     public TMP_Text scoreText;
@@ -14,22 +15,19 @@ public class UIManager : MonoBehaviour
     public TMP_Text finalScoreText;
 
     [Header("Life Indicators")]
-    [Tooltip("Assign the three life images in order: Life1, Life2, Life3.")]
     public Image[] lifeIcons;
-
     public Color lifeActiveColor = new Color(1f, 0.2f, 0.25f, 1f);
     public Color lifeLostColor = new Color(0.3f, 0.3f, 0.35f, 0.65f);
 
     [Header("Score Settings")]
     public string scorePrefix = "SCORE";
-    public int displayedScore = 0;
+    public int displayedScore;
 
     [Header("Combo Bar")]
     public Image comboBarFill;
     public TMP_Text comboText;
     public GameObject comboBarContainer;
     public Image comboStarIcon;
-
     public Color comboNormalColor = Color.white;
     public Color comboMaxColor = new Color(1f, 0.85f, 0.2f);
 
@@ -37,16 +35,13 @@ public class UIManager : MonoBehaviour
     public GameObject gameOverPanel;
     public GameObject completePanel;
 
-    private int currentLives = 3;
-    private int currentFloors = 0;
-
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning(
-                "More than one UIManager exists in the scene."
-            );
+            Debug.LogWarning("Duplicate UIManager found.", this);
+            Destroy(gameObject);
+            return;
         }
 
         Instance = this;
@@ -54,130 +49,104 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
-        UpdateScore(0);
-        UpdateLives(3);
-        UpdateFloors(0);
-        UpdateCombo(0, 5, false);
-
         if (gameOverPanel != null)
             gameOverPanel.SetActive(false);
 
         if (completePanel != null)
             completePanel.SetActive(false);
-    }
 
-    // ---------------- SCORE ----------------
+        if (gameOverText != null)
+            gameOverText.enabled = false;
+
+        GameManager manager = GameManager.Instance;
+
+        if (manager != null)
+        {
+            UpdateScore(manager.score);
+            UpdateLives(manager.lives);
+            UpdateFloors(manager.floorsBuilt);
+            UpdateCombo(manager.comboCount, manager.maxCombo, false);
+        }
+        else
+        {
+            UpdateScore(0);
+            UpdateLives(3);
+            UpdateFloors(0);
+            UpdateCombo(0, 5, false);
+        }
+    }
 
     public void UpdateScore(int score)
     {
         displayedScore = Mathf.Max(0, score);
 
         if (scoreText != null)
-        {
-            scoreText.text =
-                scorePrefix + ": " + displayedScore.ToString("N0");
-        }
+            scoreText.text = scorePrefix + ": " + displayedScore.ToString("N0");
 
         if (finalScoreText != null &&
-            completePanel != null &&
-            completePanel.activeSelf)
+            completePanel != null && completePanel.activeSelf)
         {
             finalScoreText.text =
-                "Final Score: " + displayedScore.ToString("N0");
+                "FINAL SCORE: " + displayedScore.ToString("N0");
         }
     }
 
-    // ---------------- LIVES ----------------
-
     public void UpdateLives(int lives)
     {
-        currentLives = Mathf.Max(0, lives);
+        int safeLives = Mathf.Max(0, lives);
 
-        if (lifeIcons != null && lifeIcons.Length > 0)
+        if (lifeIcons != null)
         {
             for (int i = 0; i < lifeIcons.Length; i++)
             {
-                Image iconImage = lifeIcons[i];
-
-                if (iconImage == null)
+                if (lifeIcons[i] == null)
                     continue;
 
-                bool isActive = i < currentLives;
+                lifeIcons[i].color =
+                    i < safeLives ? lifeActiveColor : lifeLostColor;
 
-                iconImage.color = isActive
-                    ? lifeActiveColor
-                    : lifeLostColor;
-
-                iconImage.enabled = true;
+                lifeIcons[i].enabled = true;
             }
         }
 
         if (livesText != null)
-        {
-            livesText.text = "LIVES: " + currentLives;
-        }
+            livesText.text = "LIVES: " + safeLives;
     }
-
-    // ---------------- FLOORS ----------------
 
     public void UpdateFloors(int floors)
     {
-        currentFloors = Mathf.Max(0, floors);
-
         if (floorText != null)
-        {
-            floorText.text =
-                "FLOORS: " + currentFloors;
-        }
+            floorText.text = "FLOORS: " + Mathf.Max(0, floors);
     }
 
-    // ---------------- COMBO ----------------
-
-    public void UpdateCombo(
-        int comboCount,
-        int maxCombo,
-        bool wasPerfect)
+    public void UpdateCombo(int comboCount, int maxCombo, bool wasPerfect)
     {
         int safeCombo = Mathf.Max(0, comboCount);
         int safeMaxCombo = Mathf.Max(1, maxCombo);
-
         int multiplier = safeCombo + 1;
+        bool maxed = safeCombo >= safeMaxCombo;
 
         if (comboBarFill != null)
         {
-            comboBarFill.fillAmount = Mathf.Clamp01(
-                (float)safeCombo / safeMaxCombo
-            );
+            comboBarFill.fillAmount =
+                Mathf.Clamp01((float)safeCombo / safeMaxCombo);
+
+            comboBarFill.color = maxed ? comboMaxColor : comboNormalColor;
         }
 
         if (comboText != null)
         {
-            comboText.text = "x" + multiplier;
+            comboText.text = wasPerfect && safeCombo > 0
+                ? "PERFECT! x" + multiplier
+                : "x" + multiplier;
         }
 
         if (comboBarContainer != null)
-        {
             comboBarContainer.SetActive(safeCombo > 0);
-        }
-
-        bool isMaxed = safeCombo >= safeMaxCombo;
-
-        if (comboBarFill != null)
-        {
-            comboBarFill.color = isMaxed
-                ? comboMaxColor
-                : comboNormalColor;
-        }
 
         if (comboStarIcon != null)
-        {
-            comboStarIcon.color = isMaxed
-                ? comboMaxColor
-                : comboNormalColor;
-        }
+            comboStarIcon.color = maxed ? comboMaxColor : comboNormalColor;
     }
-
-    // ---------------- GAME OVER ----------------
 
     public void ShowGameOver()
     {
@@ -191,8 +160,6 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // ---------------- BUILDING COMPLETE ----------------
-
     public void ShowBuildingComplete(int score)
     {
         UpdateScore(score);
@@ -203,7 +170,13 @@ public class UIManager : MonoBehaviour
         if (finalScoreText != null)
         {
             finalScoreText.text =
-                "FINAL SCORE: " + displayedScore.ToString("N0");
+                "FINAL SCORE: " + Mathf.Max(0, score).ToString("N0");
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 }

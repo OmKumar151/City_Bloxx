@@ -299,16 +299,59 @@ public class BoardManager : MonoBehaviour
         int directionY)
     {
         if (currentCell == null)
+            return null;
+
+        // Navigation input must represent one cardinal direction.
+        // Diagonal cells are considered automatically as fallback candidates.
+        if (Mathf.Abs(directionX) + Mathf.Abs(directionY) != 1)
         {
+            Debug.LogWarning(
+                "BoardManager: GetNeighbour expects one cardinal direction."
+            );
             return null;
         }
 
-        int targetX = currentCell.X + directionX;
-        int targetY = currentCell.Y + directionY;
+        GridCell bestCell = null;
+        float bestScore = float.MaxValue;
 
-        return GetCell(targetX, targetY);
+        foreach (GridCell candidate in GetAllActiveCells())
+        {
+            if (candidate == null || candidate == currentCell)
+                continue;
+
+            int deltaX = candidate.X - currentCell.X;
+            int deltaY = candidate.Y - currentCell.Y;
+
+            // Candidate must be in the half-plane requested by the input.
+            // For Up/Down, Y is the forward axis; for Left/Right, X is.
+            int forwardDistance = directionX != 0
+                ? deltaX * directionX
+                : deltaY * directionY;
+
+            if (forwardDistance <= 0)
+                continue;
+
+            int sidewaysDistance = directionX != 0
+                ? Mathf.Abs(deltaY)
+                : Mathf.Abs(deltaX);
+
+            // Prefer the nearest cell overall, not any distant cell on the
+            // same row/column. This makes nearby diagonal cells reachable.
+            // Forward distance has a small priority; Euclidean distance keeps
+            // an adjacent diagonal cell ahead of a much farther aligned cell.
+            float distanceSquared = deltaX * deltaX + deltaY * deltaY;
+            float score = distanceSquared + sidewaysDistance * 0.15f
+                          - forwardDistance * 0.01f;
+
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestCell = candidate;
+            }
+        }
+
+        return bestCell;
     }
-
 
     public void SetSelectedCell(int x, int y)
     {
@@ -1222,51 +1265,33 @@ public class BoardManager : MonoBehaviour
         GridCell.BuildingType buildingType)
     {
         if (cell == null)
-        {
             return false;
-        }
 
-        GridCell neighbour;
-
-        // RIGHT
-        neighbour = GetCell(cell.X + 1, cell.Y);
-
-        if (neighbour != null &&
-            neighbour.CurrentBuilding == buildingType)
+        // Building adjacency includes all eight surrounding coordinates:
+        // horizontal, vertical, and diagonal neighbours.
+        for (int offsetX = -1; offsetX <= 1; offsetX++)
         {
-            return true;
-        }
+            for (int offsetY = -1; offsetY <= 1; offsetY++)
+            {
+                // The cell itself is not its own neighbour.
+                if (offsetX == 0 && offsetY == 0)
+                    continue;
 
-        // LEFT
-        neighbour = GetCell(cell.X - 1, cell.Y);
+                GridCell neighbour = GetCell(
+                    cell.X + offsetX,
+                    cell.Y + offsetY
+                );
 
-        if (neighbour != null &&
-            neighbour.CurrentBuilding == buildingType)
-        {
-            return true;
-        }
-
-        // UP
-        neighbour = GetCell(cell.X, cell.Y + 1);
-
-        if (neighbour != null &&
-            neighbour.CurrentBuilding == buildingType)
-        {
-            return true;
-        }
-
-        // DOWN
-        neighbour = GetCell(cell.X, cell.Y - 1);
-
-        if (neighbour != null &&
-            neighbour.CurrentBuilding == buildingType)
-        {
-            return true;
+                if (neighbour != null &&
+                    neighbour.CurrentBuilding == buildingType)
+                {
+                    return true;
+                }
+            }
         }
 
         return false;
     }
-
 
     // =========================================================
     // BUILDING TYPE
@@ -1420,4 +1445,83 @@ public class BoardManager : MonoBehaviour
                 return -1;
         }
     }
+
+
+
+    /// <summary>
+    /// Changes the grid used by this BoardManager.
+    /// Activate the new grid root before calling this method.
+    /// The existing placement and replacement rules are unchanged.
+    /// </summary>
+    public bool SetGridRoot(Transform newGridRoot)
+    {
+        if (newGridRoot == null)
+        {
+            Debug.LogError(
+                "BoardManager: Cannot switch grids because the new Grid Root is null."
+            );
+            return false;
+        }
+
+        // Validate the destination before disturbing the current board.
+        GridCell[] newGridCells =
+            newGridRoot.GetComponentsInChildren<GridCell>(true);
+
+        if (newGridCells == null || newGridCells.Length == 0)
+        {
+            Debug.LogError(
+                "BoardManager: Cannot switch to '" + newGridRoot.name +
+                "' because it contains no GridCell components. " +
+                "The current grid has been left unchanged."
+            );
+            return false;
+        }
+
+        // Clear placement visuals while the old grid is still referenced.
+        EndPlacementMode();
+        currentlySelectedCell = null;
+
+        if (BuildingScoreManager.Instance != null)
+        {
+            BuildingScoreManager.Instance.ClearScores();
+        }
+
+        // Switch the root and rebuild the coordinate-to-cell lookup.
+        gridRoot = newGridRoot;
+        BuildGridReference();
+
+        // Start with a predictable selection on the new board.
+        currentlySelectedCell = GetFirstBoardCell();
+
+        ClearPlacementHighlights();
+        UpdateSelectedBuildingScore();
+
+        int activeCellCount = GetAllActiveCellCount();
+
+        Debug.Log(
+            "BoardManager: Switched grid to '" + newGridRoot.name +
+            "'. Active grid cells: " + activeCellCount
+        );
+
+        return activeCellCount > 0;
+    }
+
+    /// <summary>
+    /// Returns the number of active cells in the currently selected grid.
+    /// </summary>
+    public int GetAllActiveCellCount()
+    {
+        int count = 0;
+
+        foreach (GridCell cell in GetAllActiveCells())
+        {
+            if (cell != null)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
 }

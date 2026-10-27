@@ -8,15 +8,13 @@ public class PopulationManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null &&
-            Instance != this)
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
 
         Instance = this;
-
         DontDestroyOnLoad(gameObject);
 
         TotalPopulation = 0;
@@ -27,20 +25,16 @@ public class PopulationManager : MonoBehaviour
         if (amount < 0)
         {
             Debug.LogWarning(
-                "PopulationManager: " +
-                "Cannot add negative population."
+                "PopulationManager: Cannot add negative population."
             );
-
             return;
         }
 
         TotalPopulation += amount;
 
         Debug.Log(
-            "Population added: " +
-            amount +
-            " | Total Population: " +
-            TotalPopulation
+            "Population added: " + amount +
+            " | Total Population: " + TotalPopulation
         );
     }
 
@@ -49,49 +43,35 @@ public class PopulationManager : MonoBehaviour
         if (amount < 0)
         {
             Debug.LogWarning(
-                "PopulationManager: " +
-                "Cannot remove negative population."
+                "PopulationManager: Cannot remove negative population."
             );
-
             return;
         }
 
         TotalPopulation -= amount;
 
         if (TotalPopulation < 0)
-        {
             TotalPopulation = 0;
-        }
 
         Debug.Log(
-            "Population removed: " +
-            amount +
-            " | Total Population: " +
-            TotalPopulation
+            "Population removed: " + amount +
+            " | Total Population: " + TotalPopulation
         );
     }
 
     public void SetPopulation(int amount)
     {
         if (amount < 0)
-        {
             amount = 0;
-        }
 
         TotalPopulation = amount;
 
-        Debug.Log(
-            "Population set to: " +
-            TotalPopulation
-        );
+        Debug.Log("Population set to: " + TotalPopulation);
     }
 
     public void ResetPopulation()
     {
         TotalPopulation = 0;
-
-        Debug.Log(
-            "Population reset."
-        );
+        Debug.Log("Population reset.");
     }
 }

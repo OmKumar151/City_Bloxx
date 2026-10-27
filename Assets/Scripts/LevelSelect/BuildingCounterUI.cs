@@ -23,18 +23,14 @@ public class BuildingCounterUI : MonoBehaviour
     private void FindBoardManager()
     {
         if (boardManager != null)
-        {
             return;
-        }
 
-        boardManager =
-            FindFirstObjectByType<BoardManager>();
+        boardManager = FindAnyObjectByType<BoardManager>();
 
         if (boardManager == null)
         {
             Debug.LogWarning(
-                "BuildingCounterUI: " +
-                "Could not find a BoardManager."
+                "BuildingCounterUI: Could not find a BoardManager."
             );
         }
     }
@@ -42,39 +38,33 @@ public class BuildingCounterUI : MonoBehaviour
     private void UpdateCounter()
     {
         if (countText == null)
-        {
             return;
-        }
 
         if (boardManager == null)
         {
-            countText.text = "0/0";
-            return;
+            FindBoardManager();
+
+            if (boardManager == null)
+            {
+                countText.text = "0/0";
+                return;
+            }
         }
 
         int totalCells = 0;
         int occupiedCells = 0;
 
-        foreach (
-            GridCell cell
-            in boardManager.GetAllActiveCells())
+        foreach (GridCell cell in boardManager.GetAllActiveCells())
         {
             if (cell == null)
-            {
                 continue;
-            }
 
             totalCells++;
 
             if (cell.IsOccupied)
-            {
                 occupiedCells++;
-            }
         }
 
-        countText.text =
-            occupiedCells +
-            "/" +
-            totalCells;
+        countText.text = occupiedCells + "/" + totalCells;
     }
 }

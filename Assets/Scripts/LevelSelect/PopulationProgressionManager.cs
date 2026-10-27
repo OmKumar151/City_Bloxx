@@ -1,3 +1,4 @@
+
 using System;
 using UnityEngine;
 
@@ -17,90 +18,38 @@ public class PopulationProgressionManager : MonoBehaviour
         YellowStar
     }
 
-    [Serializable]
-    public class ProgressionCheckpoint
-    {
-        [Min(0)]
-        public int requiredPopulation;
-
-        public RewardType reward;
-    }
-
-    [Header("Population Progression")]
+    [Header("Population Checkpoints")]
     [SerializeField]
-    private ProgressionCheckpoint[] checkpoints =
+    private int[] populationCheckpoints =
     {
-        new ProgressionCheckpoint
-        {
-            requiredPopulation = 0,
-            reward = RewardType.BlueBuilding
-        },
-
-        new ProgressionCheckpoint
-        {
-            requiredPopulation = 500,
-            reward = RewardType.RedBuilding
-        },
-
-        new ProgressionCheckpoint
-        {
-            requiredPopulation = 1000,
-            reward = RewardType.GreenBuilding
-        },
-
-        new ProgressionCheckpoint
-        {
-            requiredPopulation = 1500,
-            reward = RewardType.BlueStar
-        },
-
-        new ProgressionCheckpoint
-        {
-            requiredPopulation = 2000,
-            reward = RewardType.YellowBuilding
-        },
-
-        new ProgressionCheckpoint
-        {
-            requiredPopulation = 2500,
-            reward = RewardType.RedStar
-        },
-
-        new ProgressionCheckpoint
-        {
-            requiredPopulation = 3000,
-            reward = RewardType.GreenStar
-        },
-
-        new ProgressionCheckpoint
-        {
-            requiredPopulation = 3500,
-            reward = RewardType.YellowStar
-        }
+        0, 500, 1000, 1500, 2000, 2500, 3000, 3500
     };
 
-    private bool[] checkpointUnlocked;
+    [Header("Reward Unlock States")]
+    [SerializeField]
+    private bool[] checkpointUnlocked =
+    {
+        true, false, false, false, false, false, false, false
+    };
+
+    private bool suppressZeroPopulationCheckpoints;
 
     public event Action<RewardType> OnRewardUnlocked;
+    public event Action OnProgressionReset;
 
     private void Awake()
     {
-        if (Instance != null &&
-            Instance != this)
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
 
         Instance = this;
+        DontDestroyOnLoad(gameObject);
 
-        checkpointUnlocked =
-            new bool[checkpoints.Length];
-    }
-
-    private void Start()
-    {
-        CheckProgression();
+        EnsureArraySizes();
+        checkpointUnlocked[(int)RewardType.BlueBuilding] = true;
     }
 
     private void Update()
@@ -108,190 +57,171 @@ public class PopulationProgressionManager : MonoBehaviour
         CheckProgression();
     }
 
-    private void CheckProgression()
+    private void EnsureArraySizes()
     {
-        if (checkpoints == null ||
-            checkpoints.Length == 0)
-        {
-            return;
-        }
+        int rewardCount = Enum.GetValues(typeof(RewardType)).Length;
 
-        if (PopulationManager.Instance == null)
+        if (checkpointUnlocked == null ||
+            checkpointUnlocked.Length != rewardCount)
         {
-            return;
-        }
+            bool[] updatedStates = new bool[rewardCount];
 
-        int currentPopulation =
-            PopulationManager.Instance.TotalPopulation;
-
-        for (int i = 0; i < checkpoints.Length; i++)
-        {
-            if (checkpointUnlocked[i])
+            if (checkpointUnlocked != null)
             {
-                continue;
+                Array.Copy(
+                    checkpointUnlocked,
+                    updatedStates,
+                    Mathf.Min(checkpointUnlocked.Length, rewardCount)
+                );
             }
 
-            if (currentPopulation >=
-                checkpoints[i].requiredPopulation)
+            checkpointUnlocked = updatedStates;
+        }
+
+        if (populationCheckpoints == null ||
+            populationCheckpoints.Length != rewardCount)
+        {
+            int[] defaults =
             {
-                UnlockCheckpoint(i);
-            }
-        }
-    }
+                0, 500, 1000, 1500, 2000, 2500, 3000, 3500
+            };
 
-    private void UnlockCheckpoint(int checkpointIndex)
-    {
-        if (checkpointIndex < 0 ||
-            checkpointIndex >= checkpoints.Length)
-        {
-            return;
-        }
+            int[] updatedCheckpoints = new int[rewardCount];
 
-        if (checkpointUnlocked[checkpointIndex])
-        {
-            return;
-        }
-
-        checkpointUnlocked[checkpointIndex] = true;
-
-        RewardType reward =
-            checkpoints[checkpointIndex].reward;
-
-        Debug.Log(
-            "Population checkpoint reached: " +
-            checkpoints[checkpointIndex].requiredPopulation +
-            " | Reward unlocked: " +
-            reward
-        );
-
-        if (OnRewardUnlocked != null)
-        {
-            OnRewardUnlocked.Invoke(reward);
-        }
-    }
-
-    public bool IsRewardUnlocked(RewardType reward)
-    {
-        if (checkpoints == null)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < checkpoints.Length; i++)
-        {
-            if (checkpoints[i].reward == reward &&
-                checkpointUnlocked[i])
+            for (int i = 0; i < rewardCount; i++)
             {
-                return true;
+                updatedCheckpoints[i] =
+                    populationCheckpoints != null &&
+                    i < populationCheckpoints.Length
+                        ? populationCheckpoints[i]
+                        : defaults[i];
             }
-        }
 
-        return false;
+            populationCheckpoints = updatedCheckpoints;
+        }
     }
 
     public int GetCurrentPopulation()
     {
         if (PopulationManager.Instance == null)
-        {
             return 0;
-        }
 
         return PopulationManager.Instance.TotalPopulation;
     }
 
-    public int GetNextCheckpointPopulation()
+    public bool IsRewardUnlocked(RewardType reward)
     {
-        if (checkpoints == null ||
-            checkpoints.Length == 0)
+        if (reward == RewardType.BlueBuilding)
+            return true;
+
+        int index = (int)reward;
+
+        if (checkpointUnlocked == null ||
+            index < 0 ||
+            index >= checkpointUnlocked.Length)
         {
-            return -1;
+            return false;
         }
 
-        int currentPopulation =
-            GetCurrentPopulation();
+        return checkpointUnlocked[index];
+    }
 
-        int nextCheckpoint = -1;
-        int smallestRequiredPopulation =
-            int.MaxValue;
+    public void CheckProgression()
+    {
+        int population = GetCurrentPopulation();
 
-        for (int i = 0; i < checkpoints.Length; i++)
+        if (suppressZeroPopulationCheckpoints && population <= 0)
+            return;
+
+        if (population > 0)
+            suppressZeroPopulationCheckpoints = false;
+
+        for (int i = 0; i < populationCheckpoints.Length; i++)
         {
-            if (checkpointUnlocked[i])
+            RewardType reward = (RewardType)i;
+
+            if (reward == RewardType.BlueBuilding)
             {
+                checkpointUnlocked[i] = true;
                 continue;
             }
 
-            int required =
-                checkpoints[i].requiredPopulation;
+            if (checkpointUnlocked[i])
+                continue;
 
-            if (required > currentPopulation &&
-                required < smallestRequiredPopulation)
+            if (population >= populationCheckpoints[i])
             {
-                smallestRequiredPopulation =
-                    required;
+                checkpointUnlocked[i] = true;
+                OnRewardUnlocked?.Invoke(reward);
 
-                nextCheckpoint = required;
+                Debug.Log(
+                    "PopulationProgressionManager: Unlocked " +
+                    reward + " at population " + population
+                );
             }
         }
+    }
 
+    public void ResetProgression()
+    {
+        EnsureArraySizes();
 
+        for (int i = 0; i < checkpointUnlocked.Length; i++)
+            checkpointUnlocked[i] = false;
 
+        checkpointUnlocked[(int)RewardType.BlueBuilding] = true;
 
-        return nextCheckpoint;
+        suppressZeroPopulationCheckpoints = true;
+
+        OnProgressionReset?.Invoke();
+
+        Debug.Log(
+            "PopulationProgressionManager: Progression reset. " +
+            "Only the Blue building remains unlocked."
+        );
+    }
+
+    public int GetNextCheckpointPopulation()
+    {
+        for (int i = 0; i < populationCheckpoints.Length; i++)
+        {
+            RewardType reward = (RewardType)i;
+
+            if (reward == RewardType.BlueBuilding)
+                continue;
+
+            if (!IsRewardUnlocked(reward))
+                return populationCheckpoints[i];
+        }
+
+        return populationCheckpoints.Length > 0
+            ? populationCheckpoints[populationCheckpoints.Length - 1]
+            : 0;
     }
 
     public int GetPreviousCheckpointPopulation()
     {
-        if (checkpoints == null ||
-            checkpoints.Length == 0)
-        {
-            return 0;
-        }
-
-        int currentPopulation =
-            GetCurrentPopulation();
-
+        int population = GetCurrentPopulation();
         int previousCheckpoint = 0;
 
-        for (int i = 0; i < checkpoints.Length; i++)
+        for (int i = 0; i < populationCheckpoints.Length; i++)
         {
-            int required =
-                checkpoints[i].requiredPopulation;
+            RewardType reward = (RewardType)i;
 
-            if (required <= currentPopulation)
+            if (reward == RewardType.BlueBuilding)
+                continue;
+
+            if (IsRewardUnlocked(reward) &&
+                populationCheckpoints[i] <= population)
             {
-                if (required > previousCheckpoint)
-                {
-                    previousCheckpoint = required;
-                }
+                previousCheckpoint = populationCheckpoints[i];
+            }
+            else if (populationCheckpoints[i] > population)
+            {
+                break;
             }
         }
 
         return previousCheckpoint;
     }
-
-    public void ResetProgression()
-    {
-        if (checkpointUnlocked == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < checkpointUnlocked.Length; i++)
-        {
-            checkpointUnlocked[i] = false;
-        }
-
-        CheckProgression();
-
-        Debug.Log(
-            "Population progression reset."
-        );
-    }
-
-    public void ForceCheckProgression()
-    {
-        CheckProgression();
-    }
-
 }

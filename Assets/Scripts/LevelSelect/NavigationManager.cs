@@ -26,117 +26,123 @@ public class NavigationManager : MonoBehaviour
     public int SelectedBuilding => selectedBuilding;
     public NavigationMode CurrentMode => currentMode;
 
-
-    // =========================================================
-    // START
-    // =========================================================
-
-    private void Start()
+    private void Awake()
     {
-        currentMode = NavigationMode.BuildingSelection;
-        selectedBuilding = 0;
-        currentBoardCell = null;
+        FindReferences();
+    }
 
-        // Start in Building Selection Mode with no board visuals.
-        if (boardManager != null)
-        {
-            boardManager.EndPlacementMode();
-        }
+    private void OnEnable()
+    {
+        SubscribeToCityManager();
+    }
 
-        UpdateBuildingSelectionVisual();
-        ShowBuildingSelected();
-        UpdateCurrentBuildingScore();
-        ClearExistingBuildingScore();
+    private void OnDisable()
+    {
+        if (CityManager.Instance != null)
+            CityManager.Instance.OnCityChanged -= HandleCityChanged;
+    }
+
+    private void FindReferences()
+    {
+        if (buildingSelectionUI == null)
+            buildingSelectionUI = FindAnyObjectByType<BuildingSelectionUI>();
+
+        if (boardManager == null)
+            boardManager = FindAnyObjectByType<BoardManager>();
+
+        if (infoPanel == null)
+            infoPanel = FindAnyObjectByType<InfoPanelUI>();
+    }
+
+    private void SubscribeToCityManager()
+    {
+        if (CityManager.Instance == null)
+            return;
+
+        CityManager.Instance.OnCityChanged -= HandleCityChanged;
+        CityManager.Instance.OnCityChanged += HandleCityChanged;
+    }
+
+    private void HandleCityChanged(int previousCityIndex, int newCityIndex)
+    {
+        ResetNavigationToBlue();
 
         Debug.Log(
-            "Navigation started. Building Selection Mode."
+            "NavigationManager: Navigation reset after switching city."
         );
     }
 
+    private void Start()
+    {
+        FindReferences();
+        SubscribeToCityManager();
+
+        ResetNavigationToBlue();
+
+        Debug.Log("Navigation started. Building Selection Mode.");
+    }
 
     // =========================================================
-    // D-PAD NAVIGATION
+    // RESET NAVIGATION
+    // =========================================================
+
+    public void ResetNavigationToBlue()
+    {
+        selectedBuilding = 0;
+        currentMode = NavigationMode.BuildingSelection;
+        currentBoardCell = null;
+
+        if (boardManager != null)
+        {
+            boardManager.EndPlacementMode();
+            boardManager.SetSelectedCell((GridCell)null);
+        }
+
+        ClearExistingBuildingScore();
+        UpdateBuildingSelectionVisual();
+        UpdateCurrentBuildingScore();
+        ShowBuildingSelected();
+
+        Debug.Log(
+            "NavigationManager: Reset to Blue and Building Selection Mode."
+        );
+    }
+
+    // =========================================================
+    // D-PAD
     // =========================================================
 
     public void Up()
     {
-        PlayNavigationSound();
-
         if (currentMode == NavigationMode.BuildingSelection)
-        {
             SelectPreviousBuilding();
-        }
         else
-        {
             MoveBoard(0, -1);
-        }
     }
-
 
     public void Down()
     {
-        PlayNavigationSound();
-
         if (currentMode == NavigationMode.BuildingSelection)
-        {
             SelectNextBuilding();
-        }
         else
-        {
             MoveBoard(0, 1);
-        }
     }
-
 
     public void Left()
     {
-        PlayNavigationSound();
-
         if (currentMode == NavigationMode.BuildingSelection)
-        {
             SelectPreviousBuilding();
-        }
         else
-        {
             MoveBoard(-1, 0);
-        }
     }
-
 
     public void Right()
     {
-        PlayNavigationSound();
-
         if (currentMode == NavigationMode.BuildingSelection)
-        {
             SelectNextBuilding();
-        }
         else
-        {
             MoveBoard(1, 0);
-        }
     }
-
-
-    // =========================================================
-    // NAVIGATION SOUND
-    // =========================================================
-
-    private void PlayNavigationSound()
-    {
-        if (AudioManager.Instance == null)
-        {
-            Debug.LogWarning(
-                "NavigationManager: AudioManager.Instance is null. " +
-                "Navigation sound could not be played."
-            );
-
-            return;
-        }
-
-        AudioManager.Instance.PlayNavigationButton();
-    }
-
 
     // =========================================================
     // BUILDING SELECTION
@@ -144,131 +150,88 @@ public class NavigationManager : MonoBehaviour
 
     private void SelectPreviousBuilding()
     {
-        int nextBuilding =
-            GetPreviousUnlockedBuilding(selectedBuilding);
+        int nextBuilding = GetPreviousUnlockedBuilding(selectedBuilding);
 
         if (nextBuilding == selectedBuilding)
-        {
             return;
-        }
 
         selectedBuilding = nextBuilding;
 
-        // Do not activate board placement visuals here.
+        ClearPlacementVisuals();
         UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
         UpdateCurrentBuildingScore();
-
-        Debug.Log(
-            "Selected Building: " + selectedBuilding
-        );
+        ClearExistingBuildingScore();
     }
-
 
     private void SelectNextBuilding()
     {
-        int nextBuilding =
-            GetNextUnlockedBuilding(selectedBuilding);
+        int nextBuilding = GetNextUnlockedBuilding(selectedBuilding);
 
         if (nextBuilding == selectedBuilding)
-        {
             return;
-        }
 
         selectedBuilding = nextBuilding;
 
-        // Do not activate board placement visuals here.
+        ClearPlacementVisuals();
         UpdateBuildingSelectionVisual();
         ShowBuildingSelected();
         UpdateCurrentBuildingScore();
-
-        Debug.Log(
-            "Selected Building: " + selectedBuilding
-        );
+        ClearExistingBuildingScore();
     }
-
-
-    // =========================================================
-    // UNLOCKED BUILDING NAVIGATION
-    // =========================================================
 
     private int GetNextUnlockedBuilding(int currentBuilding)
     {
-        if (PopulationProgressionManager.Instance == null)
-        {
-            return currentBuilding;
-        }
-
         for (int i = currentBuilding + 1; i < numberOfBuildings; i++)
         {
             if (IsBuildingUnlocked(i))
-            {
                 return i;
-            }
         }
 
         return currentBuilding;
     }
-
 
     private int GetPreviousUnlockedBuilding(int currentBuilding)
     {
-        if (PopulationProgressionManager.Instance == null)
-        {
-            return currentBuilding;
-        }
-
         for (int i = currentBuilding - 1; i >= 0; i--)
         {
             if (IsBuildingUnlocked(i))
-            {
                 return i;
-            }
         }
 
         return currentBuilding;
     }
 
-
     private bool IsBuildingUnlocked(int buildingIndex)
     {
+        if (buildingIndex == 0)
+            return true;
+
         if (PopulationProgressionManager.Instance == null)
-        {
-            return buildingIndex == 0;
-        }
+            return false;
 
         PopulationProgressionManager.RewardType reward;
 
         switch (buildingIndex)
         {
-            case 0:
-                reward =
-                    PopulationProgressionManager.RewardType.BlueBuilding;
-                break;
-
             case 1:
-                reward =
-                    PopulationProgressionManager.RewardType.RedBuilding;
+                reward = PopulationProgressionManager.RewardType.RedBuilding;
                 break;
 
             case 2:
-                reward =
-                    PopulationProgressionManager.RewardType.GreenBuilding;
+                reward = PopulationProgressionManager.RewardType.GreenBuilding;
                 break;
 
             case 3:
-                reward =
-                    PopulationProgressionManager.RewardType.YellowBuilding;
+                reward = PopulationProgressionManager.RewardType.YellowBuilding;
                 break;
 
             default:
                 return false;
         }
 
-        return PopulationProgressionManager.Instance
-            .IsRewardUnlocked(reward);
+        return PopulationProgressionManager.Instance.IsRewardUnlocked(reward);
     }
-
 
     // =========================================================
     // BUILDING SELECTION VISUAL
@@ -278,204 +241,113 @@ public class NavigationManager : MonoBehaviour
     {
         if (buildingSelectionUI != null)
         {
-            buildingSelectionUI.SetSelectedBuilding(selectedBuilding);
-        }
-        else
-        {
-            Debug.LogWarning(
-                "NavigationManager: BuildingSelectionUI is not assigned."
+            buildingSelectionUI.SetSelectedBuildingVisualOnly(
+                selectedBuilding
             );
         }
     }
 
-
     // =========================================================
-    // SCORE
+    // SCORES
     // =========================================================
 
     private void UpdateCurrentBuildingScore()
     {
         if (BuildingScoreManager.Instance == null)
-        {
             return;
-        }
 
-        GridCell.BuildingType buildingType =
-            GetBuildingType(selectedBuilding);
+        GridCell.BuildingType buildingType = GetBuildingType(selectedBuilding);
 
-        int score = GridCell.GetBuildingScore(buildingType);
-
-        BuildingScoreManager.Instance.SetCurrentBuildingScore(score);
-
-        Debug.Log(
-            "Current Building: " + buildingType +
-            " | Current Score: " + score
+        BuildingScoreManager.Instance.SetCurrentBuildingScore(
+            GridCell.GetBuildingScore(buildingType)
         );
     }
-
 
     private void UpdateExistingBuildingScore()
     {
         if (BuildingScoreManager.Instance == null)
-        {
             return;
-        }
 
-        if (currentBoardCell == null)
+        if (currentBoardCell == null || !currentBoardCell.IsOccupied)
         {
             ClearExistingBuildingScore();
             return;
         }
 
-        if (!currentBoardCell.IsOccupied)
-        {
-            ClearExistingBuildingScore();
-
-            Debug.Log(
-                "Selected cell is empty. Existing Building Score cleared."
-            );
-
-            return;
-        }
-
-        int existingScore =
-            GridCell.GetBuildingScore(
-                currentBoardCell.CurrentBuilding
-            );
-
-        BuildingScoreManager.Instance.SetExistingBuildingScore(
-            existingScore
+        int score = GridCell.GetBuildingScore(
+            currentBoardCell.CurrentBuilding
         );
 
-        Debug.Log(
-            "Existing Building: " + currentBoardCell.CurrentBuilding +
-            " | Existing Score: " + existingScore
-        );
+        BuildingScoreManager.Instance.SetExistingBuildingScore(score);
     }
-
 
     private void ClearExistingBuildingScore()
     {
         if (BuildingScoreManager.Instance != null)
-        {
             BuildingScoreManager.Instance.ClearExistingBuildingScore();
-        }
     }
 
-
     // =========================================================
-    // OK BUTTON
+    // OK
     // =========================================================
 
     public void OK()
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlayMajorButton();
-        }
-
         if (currentMode == NavigationMode.BuildingSelection)
-        {
             EnterBoardPlacementMode();
-        }
         else
-        {
             ConfirmBoardPosition();
-        }
     }
-
-
-    // =========================================================
-    // ENTER BOARD MODE
-    // =========================================================
 
     private void EnterBoardPlacementMode()
     {
+        FindReferences();
+
         if (boardManager == null)
         {
-            Debug.LogWarning(
-                "NavigationManager: BoardManager is not assigned."
-            );
-
+            Debug.LogWarning("NavigationManager: BoardManager is missing.");
             return;
         }
 
-        // Ensure that no old placement visuals remain active.
-        boardManager.EndPlacementMode();
+        if (!IsBuildingUnlocked(selectedBuilding))
+        {
+            ShowNoValidPlacement();
+            return;
+        }
 
-        // Check that at least one valid placement or replacement exists.
         if (!boardManager.HasValidPlacementOrReplacement(selectedBuilding))
         {
             ShowNoValidPlacement();
-
-            Debug.Log(
-                "No valid placement or replacement exists for " +
-                GetBuildingName(selectedBuilding)
-            );
-
             return;
         }
 
-        // Check that the board contains active cells.
-        if (boardManager.GetFirstBoardCell() == null)
-        {
-            ShowNoValidPlacement();
-
-            Debug.LogWarning(
-                "NavigationManager: No active GridCells exist."
-            );
-
-            boardManager.EndPlacementMode();
-            return;
-        }
-
-        // Enter placement mode.
-        currentMode = NavigationMode.BoardPlacement;
-
-        // BoardManager now chooses the first valid cell for this
-        // building. Do NOT call SetSelectedCell with the old cell
-        // afterward, because that would restore the previous cursor.
         boardManager.BeginPlacementMode(selectedBuilding);
 
-        // Synchronize NavigationManager with BoardManager's selection.
+        if (!boardManager.IsPlacementModeActive())
+            return;
+
         currentBoardCell = boardManager.GetSelectedCell();
 
-        // Safety fallback in case no selection was returned.
-        if (currentBoardCell == null)
+        if (currentBoardCell == null ||
+            !currentBoardCell.gameObject.activeInHierarchy)
         {
             currentBoardCell = boardManager.GetFirstBoardCell();
-
-            if (currentBoardCell != null)
-            {
-                boardManager.SetSelectedCell(currentBoardCell);
-                currentBoardCell = boardManager.GetSelectedCell();
-            }
         }
 
         if (currentBoardCell == null)
         {
             boardManager.EndPlacementMode();
-            currentMode = NavigationMode.BuildingSelection;
-
             ShowNoValidPlacement();
-
-            Debug.LogWarning(
-                "NavigationManager: Could not select a starting GridCell."
-            );
-
             return;
         }
+
+        currentMode = NavigationMode.BoardPlacement;
+
+        boardManager.SetSelectedCell(currentBoardCell);
 
         UpdateExistingBuildingScore();
         ShowPlacementStatus();
-
-        Debug.Log(
-            "Entered Board Mode at (" +
-            currentBoardCell.X + ", " +
-            currentBoardCell.Y + ")."
-        );
     }
-
 
     // =========================================================
     // BOARD MOVEMENT
@@ -484,12 +356,17 @@ public class NavigationManager : MonoBehaviour
     private void MoveBoard(int directionX, int directionY)
     {
         if (boardManager == null)
+            return;
+
+        if (currentBoardCell != null)
         {
-            Debug.LogWarning(
-                "NavigationManager: BoardManager is not assigned."
+            GridCell activeCell = boardManager.GetCell(
+                currentBoardCell.X,
+                currentBoardCell.Y
             );
 
-            return;
+            if (activeCell != currentBoardCell)
+                currentBoardCell = activeCell;
         }
 
         if (currentBoardCell == null)
@@ -497,300 +374,138 @@ public class NavigationManager : MonoBehaviour
             currentBoardCell = boardManager.GetFirstBoardCell();
 
             if (currentBoardCell == null)
-            {
-                Debug.LogWarning(
-                    "NavigationManager: No active GridCells exist."
-                );
-
                 return;
-            }
 
             boardManager.SetSelectedCell(currentBoardCell);
-
-            currentBoardCell = boardManager.GetSelectedCell();
-
             UpdateExistingBuildingScore();
             ShowPlacementStatus();
-
             return;
         }
 
-        GridCell nextCell =
-            boardManager.GetNeighbour(
-                currentBoardCell,
-                directionX,
-                directionY
-            );
+        GridCell nextCell = boardManager.GetNeighbour(
+            currentBoardCell,
+            directionX,
+            directionY
+        );
 
         if (nextCell == null)
-        {
-            Debug.Log("No GridCell in requested direction.");
             return;
-        }
 
         currentBoardCell = nextCell;
 
         boardManager.SetSelectedCell(currentBoardCell);
-
-        // Keep the local reference synchronized with BoardManager.
-        currentBoardCell = boardManager.GetSelectedCell();
-
         UpdateExistingBuildingScore();
         ShowPlacementStatus();
-
-        if (currentBoardCell != null)
-        {
-            Debug.Log(
-                "Board Position: " +
-                currentBoardCell.X + ", " +
-                currentBoardCell.Y
-            );
-        }
     }
 
-
     // =========================================================
-    // CONFIRM BOARD POSITION
+    // PLACE OR REPLACE
     // =========================================================
 
     private void ConfirmBoardPosition()
     {
-        if (boardManager == null)
-        {
-            Debug.LogWarning(
-                "NavigationManager: BoardManager is not assigned."
-            );
-
+        if (boardManager == null || currentBoardCell == null)
             return;
-        }
 
-        if (currentBoardCell == null)
-        {
-            Debug.LogWarning(
-                "NavigationManager: No board cell selected."
-            );
-
+        if (!currentBoardCell.gameObject.activeInHierarchy)
             return;
-        }
 
-        // -----------------------------------------------------
-        // EMPTY CELL
-        // -----------------------------------------------------
+        bool successful;
 
-        if (!currentBoardCell.IsOccupied)
-        {
-            bool placementSuccessful =
-                boardManager.PlaceBuilding(selectedBuilding);
-
-            if (placementSuccessful)
-            {
-                SyncPopulationManager();
-                SaveMap();
-                ShowBuildingPlaced();
-                ReturnToBuildingSelection();
-
-                Debug.Log(
-                    "Building placed successfully. Map automatically saved. " +
-                    "Returned to Building Selection Mode."
-                );
-            }
-            else
-            {
-                ShowBuildingCannotBePlaced();
-
-                Debug.Log(
-                    "Building placement failed. Remaining in Board Mode."
-                );
-            }
-
-            return;
-        }
-
-        // -----------------------------------------------------
-        // OCCUPIED CELL / REPLACEMENT
-        // -----------------------------------------------------
-
-        GridCell.BuildingType oldBuilding =
-            currentBoardCell.CurrentBuilding;
-
-        int oldPopulation =
-            currentBoardCell.BuildingPopulation;
-
-        bool replacementSuccessful =
-            boardManager.ReplaceBuilding(selectedBuilding);
-
-        if (replacementSuccessful)
-        {
-            SyncPopulationManager();
-            SaveMap();
-            ShowBuildingPlaced();
-
-            GridCell.BuildingType newBuilding =
-                currentBoardCell.CurrentBuilding;
-
-            ReturnToBuildingSelection();
-
-            Debug.Log(
-                "Building replaced successfully. Map automatically saved. " +
-                "Returned to Building Selection Mode. " +
-                "Old Building: " + oldBuilding +
-                " | Old Population: " + oldPopulation +
-                " | New Building: " + newBuilding
-            );
-        }
+        if (currentBoardCell.IsOccupied)
+            successful = boardManager.ReplaceBuilding(selectedBuilding);
         else
+            successful = boardManager.PlaceBuilding(selectedBuilding);
+
+        if (!successful)
         {
             ShowBuildingCannotBePlaced();
-
-            Debug.Log(
-                "Building replacement failed. Remaining in Board Mode."
-            );
+            return;
         }
+
+        SyncPopulationManager();
+        SaveMap();
+
+        ShowBuildingPlaced();
+
+        // A successful placement or replacement always returns
+        // the selection to Blue and exits placement mode.
+        ResetNavigationToBlue();
     }
 
-
     // =========================================================
-    // SAVE
+    // SAVE AND POPULATION
     // =========================================================
 
     private void SaveMap()
     {
-        if (MapSaveManager.Instance == null)
-        {
-            Debug.LogWarning(
-                "NavigationManager: MapSaveManager is not available. " +
-                "The map was NOT saved."
-            );
-
-            return;
-        }
-
-        MapSaveManager.Instance.SaveMap();
+        if (MapSaveManager.Instance != null)
+            MapSaveManager.Instance.SaveMap();
+        else
+            Debug.LogWarning("NavigationManager: MapSaveManager is missing.");
     }
-
-
-    // =========================================================
-    // POPULATION
-    // =========================================================
 
     private void SyncPopulationManager()
     {
-        if (PopulationManager.Instance == null)
+        if (PopulationManager.Instance != null && boardManager != null)
         {
-            return;
-        }
-
-        PopulationManager.Instance.SetPopulation(
-            boardManager.GetTotalPopulation()
-        );
-    }
-
-
-    // =========================================================
-    // RETURN TO BUILDING SELECTION
-    // =========================================================
-
-    private void ReturnToBuildingSelection()
-    {
-        if (boardManager != null)
-        {
-            boardManager.EndPlacementMode();
-        }
-
-        currentMode = NavigationMode.BuildingSelection;
-        currentBoardCell = null;
-
-        UpdateCurrentBuildingScore();
-        ClearExistingBuildingScore();
-
-        UpdateBuildingSelectionVisual();
-    }
-
-
-    // =========================================================
-    // PLACEMENT STATUS
-    // =========================================================
-
-    private void ShowPlacementStatus()
-    {
-        if (infoPanel == null ||
-            boardManager == null ||
-            currentBoardCell == null)
-        {
-            return;
-        }
-
-        bool canOperate =
-            boardManager.CanPlaceOrReplaceBuilding(selectedBuilding);
-
-        if (canOperate)
-        {
-            infoPanel.ShowBuildingCanBePlaced();
-        }
-        else
-        {
-            infoPanel.ShowBuildingCannotBePlaced();
+            PopulationManager.Instance.SetPopulation(
+                boardManager.GetTotalPopulation()
+            );
         }
     }
-
-
-    // =========================================================
-    // CANCEL
-    // =========================================================
-
-    public void CancelPlacement()
-    {
-        if (currentMode != NavigationMode.BoardPlacement)
-        {
-            return;
-        }
-
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlayButtonClick();
-        }
-
-        if (boardManager != null)
-        {
-            boardManager.EndPlacementMode();
-        }
-
-        currentMode = NavigationMode.BuildingSelection;
-        currentBoardCell = null;
-
-        if (infoPanel != null)
-        {
-            infoPanel.ShowBuildingCancelled();
-        }
-
-        UpdateCurrentBuildingScore();
-        ClearExistingBuildingScore();
-        UpdateBuildingSelectionVisual();
-
-        Debug.Log(
-            "Cancelled placement. Returned to Building Selection Mode."
-        );
-    }
-
-
-    // =========================================================
-    // SAFETY SAVE
-    // =========================================================
 
     private void OnApplicationPause(bool pauseStatus)
     {
         if (pauseStatus)
-        {
             SaveMap();
-        }
     }
-
 
     private void OnApplicationQuit()
     {
         SaveMap();
     }
 
+    // =========================================================
+    // PLACEMENT VISUALS AND STATUS
+    // =========================================================
+
+    private void ClearPlacementVisuals()
+    {
+        if (boardManager != null)
+            boardManager.EndPlacementMode();
+    }
+
+    private void ShowPlacementStatus()
+    {
+        if (infoPanel == null || boardManager == null ||
+            currentBoardCell == null)
+            return;
+
+        if (boardManager.CanPlaceOrReplaceBuilding(selectedBuilding))
+            infoPanel.ShowBuildingCanBePlaced();
+        else
+            infoPanel.ShowBuildingCannotBePlaced();
+    }
+
+    public void CancelPlacement()
+    {
+        if (currentMode != NavigationMode.BoardPlacement)
+            return;
+
+        currentMode = NavigationMode.BuildingSelection;
+        currentBoardCell = null;
+
+        ClearPlacementVisuals();
+        ClearExistingBuildingScore();
+        UpdateCurrentBuildingScore();
+        UpdateBuildingSelectionVisual();
+
+        if (infoPanel != null)
+            infoPanel.ShowBuildingCancelled();
+
+        ShowBuildingSelected();
+    }
 
     // =========================================================
     // INFO PANEL
@@ -798,102 +513,49 @@ public class NavigationManager : MonoBehaviour
 
     private void ShowBuildingSelected()
     {
-        if (infoPanel == null)
-        {
-            return;
-        }
-
-        infoPanel.ShowBuildingSelected(
-            GetBuildingName(selectedBuilding)
-        );
+        if (infoPanel != null)
+            infoPanel.ShowBuildingSelected(GetBuildingName(selectedBuilding));
     }
-
 
     private void ShowNoValidPlacement()
     {
-        if (infoPanel == null)
-        {
-            return;
-        }
-
-        infoPanel.ShowNoValidPlacement(
-            GetBuildingName(selectedBuilding)
-        );
+        if (infoPanel != null)
+            infoPanel.ShowNoValidPlacement(GetBuildingName(selectedBuilding));
     }
-
 
     private void ShowBuildingPlaced()
     {
-        if (infoPanel == null)
-        {
-            return;
-        }
-
-        infoPanel.ShowBuildingPlaced(
-            GetBuildingName(selectedBuilding)
-        );
+        if (infoPanel != null)
+            infoPanel.ShowBuildingPlaced(GetBuildingName(selectedBuilding));
     }
-
 
     private void ShowBuildingCannotBePlaced()
     {
-        if (infoPanel == null)
-        {
-            return;
-        }
-
-        infoPanel.ShowBuildingCannotBePlaced();
+        if (infoPanel != null)
+            infoPanel.ShowBuildingCannotBePlaced();
     }
-
-
-    // =========================================================
-    // BUILDING TYPE
-    // =========================================================
 
     private GridCell.BuildingType GetBuildingType(int buildingIndex)
     {
         switch (buildingIndex)
         {
-            case 0:
-                return GridCell.BuildingType.Blue;
-
-            case 1:
-                return GridCell.BuildingType.Red;
-
-            case 2:
-                return GridCell.BuildingType.Green;
-
-            case 3:
-                return GridCell.BuildingType.Yellow;
-
-            default:
-                return GridCell.BuildingType.None;
+            case 0: return GridCell.BuildingType.Blue;
+            case 1: return GridCell.BuildingType.Red;
+            case 2: return GridCell.BuildingType.Green;
+            case 3: return GridCell.BuildingType.Yellow;
+            default: return GridCell.BuildingType.None;
         }
     }
-
-
-    // =========================================================
-    // BUILDING NAME
-    // =========================================================
 
     private string GetBuildingName(int buildingIndex)
     {
         switch (buildingIndex)
         {
-            case 0:
-                return "Blue";
-
-            case 1:
-                return "Red";
-
-            case 2:
-                return "Green";
-
-            case 3:
-                return "Yellow";
-
-            default:
-                return "Unknown";
+            case 0: return "Blue";
+            case 1: return "Red";
+            case 2: return "Green";
+            case 3: return "Yellow";
+            default: return "Unknown";
         }
     }
 }

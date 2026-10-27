@@ -12,8 +12,8 @@ GameObject:
   - component: {fileID: 2740612590412609771}
   - component: {fileID: 7786893566262919603}
   - component: {fileID: 8822335728077411036}
-  - component: {fileID: 8169882215968565968}
   - component: {fileID: 7504738415124388985}
+  - component: {fileID: 1794321845494222196}
   m_Layer: 0
   m_Name: CurrentBlock
   m_TagString: Untagged
@@ -168,7 +168,19 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &8169882215968565968
+--- !u!114 &7504738415124388985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 454376260161417578}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae8f03b3c730ea5428763d30d07b8172, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BlockDrop
+--- !u!114 &1794321845494222196
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -182,15 +194,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BlockSwing
   moveDistance: 3
   moveSpeed: 2
---- !u!114 &7504738415124388985
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 454376260161417578}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ae8f03b3c730ea5428763d30d07b8172, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BlockDrop

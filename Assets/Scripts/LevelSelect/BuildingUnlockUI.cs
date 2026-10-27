@@ -12,29 +12,51 @@ public class BuildingUnlockUI : MonoBehaviour
     [Header("Info Panel")]
     [SerializeField] private InfoPanelUI infoPanelUI;
 
+    private PopulationProgressionManager subscribedManager;
+
     private void Start()
     {
         if (infoPanelUI == null)
-        {
             infoPanelUI = FindObjectOfType<InfoPanelUI>();
-        }
 
+        SubscribeToProgressionManager();
         UpdateUnlockState();
-
-        if (PopulationProgressionManager.Instance != null)
-        {
-            PopulationProgressionManager.Instance.OnRewardUnlocked +=
-                HandleRewardUnlocked;
-        }
     }
 
-    private void OnDestroy()
+    private void OnEnable()
     {
-        if (PopulationProgressionManager.Instance != null)
-        {
-            PopulationProgressionManager.Instance.OnRewardUnlocked -=
-                HandleRewardUnlocked;
-        }
+        // Start may not have run yet, so subscription is also attempted there.
+        SubscribeToProgressionManager();
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeFromProgressionManager();
+    }
+
+    private void SubscribeToProgressionManager()
+    {
+        PopulationProgressionManager manager =
+            PopulationProgressionManager.Instance;
+
+        if (manager == null || subscribedManager == manager)
+            return;
+
+        UnsubscribeFromProgressionManager();
+
+        subscribedManager = manager;
+        subscribedManager.OnRewardUnlocked += HandleRewardUnlocked;
+        subscribedManager.OnProgressionReset += HandleProgressionReset;
+    }
+
+    private void UnsubscribeFromProgressionManager()
+    {
+        if (subscribedManager == null)
+            return;
+
+        subscribedManager.OnRewardUnlocked -= HandleRewardUnlocked;
+        subscribedManager.OnProgressionReset -= HandleProgressionReset;
+        subscribedManager = null;
     }
 
     private void HandleRewardUnlocked(
@@ -42,8 +64,7 @@ public class BuildingUnlockUI : MonoBehaviour
     {
         UpdateUnlockState();
 
-        // Blue is available from the beginning, so don't show
-        // a reward notification for the initial starting building.
+        // The starting blue building does not need a reward notification.
         if (reward ==
             PopulationProgressionManager.RewardType.BlueBuilding)
         {
@@ -51,54 +72,59 @@ public class BuildingUnlockUI : MonoBehaviour
         }
 
         if (infoPanelUI != null)
-        {
             infoPanelUI.ShowRewardUnlocked(reward);
-        }
+    }
+
+    private void HandleProgressionReset()
+    {
+        UpdateUnlockState();
     }
 
     private void UpdateUnlockState()
     {
-        if (PopulationProgressionManager.Instance == null)
-        {
+        PopulationProgressionManager manager =
+            PopulationProgressionManager.Instance;
+
+        if (manager == null)
             return;
-        }
 
         SetBuildingState(
-            0, PopulationProgressionManager.RewardType.BlueBuilding
-        );
-
-        SetBuildingState(
-            1, PopulationProgressionManager.RewardType.RedBuilding
+            0, PopulationProgressionManager.RewardType.BlueBuilding, manager
         );
 
         SetBuildingState(
-            2, PopulationProgressionManager.RewardType.GreenBuilding
+            1, PopulationProgressionManager.RewardType.RedBuilding, manager
         );
 
         SetBuildingState(
-            3, PopulationProgressionManager.RewardType.YellowBuilding
+            2, PopulationProgressionManager.RewardType.GreenBuilding, manager
+        );
+
+        SetBuildingState(
+            3, PopulationProgressionManager.RewardType.YellowBuilding, manager
         );
 
         SetStarState(
-            0, PopulationProgressionManager.RewardType.BlueStar
+            0, PopulationProgressionManager.RewardType.BlueStar, manager
         );
 
         SetStarState(
-            1, PopulationProgressionManager.RewardType.RedStar
+            1, PopulationProgressionManager.RewardType.RedStar, manager
         );
 
         SetStarState(
-            2, PopulationProgressionManager.RewardType.GreenStar
+            2, PopulationProgressionManager.RewardType.GreenStar, manager
         );
 
         SetStarState(
-            3, PopulationProgressionManager.RewardType.YellowStar
+            3, PopulationProgressionManager.RewardType.YellowStar, manager
         );
     }
 
     private void SetBuildingState(
         int index,
-        PopulationProgressionManager.RewardType reward)
+        PopulationProgressionManager.RewardType reward,
+        PopulationProgressionManager manager)
     {
         if (buildingImages == null ||
             index < 0 ||
@@ -108,15 +134,13 @@ public class BuildingUnlockUI : MonoBehaviour
             return;
         }
 
-        bool unlocked =
-            PopulationProgressionManager.Instance.IsRewardUnlocked(reward);
-
-        buildingImages[index].SetActive(unlocked);
+        buildingImages[index].SetActive(manager.IsRewardUnlocked(reward));
     }
 
     private void SetStarState(
         int index,
-        PopulationProgressionManager.RewardType reward)
+        PopulationProgressionManager.RewardType reward,
+        PopulationProgressionManager manager)
     {
         if (starObjects == null ||
             index < 0 ||
@@ -126,9 +150,6 @@ public class BuildingUnlockUI : MonoBehaviour
             return;
         }
 
-        bool unlocked =
-            PopulationProgressionManager.Instance.IsRewardUnlocked(reward);
-
-        starObjects[index].SetActive(unlocked);
+        starObjects[index].SetActive(manager.IsRewardUnlocked(reward));
     }
 }

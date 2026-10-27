@@ -1,6 +1,7 @@
 
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class BuildingSelectionUI : MonoBehaviour
 {
@@ -24,10 +25,11 @@ public class BuildingSelectionUI : MonoBehaviour
     private Outline[] outlines;
     private int currentSelectedBuilding = -1;
 
+    private const int BlueBuildingIndex = 0;
+
     private void Awake()
     {
-        if (boardManager == null)
-            boardManager = FindFirstObjectByType<BoardManager>();
+        FindBoardManager();
 
         if (buildingObjects == null)
             buildingObjects = new RectTransform[0];
@@ -39,6 +41,12 @@ public class BuildingSelectionUI : MonoBehaviour
         ResetAllBuildings();
     }
 
+    private void FindBoardManager()
+    {
+        if (boardManager == null)
+            boardManager = FindAnyObjectByType<BoardManager>();
+    }
+
     private void PrepareBuildingOutlines()
     {
         outlines = new Outline[buildingImages.Length];
@@ -48,10 +56,14 @@ public class BuildingSelectionUI : MonoBehaviour
             if (buildingImages[i] == null)
                 continue;
 
-            Outline outline = buildingImages[i].GetComponent<Outline>();
+            Outline outline =
+                buildingImages[i].GetComponent<Outline>();
 
             if (outline == null)
-                outline = buildingImages[i].gameObject.AddComponent<Outline>();
+            {
+                outline =
+                    buildingImages[i].gameObject.AddComponent<Outline>();
+            }
 
             outline.effectColor = glowColor;
             outline.effectDistance = glowDistance;
@@ -61,55 +73,117 @@ public class BuildingSelectionUI : MonoBehaviour
         }
     }
 
+    // Updates the selected building's UI only.
+    // It must not activate board placement mode.
     public void SetSelectedBuilding(int buildingIndex)
     {
-        if (buildingObjects == null ||
-            buildingObjects.Length == 0 ||
-            buildingIndex < 0 ||
-            buildingIndex >= buildingObjects.Length)
-        {
-            return;
-        }
-
-        currentSelectedBuilding = buildingIndex;
-        ApplySelectionVisual(buildingIndex);
-
-        if (boardManager == null)
-            boardManager = FindFirstObjectByType<BoardManager>();
-
-        if (boardManager == null)
-        {
-            Debug.LogWarning(
-                "BuildingSelectionUI: BoardManager is not assigned."
-            );
-            return;
-        }
-
-        boardManager.ShowPlacementHighlights(buildingIndex);
-
-        Debug.Log(
-            "BuildingSelectionUI: Selected building " +
-            buildingIndex +
-            " and refreshed placement highlights."
-        );
+        SetSelectedBuildingVisualOnly(buildingIndex);
     }
 
     public void SetSelectedBuildingVisualOnly(int buildingIndex)
     {
-        if (buildingObjects == null ||
-            buildingObjects.Length == 0 ||
-            buildingIndex < 0 ||
-            buildingIndex >= buildingObjects.Length)
+        if (!IsValidBuildingIndex(buildingIndex))
+            return;
+
+        currentSelectedBuilding = buildingIndex;
+
+        ApplySelectionVisual(buildingIndex);
+        SelectNavigationObject(buildingIndex);
+    }
+
+    // Returns the selection visuals to Blue without
+    // starting placement mode.
+    public void ResetNavigationToBlue()
+    {
+        if (!IsValidBuildingIndex(BlueBuildingIndex))
         {
+            Debug.LogWarning(
+                "BuildingSelectionUI: Cannot select Blue. " +
+                "Check the Building Objects array in the Inspector."
+            );
             return;
         }
 
-        currentSelectedBuilding = buildingIndex;
-        ApplySelectionVisual(buildingIndex);
+        SetSelectedBuildingVisualOnly(BlueBuildingIndex);
+
+        Debug.Log(
+            "BuildingSelectionUI: Selection returned to Blue. " +
+            "Placement mode was not started."
+        );
+    }
+
+    private bool IsValidBuildingIndex(int buildingIndex)
+    {
+        return buildingObjects != null &&
+               buildingObjects.Length > 0 &&
+               buildingIndex >= 0 &&
+               buildingIndex < buildingObjects.Length;
+    }
+
+    private void SelectNavigationObject(int buildingIndex)
+    {
+        if (EventSystem.current == null)
+        {
+            Debug.LogWarning(
+                "BuildingSelectionUI: No EventSystem exists in the scene."
+            );
+            return;
+        }
+
+        if (!IsValidBuildingIndex(buildingIndex) ||
+            buildingObjects[buildingIndex] == null)
+        {
+            Debug.LogWarning(
+                "BuildingSelectionUI: Invalid navigation target for index " +
+                buildingIndex
+            );
+            return;
+        }
+
+        RectTransform buildingObject = buildingObjects[buildingIndex];
+
+        Selectable selectable =
+            buildingObject.GetComponent<Selectable>();
+
+        if (selectable == null)
+        {
+            selectable =
+                buildingObject.GetComponentInParent<Selectable>();
+        }
+
+        if (selectable == null)
+        {
+            selectable =
+                buildingObject.GetComponentInChildren<Selectable>();
+        }
+
+        if (selectable == null)
+        {
+            Debug.LogWarning(
+                "BuildingSelectionUI: No Selectable was found for building " +
+                "index " + buildingIndex + "."
+            );
+            return;
+        }
+
+        if (!selectable.gameObject.activeInHierarchy ||
+            !selectable.IsInteractable())
+        {
+            Debug.LogWarning(
+                "BuildingSelectionUI: Navigation target for building index " +
+                buildingIndex + " is inactive or not interactable."
+            );
+            return;
+        }
+
+        selectable.Select();
     }
 
     private void ApplySelectionVisual(int buildingIndex)
     {
+        if (buildingObjects == null)
+            return;
+
         for (int i = 0; i < buildingObjects.Length; i++)
         {
             if (buildingObjects[i] != null)
@@ -137,29 +211,32 @@ public class BuildingSelectionUI : MonoBehaviour
         currentSelectedBuilding = -1;
         ResetAllBuildings();
 
-        if (boardManager == null)
-            boardManager = FindFirstObjectByType<BoardManager>();
+        FindBoardManager();
 
         if (boardManager != null)
-            boardManager.ClearPlacementHighlights();
+            boardManager.EndPlacementMode();
     }
 
     private void ResetAllBuildings()
     {
-        if (buildingObjects == null)
-            return;
-
-        for (int i = 0; i < buildingObjects.Length; i++)
+        if (buildingObjects != null)
         {
-            if (buildingObjects[i] != null)
-                buildingObjects[i].localScale =
-                    Vector3.one * normalScale;
-
-            if (outlines != null &&
-                i < outlines.Length &&
-                outlines[i] != null)
+            for (int i = 0; i < buildingObjects.Length; i++)
             {
-                outlines[i].enabled = false;
+                if (buildingObjects[i] != null)
+                {
+                    buildingObjects[i].localScale =
+                        Vector3.one * normalScale;
+                }
+            }
+        }
+
+        if (outlines != null)
+        {
+            for (int i = 0; i < outlines.Length; i++)
+            {
+                if (outlines[i] != null)
+                    outlines[i].enabled = false;
             }
         }
     }

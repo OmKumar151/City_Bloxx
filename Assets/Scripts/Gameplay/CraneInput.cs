@@ -1,13 +1,28 @@
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class CraneInput : MonoBehaviour
 {
-    void Update()
+    private void Update()
     {
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        if (Mouse.current == null ||
+            !Mouse.current.leftButton.wasPressedThisFrame)
         {
-            CraneController.Instance.ReleaseBlock();
+            return;
         }
+
+        CraneController crane = CraneController.Instance;
+
+        if (crane == null)
+        {
+            Debug.LogWarning(
+                "CraneInput: CraneController instance was not found.",
+                this
+            );
+            return;
+        }
+
+        crane.ReleaseBlock();
     }
 }

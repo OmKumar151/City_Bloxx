@@ -7,11 +7,16 @@ public class MapSaveManager : MonoBehaviour
 {
     public static MapSaveManager Instance { get; private set; }
 
-    private const string SaveKey = "CityBloxx_MapSave";
+    private const string SaveKeyPrefix = "CityBloxx_MapSave_";
+    private const string DefaultCityId = "default";
+    private const string LegacySaveKey = "CityBloxx_MapSave";
 
-    [Header("References")]
-    [SerializeField] private BoardManager boardManager;
-    [SerializeField] private InfoPanelUI infoPanelUI;
+    [Serializable]
+    private class MapSaveData
+    {
+        public List<BuildingSaveData> buildings =
+            new List<BuildingSaveData>();
+    }
 
     [Serializable]
     private class BuildingSaveData
@@ -22,12 +27,12 @@ public class MapSaveManager : MonoBehaviour
         public int population;
     }
 
-    [Serializable]
-    private class MapSaveData
-    {
-        public List<BuildingSaveData> buildings =
-            new List<BuildingSaveData>();
-    }
+    [Header("References")]
+    [SerializeField] private BoardManager boardManager;
+    [SerializeField] private InfoPanelUI infoPanel;
+    [SerializeField] private bool loadOnStart = false;
+
+    public string ActiveSaveKey => SaveKeyPrefix + GetCurrentCityId();
 
     private void Awake()
     {
@@ -38,220 +43,287 @@ public class MapSaveManager : MonoBehaviour
         }
 
         Instance = this;
-
-        if (infoPanelUI == null)
-        {
-            infoPanelUI = FindObjectOfType<InfoPanelUI>();
-        }
+        DontDestroyOnLoad(gameObject);
+        FindReferences();
     }
 
     private void Start()
     {
-        if (boardManager == null)
-        {
-            Debug.LogWarning(
-                "MapSaveManager: BoardManager is not assigned."
-            );
-            return;
-        }
-
-        LoadMap();
+        if (loadOnStart)
+            LoadMap();
     }
+
+    private void FindReferences()
+    {
+        if (boardManager == null)
+            boardManager = FindAnyObjectByType<BoardManager>();
+
+        if (infoPanel == null)
+            infoPanel = FindAnyObjectByType<InfoPanelUI>();
+    }
+
+    private string GetCurrentCityId()
+    {
+        if (CityManager.Instance == null)
+            return DefaultCityId;
+
+        string id = CityManager.Instance.ActiveCityId;
+
+        return string.IsNullOrWhiteSpace(id)
+            ? DefaultCityId
+            : id.Trim();
+    }
+
+    // =========================================================
+    // SAVE
+    // =========================================================
 
     public void SaveMap()
     {
+        FindReferences();
+
         if (boardManager == null)
         {
-            Debug.LogWarning(
-                "MapSaveManager: Cannot save because BoardManager is not assigned."
-            );
+            Debug.LogWarning("MapSaveManager: BoardManager is missing.");
             return;
         }
 
-        MapSaveData saveData = new MapSaveData();
+        MapSaveData data = new MapSaveData();
 
         foreach (GridCell cell in boardManager.GetAllActiveCells())
         {
             if (cell == null || !cell.IsOccupied)
-            {
                 continue;
-            }
 
-            BuildingSaveData buildingData = new BuildingSaveData
+            data.buildings.Add(new BuildingSaveData
             {
                 x = cell.X,
                 y = cell.Y,
                 buildingType = cell.CurrentBuilding,
                 population = cell.BuildingPopulation
-            };
-
-            saveData.buildings.Add(buildingData);
+            });
         }
 
-        string json = JsonUtility.ToJson(saveData);
-
-        PlayerPrefs.SetString(SaveKey, json);
+        PlayerPrefs.SetString(ActiveSaveKey, JsonUtility.ToJson(data));
         PlayerPrefs.Save();
 
         Debug.Log(
-            "MapSaveManager: Map saved. Buildings saved: " +
-            saveData.buildings.Count
+            "MapSaveManager: Saved city '" + GetCurrentCityId() +
+            "' with " + data.buildings.Count + " buildings."
         );
     }
 
+    // =========================================================
+    // LOAD
+    // =========================================================
+
     public void LoadMap()
     {
+        FindReferences();
+
         if (boardManager == null)
         {
-            Debug.LogWarning(
-                "MapSaveManager: Cannot load because BoardManager is not assigned."
-            );
+            Debug.LogWarning("MapSaveManager: BoardManager is missing.");
             return;
         }
 
-        if (!PlayerPrefs.HasKey(SaveKey))
+        string key = ActiveSaveKey;
+
+        if (!PlayerPrefs.HasKey(key) &&
+            CityManager.Instance != null &&
+            CityManager.Instance.ActiveCityIndex == 0 &&
+            PlayerPrefs.HasKey(LegacySaveKey))
         {
+            PlayerPrefs.SetString(
+                key,
+                PlayerPrefs.GetString(LegacySaveKey)
+            );
+
+            PlayerPrefs.Save();
+        }
+
+        if (!PlayerPrefs.HasKey(key))
+        {
+            ClearGridAndResetPopulation();
+
             Debug.Log(
-                "MapSaveManager: No saved map found. Starting from state 0."
+                "MapSaveManager: No saved map for city '" +
+                GetCurrentCityId() + "'. Started empty."
             );
 
-            ResetPopulationAndProgression();
             return;
         }
 
-        string json = PlayerPrefs.GetString(SaveKey);
+        MapSaveData data;
 
-        if (string.IsNullOrEmpty(json))
+        try
         {
-            Debug.LogWarning(
-                "MapSaveManager: Saved map data is empty."
+            data = JsonUtility.FromJson<MapSaveData>(
+                PlayerPrefs.GetString(key)
             );
-
-            ResetPopulationAndProgression();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "MapSaveManager: Could not read city save. " +
+                exception.Message
+            );
             return;
         }
 
-        MapSaveData saveData =
-            JsonUtility.FromJson<MapSaveData>(json);
-
-        if (saveData == null)
+        if (data == null)
         {
             Debug.LogWarning(
-                "MapSaveManager: Could not read saved map data."
+                "MapSaveManager: Save data was invalid. Clearing the map."
             );
 
-            ResetPopulationAndProgression();
+            ClearGridAndResetPopulation();
             return;
         }
 
         boardManager.ClearAllBuildings();
 
-        if (saveData.buildings != null)
+        if (data.buildings != null)
         {
-            foreach (BuildingSaveData buildingData in saveData.buildings)
+            foreach (BuildingSaveData building in data.buildings)
             {
-                GridCell cell = boardManager.GetCell(
-                    buildingData.x,
-                    buildingData.y
-                );
+                if (building == null ||
+                    building.buildingType == GridCell.BuildingType.None)
+                {
+                    continue;
+                }
+
+                GridCell cell = boardManager.GetCell(building.x, building.y);
 
                 if (cell == null)
                 {
                     Debug.LogWarning(
-                        "MapSaveManager: Could not find GridCell at (" +
-                        buildingData.x + ", " + buildingData.y + ")."
+                        "MapSaveManager: Saved cell (" +
+                        building.x + ", " + building.y +
+                        ") does not exist in the active city."
                     );
                     continue;
                 }
 
                 boardManager.RestoreBuilding(
                     cell,
-                    buildingData.buildingType,
-                    buildingData.population
+                    building.buildingType,
+                    Mathf.Max(0, building.population)
                 );
             }
         }
 
-        SyncPopulation();
+        boardManager.RefreshBoardAnalysis();
+
+        if (PopulationManager.Instance != null)
+        {
+            PopulationManager.Instance.SetPopulation(
+                boardManager.GetTotalPopulation()
+            );
+        }
+
+        RefreshProgression();
 
         Debug.Log(
-            "MapSaveManager: Map loaded. Buildings restored: " +
-            (saveData.buildings != null ? saveData.buildings.Count : 0)
+            "MapSaveManager: Loaded city '" + GetCurrentCityId() +
+            "' with " +
+            (data.buildings == null ? 0 : data.buildings.Count) +
+            " saved building entries."
         );
     }
 
+    // =========================================================
+    // RESET
+    // =========================================================
+
     public void ResetMap()
     {
+        FindReferences();
+
         if (boardManager == null)
         {
             Debug.LogWarning(
-                "MapSaveManager: Cannot reset because BoardManager is not assigned."
+                "MapSaveManager: BoardManager is missing; reset cancelled."
             );
             return;
         }
 
-        boardManager.ClearAllBuildings();
+        ClearGridAndResetPopulation();
 
-        if (PopulationManager.Instance != null)
-        {
-            PopulationManager.Instance.ResetPopulation();
-        }
+        NavigationManager navigation =
+            FindAnyObjectByType<NavigationManager>();
 
-        if (PopulationProgressionManager.Instance != null)
-        {
-            PopulationProgressionManager.Instance.ResetProgression();
-        }
+        if (navigation != null)
+            navigation.ResetNavigationToBlue();
 
         SaveMap();
 
-        // Do this last so the reset message and normal panel colour
-        // replace any reward message triggered during progression reset.
-        if (infoPanelUI == null)
-        {
-            infoPanelUI = FindObjectOfType<InfoPanelUI>();
-        }
+        if (infoPanel != null)
+            infoPanel.ShowMapReset();
 
-        if (infoPanelUI != null)
-        {
-            infoPanelUI.ShowMapReset();
-        }
-
-        Debug.Log("MapSaveManager: Map reset to state 0.");
-    }
-
-    private void SyncPopulation()
-    {
-        if (PopulationManager.Instance == null)
-        {
-            return;
-        }
-
-        PopulationManager.Instance.SetPopulation(
-            boardManager.GetTotalPopulation()
+        Debug.Log(
+            "MapSaveManager: Reset city '" + GetCurrentCityId() +
+            "'. The map was saved empty."
         );
     }
 
-    private void ResetPopulationAndProgression()
+    private void ClearGridAndResetPopulation()
     {
-        if (PopulationManager.Instance != null)
-        {
-            PopulationManager.Instance.ResetPopulation();
-        }
+        FindReferences();
 
-        if (PopulationProgressionManager.Instance != null)
-        {
-            PopulationProgressionManager.Instance.ResetProgression();
-        }
+        if (boardManager != null)
+            boardManager.ClearAllBuildings();
+
+        if (PopulationManager.Instance != null)
+            PopulationManager.Instance.SetPopulation(0);
+
+        RefreshProgression();
     }
 
-    public void DeleteSave()
+    private void RefreshProgression()
     {
-        if (PlayerPrefs.HasKey(SaveKey))
-        {
-            PlayerPrefs.DeleteKey(SaveKey);
-            PlayerPrefs.Save();
+        if (PopulationProgressionManager.Instance != null)
+            PopulationProgressionManager.Instance.ResetProgression();
+    }
 
-            Debug.Log("MapSaveManager: Save deleted.");
-        }
+    // =========================================================
+    // DELETE SAVE
+    // =========================================================
+
+    public void DeleteMap()
+    {
+        PlayerPrefs.DeleteKey(ActiveSaveKey);
+        PlayerPrefs.Save();
+
+        Debug.Log(
+            "MapSaveManager: Deleted save for city '" +
+            GetCurrentCityId() + "'."
+        );
+    }
+
+    public bool HasSavedMap()
+    {
+        return PlayerPrefs.HasKey(ActiveSaveKey);
+    }
+
+    public void ClearCurrentGridBuildings()
+    {
+        FindReferences();
+
+        if (boardManager == null)
+            return;
+
+        boardManager.ClearAllBuildings();
+        boardManager.RefreshBoardAnalysis();
+    }
+
+    public void LoadMapForActiveCity()
+    {
+        LoadMap();
+    }
+
+    public void SaveCurrentCity()
+    {
+        SaveMap();
     }
 }
