@@ -1,76 +1,59 @@
-using TMPro;
+
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
-    [Header("Main UI References")]
-    public TMP_Text scoreText;
-    public TMP_Text livesText;
-    public TMP_Text floorText;
-    public TMP_Text gameOverText;
-    public TMP_Text finalScoreText;
+    [Header("Score UI")]
+    [SerializeField] private TMP_Text scoreText;
 
-    [Header("Life Indicators")]
-    public Image[] lifeIcons;
-    public Color lifeActiveColor = new Color(1f, 0.2f, 0.25f, 1f);
-    public Color lifeLostColor = new Color(0.3f, 0.3f, 0.35f, 0.65f);
+    [Header("Lives UI")]
+    [SerializeField] private TMP_Text livesText;
+    [SerializeField] private List<Image> lifeIcons = new List<Image>();
+    [SerializeField] private Color lifeActiveColor = Color.white;
+    [SerializeField] private Color lifeLostColor = Color.gray;
 
-    [Header("Score Settings")]
-    public int displayedScore;
+    [Header("Floor UI")]
+    [SerializeField] private TMP_Text floorText;
 
-    [Header("Combo Bar")]
-    public Image comboBarFill;
-    public TMP_Text comboText;
-    public GameObject comboBarContainer;
-    public Image comboStarIcon;
-    public Color comboNormalColor = Color.white;
-    public Color comboMaxColor = new Color(1f, 0.85f, 0.2f);
+    [Header("Game Over UI")]
+    [SerializeField] private GameObject gameOverPanel;
+    [SerializeField] private TMP_Text gameOverText;
+    [SerializeField] private TMP_Text finalScoreText;
 
-    [Header("Panels")]
-    public GameObject gameOverPanel;
-    public GameObject completePanel;
+    [Header("Building Complete UI")]
+    [SerializeField] private GameObject completePanel;
+    [SerializeField] private TMP_Text completeFinalScoreText;
+
+    private int displayedScore;
 
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("Duplicate UIManager found.", this);
             Destroy(gameObject);
             return;
         }
 
         Instance = this;
+
+        HideEndPanels();
     }
 
     private void Start()
     {
-        if (gameOverPanel != null)
-            gameOverPanel.SetActive(false);
-
-        if (completePanel != null)
-            completePanel.SetActive(false);
-
-        if (gameOverText != null)
-            gameOverText.enabled = false;
-
-        GameManager manager = GameManager.Instance;
-
-        if (manager != null)
+        if (GameManager.Instance != null)
         {
-            UpdateScore(manager.score);
-            UpdateLives(manager.lives);
-            UpdateFloors(manager.floorsBuilt);
-            UpdateCombo(manager.comboCount, manager.maxCombo, false);
-        }
-        else
-        {
-            UpdateScore(0);
-            UpdateLives(3);
-            UpdateFloors(0);
-            UpdateCombo(0, 5, false);
+            UpdateScore(GameManager.Instance.score);
+            UpdateLives(GameManager.Instance.lives);
+            UpdateFloors(
+                GameManager.Instance.floorsBuilt,
+                GameManager.Instance.floorsToComplete
+            );
         }
     }
 
@@ -79,113 +62,85 @@ public class UIManager : MonoBehaviour
         displayedScore = Mathf.Max(0, score);
 
         if (scoreText != null)
-        {
-            scoreText.text =
-                "Score\n" + displayedScore.ToString("N0");
-        }
-
-        if (finalScoreText != null &&
-            completePanel != null &&
-            completePanel.activeSelf)
-        {
-            finalScoreText.text =
-                "Final Score\n" + displayedScore.ToString("N0");
-        }
+            scoreText.text = displayedScore.ToString("N0");
     }
 
     public void UpdateLives(int lives)
     {
-        int safeLives = Mathf.Max(0, lives);
-
-        if (lifeIcons != null)
-        {
-            for (int i = 0; i < lifeIcons.Length; i++)
-            {
-                if (lifeIcons[i] == null)
-                    continue;
-
-                lifeIcons[i].color =
-                    i < safeLives ? lifeActiveColor : lifeLostColor;
-
-                lifeIcons[i].enabled = true;
-            }
-        }
+        lives = Mathf.Max(0, lives);
 
         if (livesText != null)
-            livesText.text = "LIVES: " + safeLives;
+            livesText.text = lives.ToString();
+
+        for (int i = 0; i < lifeIcons.Count; i++)
+        {
+            if (lifeIcons[i] == null)
+                continue;
+
+            lifeIcons[i].color = i < lives
+                ? lifeActiveColor
+                : lifeLostColor;
+        }
     }
 
-    public void UpdateFloors(int floors)
+    public void UpdateFloors(int floorsBuilt, int floorsToComplete)
     {
         if (floorText != null)
         {
             floorText.text =
-                "Floor\n" + Mathf.Max(0, floors);
+                Mathf.Max(0, floorsBuilt) + " / " +
+                Mathf.Max(1, floorsToComplete);
         }
     }
 
-    public void UpdateCombo(
-        int comboCount,
-        int maxCombo,
-        bool wasPerfect)
+    // Kept for compatibility with any older scripts that call UpdateCombo.
+    // Combo information is intentionally not displayed to the player.
+    public void UpdateCombo(int comboCount, int maxCombo, bool wasPerfect)
     {
-        int safeCombo = Mathf.Max(0, comboCount);
-        int safeMaxCombo = Mathf.Max(1, maxCombo);
-        int multiplier = safeCombo + 1;
-        bool maxed = safeCombo >= safeMaxCombo;
-
-        if (comboBarFill != null)
-        {
-            comboBarFill.fillAmount =
-                Mathf.Clamp01((float)safeCombo / safeMaxCombo);
-
-            comboBarFill.color =
-                maxed ? comboMaxColor : comboNormalColor;
-        }
-
-        if (comboText != null)
-        {
-            comboText.text = wasPerfect && safeCombo > 0
-                ? "PERFECT! x" + multiplier
-                : "x" + multiplier;
-        }
-
-        if (comboBarContainer != null)
-            comboBarContainer.SetActive(safeCombo > 0);
-
-        if (comboStarIcon != null)
-        {
-            comboStarIcon.color =
-                maxed ? comboMaxColor : comboNormalColor;
-        }
+        // Intentionally empty.
     }
 
-    public void ShowGameOver()
+    public void HideEndPanels()
+    {
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(false);
+
+        if (completePanel != null)
+            completePanel.SetActive(false);
+    }
+
+    public void ShowGameOver(int finalScore)
     {
         if (gameOverPanel != null)
             gameOverPanel.SetActive(true);
 
+        if (completePanel != null)
+            completePanel.SetActive(false);
+
         if (gameOverText != null)
-            gameOverText.enabled = true;
+            gameOverText.text = "GAME OVER";
+
+        if (finalScoreText != null)
+            finalScoreText.text = Mathf.Max(0, finalScore).ToString("N0");
     }
 
-    public void ShowBuildingComplete(int score)
+    public void ShowBuildingComplete(int finalScore)
     {
-        UpdateScore(score);
-
         if (completePanel != null)
             completePanel.SetActive(true);
 
-        if (finalScoreText != null)
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(false);
+
+        if (completeFinalScoreText != null)
+        {
+            completeFinalScoreText.text =
+                Mathf.Max(0, finalScore).ToString("N0");
+        }
+        else if (finalScoreText != null)
         {
             finalScoreText.text =
-                "Final Score\n" + Mathf.Max(0, score).ToString("N0");
+                Mathf.Max(0, finalScore).ToString("N0");
         }
-    }
-
-    private void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
     }
 }

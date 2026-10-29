@@ -5,110 +5,96 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [Header("Starting State")]
+    [Header("Game Settings")]
     [Min(1)] public int startingLives = 3;
     [Min(1)] public int floorsToComplete = 30;
 
     [Header("Scoring")]
     [Min(0)] public int baseScorePerFloor = 100;
     [Min(0)] public int perfectLandingBonus = 100;
-
-    [Range(0f, 1f)]
-    public float perfectAccuracyThreshold = 0.9f;
-
-    [Min(0f)]
-    public float perfectLandingDistance = 0.25f;
-
+    [Range(0f, 1f)] public float perfectAccuracyThreshold = 0.9f;
     [Min(1)] public int maxCombo = 5;
+    [Min(0f)] public float perfectLandingDistance = 0.25f;
 
-    [Header("Scene References")]
+    [Header("Building")]
     public GameObject startingBuilding;
+
+    [Header("Perfect Streak")]
+    public PerfectStreakTimer perfectStreakTimer;
 
     [Header("Runtime State")]
     public int score;
     public int lives;
     public int floorsBuilt;
     public int comboCount;
+    public int totalPerfectLandings;
     public bool isGameOver;
     public bool isBuildingComplete;
 
     public GameObject LastPlacedBlock { get; private set; }
-
     public BuildingGameplayConfig ActiveConfiguration { get; private set; }
 
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("Duplicate GameManager found.", this);
             Destroy(gameObject);
             return;
         }
 
         Instance = this;
 
+        if (perfectStreakTimer == null)
+            perfectStreakTimer = FindObjectOfType<PerfectStreakTimer>();
+
         ActiveConfiguration = GameplaySelection.SelectedBuilding;
 
-        if (ActiveConfiguration != null)
-        {
-            floorsToComplete = Mathf.Max(
-                1,
-                ActiveConfiguration.floorsToComplete
-            );
-
-            Debug.Log(
-                "GameManager: Loaded configuration '" +
-                ActiveConfiguration.displayName +
-                "' with " + floorsToComplete + " floors.",
-                this
-            );
-        }
-        else
-        {
-            Debug.LogWarning(
-                "GameManager: No building configuration was selected. " +
-                "Using the Inspector defaults for direct gameplay testing.",
-                this
-            );
-        }
-
-        perfectLandingDistance = Mathf.Max(0f, perfectLandingDistance);
-
         ResetGameState();
-
-        LastPlacedBlock = FindStartingBuilding();
-
-        if (LastPlacedBlock == null)
-        {
-            Debug.LogError(
-                "Starting building not found. Assign Starting Building " +
-                "or ensure a valid object has the Building tag.",
-                this
-            );
-        }
+        FindStartingBuilding();
+        RefreshUI();
     }
 
     private void Start()
     {
-        RefreshUI();
+        if (startingBuilding == null)
+            FindStartingBuilding();
+
+        if (startingBuilding != null)
+            LastPlacedBlock = startingBuilding;
     }
 
     public void ResetGameState()
     {
         score = 0;
-        lives = Mathf.Max(1, startingLives);
+        lives = startingLives;
         floorsBuilt = 0;
         comboCount = 0;
+        totalPerfectLandings = 0;
+
         isGameOver = false;
         isBuildingComplete = false;
 
         Time.timeScale = 1f;
+
+        if (perfectStreakTimer != null)
+            perfectStreakTimer.StopTimer();
+
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.HideEndPanels();
+            UIManager.Instance.UpdateScore(score);
+            UIManager.Instance.UpdateLives(lives);
+            UIManager.Instance.UpdateFloors(floorsBuilt, floorsToComplete);
+        }
     }
 
-    private GameObject FindStartingBuilding()
+    private void FindStartingBuilding()
     {
         if (startingBuilding != null)
-            return startingBuilding;
+        {
+            LastPlacedBlock = startingBuilding;
+            return;
+        }
 
         GameObject[] buildings;
 
@@ -118,51 +104,42 @@ public class GameManager : MonoBehaviour
         }
         catch (UnityException)
         {
-            Debug.LogError(
-                "The 'Building' tag does not exist. Create it in Tags and Layers.",
+            Debug.LogWarning(
+                "GameManager: The Building tag does not exist. " +
+                "Assign Starting Building in the Inspector.",
                 this
             );
-
-            return null;
+            return;
         }
 
-        GameObject highest = null;
-        float highestY = float.NegativeInfinity;
+        if (buildings == null || buildings.Length == 0)
+        {
+            Debug.LogWarning(
+                "GameManager: No starting building was found.",
+                this
+            );
+            return;
+        }
+
+        GameObject highestBuilding = buildings[0];
 
         foreach (GameObject building in buildings)
         {
-            if (building == null)
-                continue;
-
-            Collider2D col = building.GetComponent<Collider2D>();
-
-            float y = col != null
-                ? col.bounds.max.y
-                : building.transform.position.y;
-
-            if (y > highestY)
+            if (building.transform.position.y >
+                highestBuilding.transform.position.y)
             {
-                highest = building;
-                highestY = y;
+                highestBuilding = building;
             }
         }
 
-        return highest;
+        startingBuilding = highestBuilding;
+        LastPlacedBlock = highestBuilding;
     }
 
     public void SetLastPlacedBlock(GameObject block)
     {
         if (block != null)
             LastPlacedBlock = block;
-    }
-
-    public void SpawnNextBlock()
-    {
-        if (isGameOver || isBuildingComplete)
-            return;
-
-        if (CraneController.Instance != null)
-            CraneController.Instance.PrepareNextBlock();
     }
 
     public void AddFloor(float accuracy)
@@ -173,37 +150,33 @@ public class GameManager : MonoBehaviour
         floorsBuilt++;
         accuracy = Mathf.Clamp01(accuracy);
 
-        RefreshFloorUI();
-
-        bool perfect = accuracy >= perfectAccuracyThreshold;
+        bool isPerfect = accuracy >= perfectAccuracyThreshold;
 
         int floorPoints =
             baseScorePerFloor +
             Mathf.RoundToInt(baseScorePerFloor * accuracy);
 
-        if (perfect)
+        int multiplier = 1;
+
+        if (isPerfect)
         {
             comboCount = Mathf.Min(comboCount + 1, maxCombo);
+            totalPerfectLandings++;
+
             floorPoints += perfectLandingBonus;
+            multiplier = Mathf.Max(1, comboCount);
+
+            if (perfectStreakTimer != null)
+                perfectStreakTimer.StartOrResetTimer();
         }
         else
         {
-            comboCount = 0;
+            ResetPerfectStreak();
         }
 
-        int multiplier = 1 +
-            (perfect ? Mathf.Min(comboCount - 1, maxCombo - 1) : 0);
+        score += floorPoints * multiplier;
 
-        AddScore(floorPoints * multiplier);
-
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.UpdateCombo(
-                comboCount,
-                maxCombo,
-                perfect
-            );
-        }
+        RefreshUI();
 
         if (CraneController.Instance != null)
             CraneController.Instance.RaiseCraneForNextFloor(floorsBuilt);
@@ -212,13 +185,23 @@ public class GameManager : MonoBehaviour
             BuildingComplete();
     }
 
-    public void AddScore(int amount)
+    public void EndPerfectStreak()
     {
-        if (isGameOver || isBuildingComplete)
-            return;
+        comboCount = 0;
+    }
 
-        score = Mathf.Max(0, score + amount);
-        RefreshScoreUI();
+    public void NotifyBlockReleased()
+    {
+        if (perfectStreakTimer != null)
+            perfectStreakTimer.PauseTimer();
+    }
+
+    private void ResetPerfectStreak()
+    {
+        comboCount = 0;
+
+        if (perfectStreakTimer != null)
+            perfectStreakTimer.StopTimer();
     }
 
     public void LoseLife()
@@ -227,17 +210,8 @@ public class GameManager : MonoBehaviour
             return;
 
         lives = Mathf.Max(0, lives - 1);
-        comboCount = 0;
-
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.UpdateLives(lives);
-            UIManager.Instance.UpdateCombo(
-                comboCount,
-                maxCombo,
-                false
-            );
-        }
+        ResetPerfectStreak();
+        RefreshUI();
 
         if (lives <= 0)
             GameOver();
@@ -249,10 +223,19 @@ public class GameManager : MonoBehaviour
             return;
 
         isBuildingComplete = true;
-        StopCrane();
+
+        if (perfectStreakTimer != null)
+            perfectStreakTimer.StopTimer();
+
+        if (CraneController.Instance != null)
+            CraneController.Instance.StopCrane();
+
+        RefreshUI();
 
         if (UIManager.Instance != null)
             UIManager.Instance.ShowBuildingComplete(score);
+
+        Time.timeScale = 0f;
     }
 
     public void GameOver()
@@ -261,49 +244,32 @@ public class GameManager : MonoBehaviour
             return;
 
         isGameOver = true;
-        StopCrane();
+        ResetPerfectStreak();
+
+        if (CraneController.Instance != null)
+            CraneController.Instance.StopCrane();
+
+        RefreshUI();
 
         if (UIManager.Instance != null)
-            UIManager.Instance.ShowGameOver();
+            UIManager.Instance.ShowGameOver(score);
 
         Time.timeScale = 0f;
     }
 
-    private void RefreshUI()
+    public void RefreshUI()
     {
         if (UIManager.Instance == null)
             return;
 
         UIManager.Instance.UpdateScore(score);
         UIManager.Instance.UpdateLives(lives);
-        UIManager.Instance.UpdateFloors(floorsBuilt);
-        UIManager.Instance.UpdateCombo(comboCount, maxCombo, false);
-    }
-
-    private void RefreshScoreUI()
-    {
-        if (UIManager.Instance != null)
-            UIManager.Instance.UpdateScore(score);
-    }
-
-    private void RefreshFloorUI()
-    {
-        if (UIManager.Instance != null)
-            UIManager.Instance.UpdateFloors(floorsBuilt);
-    }
-
-    private void StopCrane()
-    {
-        if (CraneController.Instance != null)
-            CraneController.Instance.StopCrane();
+        UIManager.Instance.UpdateFloors(floorsBuilt, floorsToComplete);
     }
 
     private void OnDestroy()
     {
-        if (Instance != this)
-            return;
-
-        Instance = null;
-        Time.timeScale = 1f;
+        if (Instance == this)
+            Instance = null;
     }
 }

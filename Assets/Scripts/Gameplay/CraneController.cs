@@ -23,6 +23,9 @@ public class CraneController : MonoBehaviour
     [Header("Block Sequence")]
     [Min(0f)] public float nextBlockDelay = 0.3f;
 
+    [Header("Initial Gameplay Delay")]
+    [Min(0f)] public float initialSwingDelay = 3f;
+
     private GameObject currentBlock;
     private SwingPivotController swingController;
     private RopeController ropeController;
@@ -32,11 +35,13 @@ public class CraneController : MonoBehaviour
     private bool stopped;
     private bool movingCraneUp;
     private bool spawnScheduled;
+    private bool isFirstBlock = true;
 
     private float targetCraneY;
     private int lastHeightFloor;
 
     private Coroutine spawnCoroutine;
+    private Coroutine initialSwingCoroutine;
 
     public GameObject CurrentBlock => currentBlock;
 
@@ -71,7 +76,6 @@ public class CraneController : MonoBehaviour
 
         activeConfiguration = manager.ActiveConfiguration;
 
-        // A selected configuration takes priority over the Inspector prefab.
         if (activeConfiguration != null)
         {
             if (activeConfiguration.hangingBlockPrefab == null)
@@ -158,6 +162,8 @@ public class CraneController : MonoBehaviour
         lastHeightFloor = manager.floorsBuilt;
 
         ConfigureRope();
+
+        // Spawn the first block immediately, but delay its swing.
         SpawnBlock();
     }
 
@@ -206,6 +212,9 @@ public class CraneController : MonoBehaviour
             );
             return;
         }
+
+        // Pause the perfect-streak timer while the block is falling.
+        manager.NotifyBlockReleased();
 
         currentBlock = null;
 
@@ -327,7 +336,6 @@ public class CraneController : MonoBehaviour
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.freezeRotation = true;
 
-        // Apply the selected building's appearance before the block swings.
         BuildingTier tier = block.GetComponent<BuildingTier>();
 
         if (tier != null)
@@ -340,15 +348,66 @@ public class CraneController : MonoBehaviour
                 tier.ApplyTierForFloor(manager.floorsBuilt + 1);
         }
 
-        if (swingController != null)
-            swingController.StartSwing();
-
         ConfigureRope();
+
+        if (isFirstBlock)
+        {
+            isFirstBlock = false;
+
+            if (initialSwingCoroutine != null)
+                StopCoroutine(initialSwingCoroutine);
+
+            initialSwingCoroutine =
+                StartCoroutine(StartInitialSwingAfterDelay());
+        }
+        else
+        {
+            // Subsequent blocks swing as soon as they spawn.
+            StartBlockSwing();
+        }
 
         Debug.Log(
             $"CraneController: Spawned '{block.name}'.",
             block
         );
+    }
+
+    private IEnumerator StartInitialSwingAfterDelay()
+    {
+        float delay = Mathf.Max(0f, initialSwingDelay);
+
+        yield return new WaitForSeconds(delay);
+
+        initialSwingCoroutine = null;
+
+        if (stopped || currentBlock == null)
+            yield break;
+
+        GameManager manager = GameManager.Instance;
+
+        if (manager == null ||
+            manager.isGameOver ||
+            manager.isBuildingComplete)
+        {
+            yield break;
+        }
+
+        StartBlockSwing();
+    }
+
+    private void StartBlockSwing()
+    {
+        if (stopped || currentBlock == null)
+            return;
+
+        if (swingController != null)
+            swingController.StartSwing();
+
+        // The streak timer only counts down while a block is swinging.
+        GameManager manager = GameManager.Instance;
+
+        if (manager != null && manager.perfectStreakTimer != null)
+            manager.perfectStreakTimer.ResumeTimer();
     }
 
     public void RaiseCraneForNextFloor(int floorsBuilt)
@@ -399,6 +458,12 @@ public class CraneController : MonoBehaviour
         {
             StopCoroutine(spawnCoroutine);
             spawnCoroutine = null;
+        }
+
+        if (initialSwingCoroutine != null)
+        {
+            StopCoroutine(initialSwingCoroutine);
+            initialSwingCoroutine = null;
         }
 
         if (swingController != null)
