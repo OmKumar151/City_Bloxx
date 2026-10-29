@@ -3729,7 +3729,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09bd092299e2fbb4cb59e81820441f5a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PerfectStreakTimer
-  streakDuration: 2.5
+  streakDuration: 5
   timerContainer: {fileID: 2044168531}
   timerSlider: {fileID: 1297839650}
   timerLabel: {fileID: 1341801524}
@@ -4051,7 +4051,7 @@ MonoBehaviour:
   maxCombo: 5
   perfectLandingDistance: 0.5
   startingBuilding: {fileID: 1728915540}
-  perfectStreakTimer: {fileID: 0}
+  perfectStreakTimer: {fileID: 1614594905}
   score: 0
   lives: 3
   floorsBuilt: 0

@@ -33,15 +33,8 @@ public class BlockLanding : MonoBehaviour
     {
         blockCollider = GetComponent<Collider2D>();
         body = GetComponent<Rigidbody2D>();
-
-        if (blockCollider == null)
-            Debug.LogError("BlockLanding: No Collider2D found.", this);
-
-        if (body == null)
-            Debug.LogError("BlockLanding: No Rigidbody2D found.", this);
     }
 
-    // Called by CraneController when the player releases this block.
     public void MarkAsReleased()
     {
         if (resolved)
@@ -57,19 +50,14 @@ public class BlockLanding : MonoBehaviour
 
     private void Update()
     {
-        // Do not resolve a miss while the block is still attached to the crane.
         if (resolved || !hasBeenReleased || body == null)
             return;
 
         GameManager manager = GameManager.Instance;
 
-        if (manager == null)
-        {
-            Log("Cannot process block: GameManager.Instance is null.");
-            return;
-        }
-
-        if (manager.isGameOver || manager.isBuildingComplete)
+        if (manager == null ||
+            manager.isGameOver ||
+            manager.isBuildingComplete)
             return;
 
         if (body.bodyType != RigidbodyType2D.Dynamic)
@@ -87,10 +75,7 @@ public class BlockLanding : MonoBehaviour
 
             if (unresolvedContactTimer >= unresolvedContactTimeout)
             {
-                ResolveMiss(
-                    "contact occurred without a valid landing"
-                );
-
+                ResolveMiss("contact occurred without a valid landing");
                 return;
             }
         }
@@ -101,11 +86,7 @@ public class BlockLanding : MonoBehaviour
             stationaryTimer += Time.deltaTime;
 
             if (stationaryTimer >= stationaryMissTimeout)
-            {
-                ResolveMiss(
-                    "stopped moving without a valid landing"
-                );
-            }
+                ResolveMiss("stopped moving without a valid landing");
         }
         else
         {
@@ -132,23 +113,14 @@ public class BlockLanding : MonoBehaviour
             blockCollider == null ||
             body == null ||
             body.bodyType != RigidbodyType2D.Dynamic)
-        {
             return;
-        }
 
         GameManager manager = GameManager.Instance;
 
         if (manager == null ||
             manager.isGameOver ||
             manager.isBuildingComplete)
-        {
-            Log(
-                "Landing check stopped: game manager is unavailable " +
-                "or the game has ended."
-            );
-
             return;
-        }
 
         GameObject target = manager.LastPlacedBlock;
 
@@ -168,10 +140,7 @@ public class BlockLanding : MonoBehaviour
             if (targetCollider == null || !targetCollider.enabled)
                 continue;
 
-            if (IsCollisionWithTarget(
-                collision,
-                target,
-                targetCollider))
+            if (IsCollisionWithTarget(collision, target, targetCollider))
             {
                 matchedTargetCollider = targetCollider;
                 break;
@@ -187,36 +156,32 @@ public class BlockLanding : MonoBehaviour
         Bounds blockBounds = blockCollider.bounds;
         Bounds targetBounds = matchedTargetCollider.bounds;
 
-        float overlapWidth = Mathf.Max(
-            0f,
-            Mathf.Min(blockBounds.max.x, targetBounds.max.x) -
-            Mathf.Max(blockBounds.min.x, targetBounds.min.x)
+        float overlapWidth = CalculateOverlapWidth(
+            blockBounds,
+            targetBounds
         );
 
-        float verticalGap =
-            blockBounds.min.y - targetBounds.max.y;
+        float verticalGap = blockBounds.min.y - targetBounds.max.y;
 
         bool correctHeight =
             verticalGap >= -landingHeightTolerance &&
             verticalGap <= landingHeightTolerance;
 
-        // Verify that the contact is near the falling block's
-        // bottom and the target's top surface.
         bool contactNearTop = false;
 
         for (int i = 0; i < collision.contactCount; i++)
         {
             ContactPoint2D contact = collision.GetContact(i);
 
-            bool contactIsOnBlockBottom =
+            bool contactOnBlockBottom =
                 contact.point.y <= blockBounds.min.y +
                 landingHeightTolerance;
 
-            bool contactIsOnTargetTop =
+            bool contactOnTargetTop =
                 contact.point.y >= targetBounds.max.y -
                 landingHeightTolerance;
 
-            if (contactIsOnBlockBottom && contactIsOnTargetTop)
+            if (contactOnBlockBottom && contactOnTargetTop)
             {
                 contactNearTop = true;
                 break;
@@ -224,49 +189,144 @@ public class BlockLanding : MonoBehaviour
         }
 
         Log(
-            $"[Landing Check] Target={target.name}, " +
-            $"ContactNearTop={contactNearTop}, " +
+            $"Landing check: ContactNearTop={contactNearTop}, " +
             $"CorrectHeight={correctHeight}, " +
-            $"VerticalGap={verticalGap:F3}, " +
             $"Overlap={overlapWidth:F3}, " +
             $"RequiredOverlap={minOverlap:F3}"
         );
 
+        // Keep the existing validity rules. The centering threshold
+        // does not allow a block with insufficient physical overlap
+        // to land successfully.
         if (contactNearTop &&
             correctHeight &&
             overlapWidth >= minOverlap)
         {
-            float accuracy = blockBounds.size.x > 0f
-                ? Mathf.Clamp01(overlapWidth / blockBounds.size.x)
-                : 0f;
-
-            // The first placed floor lands on the starting foundation.
-            // Prevent that landing from triggering a perfect streak,
-            // even when the overlap accuracy would otherwise be 1.0.
-            if (manager.floorsBuilt == 0)
-            {
-                float belowPerfectThreshold =
-                    Mathf.Max(
-                        0f,
-                        manager.perfectAccuracyThreshold - 0.001f
-                    );
-
-                accuracy = Mathf.Min(
-                    accuracy,
-                    belowPerfectThreshold
-                );
-
-                Log(
-                    "First foundation landing detected. " +
-                    "Perfect landing disabled for this placement."
-                );
-            }
-
-            ResolveSuccess(manager, targetBounds, accuracy);
+            ResolveSuccess(manager, matchedTargetCollider);
             return;
         }
 
         MarkUnresolvedContact();
+    }
+
+    private void ResolveSuccess(
+        GameManager manager,
+        Collider2D matchedTargetCollider)
+    {
+        if (resolved)
+            return;
+
+        resolved = true;
+        hasUnresolvedContact = false;
+
+        body.linearVelocity = Vector2.zero;
+        body.angularVelocity = 0f;
+        body.bodyType = RigidbodyType2D.Kinematic;
+        body.freezeRotation = true;
+
+        transform.rotation = Quaternion.identity;
+
+        Bounds targetBounds = matchedTargetCollider.bounds;
+        Bounds blockBounds = blockCollider.bounds;
+
+        // Measure the distance between the actual collider centres,
+        // rather than assuming the transform pivot is at the centre.
+        float horizontalOffset =
+            blockBounds.center.x - targetBounds.center.x;
+
+        float allowedCenteringDistance =
+            Mathf.Max(0f, manager.perfectLandingDistance);
+
+        bool shouldAutoCenter =
+            Mathf.Abs(horizontalOffset) <= allowedCenteringDistance;
+
+        if (shouldAutoCenter)
+        {
+            // Move the block so its collider centre aligns with the
+            // target collider centre.
+            Vector3 position = transform.position;
+
+            position.x += targetBounds.center.x - blockBounds.center.x;
+
+            transform.position = position;
+
+            Log(
+                $"Auto-centering applied. Offset={horizontalOffset:F3}, " +
+                $"Threshold={allowedCenteringDistance:F3}"
+            );
+        }
+        else
+        {
+            Log(
+                $"Auto-centering skipped. Offset={horizontalOffset:F3}, " +
+                $"Threshold={allowedCenteringDistance:F3}"
+            );
+        }
+
+        // Align the bottom of this block with the target top.
+        blockBounds = blockCollider.bounds;
+        targetBounds = matchedTargetCollider.bounds;
+
+        float correctionY =
+            targetBounds.max.y - blockBounds.min.y;
+
+        transform.position += Vector3.up * correctionY;
+
+        // Calculate the final physical overlap.
+        blockBounds = blockCollider.bounds;
+        targetBounds = matchedTargetCollider.bounds;
+
+        float finalOverlapWidth = CalculateOverlapWidth(
+            blockBounds,
+            targetBounds
+        );
+
+        float accuracy = blockBounds.size.x > 0f
+            ? Mathf.Clamp01(finalOverlapWidth / blockBounds.size.x)
+            : 0f;
+
+        // A landing inside the configured auto-centering threshold
+        // explicitly qualifies as perfect, even if tiny collider or
+        // floating-point differences affect the measured overlap.
+        if (shouldAutoCenter)
+        {
+            accuracy = Mathf.Max(
+                accuracy,
+                manager.perfectAccuracyThreshold
+            );
+        }
+
+        gameObject.tag = "Building";
+
+        manager.SetLastPlacedBlock(gameObject);
+
+        BuildingTier tier = GetComponent<BuildingTier>();
+
+        if (tier != null)
+            tier.ApplyTierForFloor(manager.floorsBuilt + 1);
+
+        Log(
+            $"LANDING SUCCESS. Accuracy={accuracy:F2}, " +
+            $"HorizontalOffset={horizontalOffset:F3}, " +
+            $"Centered={shouldAutoCenter}, " +
+            $"PerfectThreshold={manager.perfectAccuracyThreshold:F2}"
+        );
+
+        // GameManager handles score, combo, and streak timer updates.
+        manager.AddFloor(accuracy);
+
+        ContinueCraneIfPlaying();
+    }
+
+    private float CalculateOverlapWidth(
+        Bounds blockBounds,
+        Bounds targetBounds)
+    {
+        return Mathf.Max(
+            0f,
+            Mathf.Min(blockBounds.max.x, targetBounds.max.x) -
+            Mathf.Max(blockBounds.min.x, targetBounds.min.x)
+        );
     }
 
     private void MarkUnresolvedContact()
@@ -277,9 +337,7 @@ public class BlockLanding : MonoBehaviour
         hasUnresolvedContact = true;
         unresolvedContactTimer = 0f;
 
-        Log(
-            "Contact detected, but it has not yet qualified as a valid landing."
-        );
+        Log("Contact detected, but it has not qualified as a valid landing.");
     }
 
     private bool IsCollisionWithTarget(
@@ -303,59 +361,6 @@ public class BlockLanding : MonoBehaviour
                 candidate.transform.IsChildOf(targetRoot));
     }
 
-    private void ResolveSuccess(
-        GameManager manager,
-        Bounds targetBounds,
-        float accuracy)
-    {
-        if (resolved)
-            return;
-
-        resolved = true;
-        hasUnresolvedContact = false;
-
-        // Stop all physics movement before correcting the position.
-        body.linearVelocity = Vector2.zero;
-        body.angularVelocity = 0f;
-
-        // Freeze the block in place before correcting its final pose.
-        body.bodyType = RigidbodyType2D.Kinematic;
-        body.freezeRotation = true;
-
-        // Reset the world rotation so the block stacks horizontally.
-        // This assumes the block's intended upright rotation is 0 degrees.
-        transform.rotation = Quaternion.identity;
-
-        // Recalculate the collider bounds after resetting rotation.
-        Bounds correctedBlockBounds = blockCollider.bounds;
-
-        // Align the bottom of this block with the top of the target.
-        // Both values are world-space coordinates.
-        float correctionY =
-            targetBounds.max.y - correctedBlockBounds.min.y;
-
-        transform.position += Vector3.up * correctionY;
-
-        gameObject.tag = "Building";
-
-        manager.SetLastPlacedBlock(gameObject);
-
-        BuildingTier tier = GetComponent<BuildingTier>();
-
-        if (tier != null)
-            tier.ApplyTierForFloor(manager.floorsBuilt + 1);
-
-        Log(
-            $"LANDING SUCCESS. Accuracy={accuracy:F2}. " +
-            $"Floors before update={manager.floorsBuilt}. " +
-            $"Vertical correction={correctionY:F3}."
-        );
-
-        manager.AddFloor(accuracy);
-
-        ContinueCraneIfPlaying();
-    }
-
     private void ResolveMiss(string reason)
     {
         if (resolved || !hasBeenReleased)
@@ -366,13 +371,11 @@ public class BlockLanding : MonoBehaviour
         if (manager == null ||
             manager.isGameOver ||
             manager.isBuildingComplete)
-        {
             return;
-        }
 
         resolved = true;
 
-        Log($"BLOCK MISSED: {gameObject.name}. Reason: {reason}");
+        Log($"BLOCK MISSED: {reason}");
 
         gameObject.tag = "Untagged";
 
@@ -397,23 +400,10 @@ public class BlockLanding : MonoBehaviour
         if (manager == null ||
             manager.isGameOver ||
             manager.isBuildingComplete)
-        {
-            Log("Crane will not continue because the game has ended.");
             return;
-        }
 
         if (CraneController.Instance != null)
-        {
-            Log("Requesting the crane to prepare the next block.");
             CraneController.Instance.PrepareNextBlock();
-        }
-        else
-        {
-            Log(
-                "Cannot prepare the next block: " +
-                "CraneController.Instance is null."
-            );
-        }
     }
 
     private void LogCollision(Collision2D collision, string phase)
@@ -421,29 +411,16 @@ public class BlockLanding : MonoBehaviour
         if (!enableDebugLogs || collision == null)
             return;
 
-        string targetName =
-            GameManager.Instance != null &&
-            GameManager.Instance.LastPlacedBlock != null
-                ? GameManager.Instance.LastPlacedBlock.name
-                : "NULL";
-
         Log(
             $"Collision {phase} with '{collision.gameObject.name}'. " +
             $"Released={hasBeenReleased}, " +
-            $"BodyType={(body != null ? body.bodyType.ToString() : "NULL")}, " +
-            $"Target={targetName}, " +
-            $"ContactCount={collision.contactCount}."
+            $"Target={GameManager.Instance?.LastPlacedBlock?.name ?? "NULL"}"
         );
     }
 
     private void Log(string message)
     {
         if (enableDebugLogs)
-        {
-            Debug.Log(
-                $"[BlockLanding: {gameObject.name}] {message}",
-                this
-            );
-        }
+            Debug.Log($"[BlockLanding: {gameObject.name}] {message}", this);
     }
 }
