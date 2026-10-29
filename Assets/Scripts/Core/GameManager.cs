@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -28,6 +27,8 @@ public class GameManager : MonoBehaviour
 
     public GameObject LastPlacedBlock { get; private set; }
 
+    public BuildingGameplayConfig ActiveConfiguration { get; private set; }
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -39,8 +40,33 @@ public class GameManager : MonoBehaviour
 
         Instance = this;
 
-        // Initialize gameplay before CraneController.Start runs.
+        ActiveConfiguration = GameplaySelection.SelectedBuilding;
+
+        if (ActiveConfiguration != null)
+        {
+            floorsToComplete = Mathf.Max(
+                1,
+                ActiveConfiguration.floorsToComplete
+            );
+
+            Debug.Log(
+                "GameManager: Loaded configuration '" +
+                ActiveConfiguration.displayName +
+                "' with " + floorsToComplete + " floors.",
+                this
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "GameManager: No building configuration was selected. " +
+                "Using the Inspector defaults for direct gameplay testing.",
+                this
+            );
+        }
+
         ResetGameState();
+
         LastPlacedBlock = FindStartingBuilding();
 
         if (LastPlacedBlock == null)
@@ -138,6 +164,9 @@ public class GameManager : MonoBehaviour
         floorsBuilt++;
         accuracy = Mathf.Clamp01(accuracy);
 
+        // Update the displayed floor count.
+        RefreshFloorUI();
+
         bool perfect = accuracy >= perfectAccuracyThreshold;
 
         int floorPoints =
@@ -161,9 +190,10 @@ public class GameManager : MonoBehaviour
 
         if (UIManager.Instance != null)
         {
-            UIManager.Instance.UpdateFloors(floorsBuilt);
             UIManager.Instance.UpdateCombo(
-                comboCount, maxCombo, perfect
+                comboCount,
+                maxCombo,
+                perfect
             );
         }
 
@@ -181,8 +211,8 @@ public class GameManager : MonoBehaviour
 
         score = Mathf.Max(0, score + amount);
 
-        if (UIManager.Instance != null)
-            UIManager.Instance.UpdateScore(score);
+        // Update the displayed score.
+        RefreshScoreUI();
     }
 
     public void LoseLife()
@@ -197,7 +227,9 @@ public class GameManager : MonoBehaviour
         {
             UIManager.Instance.UpdateLives(lives);
             UIManager.Instance.UpdateCombo(
-                comboCount, maxCombo, false
+                comboCount,
+                maxCombo,
+                false
             );
         }
 
@@ -231,12 +263,6 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0f;
     }
 
-    private void StopCrane()
-    {
-        if (CraneController.Instance != null)
-            CraneController.Instance.StopCrane();
-    }
-
     private void RefreshUI()
     {
         if (UIManager.Instance == null)
@@ -246,6 +272,24 @@ public class GameManager : MonoBehaviour
         UIManager.Instance.UpdateLives(lives);
         UIManager.Instance.UpdateFloors(floorsBuilt);
         UIManager.Instance.UpdateCombo(comboCount, maxCombo, false);
+    }
+
+    private void RefreshScoreUI()
+    {
+        if (UIManager.Instance != null)
+            UIManager.Instance.UpdateScore(score);
+    }
+
+    private void RefreshFloorUI()
+    {
+        if (UIManager.Instance != null)
+            UIManager.Instance.UpdateFloors(floorsBuilt);
+    }
+
+    private void StopCrane()
+    {
+        if (CraneController.Instance != null)
+            CraneController.Instance.StopCrane();
     }
 
     private void OnDestroy()

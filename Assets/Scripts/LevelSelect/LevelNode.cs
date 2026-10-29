@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,6 +14,16 @@ public class LevelNode : MonoBehaviour
 
     public void Refresh()
     {
+        if (levelData == null)
+        {
+            Debug.LogWarning(
+                "LevelNode: LevelData is not assigned.",
+                this
+            );
+
+            return;
+        }
+
         if (icon != null)
             icon.sprite = levelData.buildingIcon;
 
@@ -24,5 +35,11 @@ public class LevelNode : MonoBehaviour
     {
         if (highlight != null)
             highlight.enabled = selected;
+
+        if (selected && levelData != null &&
+            highlight != null && levelData.highlightIcon != null)
+        {
+            highlight.sprite = levelData.highlightIcon;
+        }
     }
 }

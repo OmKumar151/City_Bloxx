@@ -1,19 +1,24 @@
 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class LevelSelectManager : MonoBehaviour
 {
+    [Header("Level Selection")]
     public LevelNode[] levels;
-
     public TopBarUI topBar;
-
     public InfoPanelUI infoPanel;
-
     public int currentIndex;
 
+    [Header("Population Display")]
     public int currentPopulation = 17;
-
     public int totalPopulation = 32443;
+
+    [Header("Scene Settings")]
+    public string fallbackGameplayScene = "Gameplay1";
+    public string mainMenuScene = "Main Menu";
+
+    private bool isLoadingScene;
 
     private void Start()
     {
@@ -23,25 +28,13 @@ public class LevelSelectManager : MonoBehaviour
     public void NextLevel()
     {
         if (!HasLevels())
-        {
             return;
-        }
 
-        // Normalise the index before navigating.
-        currentIndex = Mathf.Clamp(
-            currentIndex,
-            0,
-            levels.Length - 1
-        );
+        currentIndex = Mathf.Clamp(currentIndex, 0, levels.Length - 1);
 
         int oldIndex = currentIndex;
+        currentIndex = Mathf.Min(currentIndex + 1, levels.Length - 1);
 
-        currentIndex = Mathf.Min(
-            currentIndex + 1,
-            levels.Length - 1
-        );
-
-        // Only play the sound if the selection changed.
         if (currentIndex != oldIndex)
         {
             PlayNavigationSound();
@@ -52,25 +45,13 @@ public class LevelSelectManager : MonoBehaviour
     public void PreviousLevel()
     {
         if (!HasLevels())
-        {
             return;
-        }
 
-        // Normalise the index before navigating.
-        currentIndex = Mathf.Clamp(
-            currentIndex,
-            0,
-            levels.Length - 1
-        );
+        currentIndex = Mathf.Clamp(currentIndex, 0, levels.Length - 1);
 
         int oldIndex = currentIndex;
+        currentIndex = Mathf.Max(currentIndex - 1, 0);
 
-        currentIndex = Mathf.Max(
-            currentIndex - 1,
-            0
-        );
-
-        // Only play the sound if the selection changed.
         if (currentIndex != oldIndex)
         {
             PlayNavigationSound();
@@ -81,35 +62,22 @@ public class LevelSelectManager : MonoBehaviour
     private void UpdateSelection()
     {
         if (!HasLevels())
-        {
             return;
-        }
 
-        // Keep the index valid if it was changed
-        // in the Inspector or by another script.
-        currentIndex = Mathf.Clamp(
-            currentIndex,
-            0,
-            levels.Length - 1
-        );
+        currentIndex = Mathf.Clamp(currentIndex, 0, levels.Length - 1);
 
-        // Clear previous selections.
         for (int i = 0; i < levels.Length; i++)
         {
             if (levels[i] != null)
-            {
                 levels[i].Select(false);
-            }
         }
 
         LevelNode selectedLevel = levels[currentIndex];
 
-        if (selectedLevel == null ||
-            selectedLevel.levelData == null)
+        if (selectedLevel == null || selectedLevel.levelData == null)
         {
             Debug.LogWarning(
-                "LevelSelectManager: The selected level " +
-                "or its LevelData is not assigned.",
+                "LevelSelectManager: Selected level or LevelData is missing.",
                 this
             );
 
@@ -128,40 +96,102 @@ public class LevelSelectManager : MonoBehaviour
         }
 
         if (infoPanel != null)
-        {
-            infoPanel.ShowMessage(
-                selectedLevel.levelData.levelName
-            );
-        }
+            infoPanel.ShowMessage(selectedLevel.levelData.levelName);
     }
 
     public void PlaySelectedLevel()
     {
-        if (!HasValidSelection())
+        if (isLoadingScene || !HasValidSelection())
+            return;
+
+        LevelData data = levels[currentIndex].levelData;
+
+        if (!data.unlocked)
         {
+            Debug.LogWarning(
+                "LevelSelectManager: This level is locked.",
+                this
+            );
+
+            PlayNavigationSound();
+            return;
+        }
+
+        BuildingGameplayConfig configuration = data.buildingConfiguration;
+
+        if (configuration == null)
+        {
+            Debug.LogError(
+                "LevelSelectManager: No BuildingGameplayConfig is assigned " +
+                "to level '" + data.levelName + "'.",
+                this
+            );
+
+            return;
+        }
+
+        if (!configuration.HasValidGameplaySetup())
+            return;
+
+        string sceneToLoad = string.IsNullOrWhiteSpace(data.gameplayScene)
+            ? fallbackGameplayScene
+            : data.gameplayScene;
+
+        if (string.IsNullOrWhiteSpace(sceneToLoad))
+        {
+            Debug.LogError(
+                "LevelSelectManager: No gameplay scene is configured.",
+                this
+            );
+
+            return;
+        }
+
+        if (!Application.CanStreamedLevelBeLoaded(sceneToLoad))
+        {
+            Debug.LogError(
+                "LevelSelectManager: Scene '" + sceneToLoad +
+                "' cannot be loaded. Check its name and Build Settings.",
+                this
+            );
+
             return;
         }
 
         PlayMajorButtonSound();
 
-        Debug.Log(
-            "Play " + levels[currentIndex].levelData.levelName
-        );
+        GameplaySelection.Select(configuration);
+        isLoadingScene = true;
+
+        SceneManager.LoadScene(sceneToLoad);
     }
 
     public void BackToMenu()
     {
-        PlayWindowSwitchSound();
+        if (isLoadingScene)
+            return;
 
-        Debug.Log("Return to Main Menu");
+        if (string.IsNullOrWhiteSpace(mainMenuScene) ||
+            !Application.CanStreamedLevelBeLoaded(mainMenuScene))
+        {
+            Debug.LogError(
+                "LevelSelectManager: Main menu scene '" + mainMenuScene +
+                "' cannot be loaded. Check the scene name and Build Settings.",
+                this
+            );
+
+            return;
+        }
+
+        PlayWindowSwitchSound();
+        isLoadingScene = true;
+        SceneManager.LoadScene(mainMenuScene);
     }
 
     private bool HasLevels()
     {
         if (levels != null && levels.Length > 0)
-        {
             return true;
-        }
 
         Debug.LogWarning(
             "LevelSelectManager: No levels have been assigned.",
@@ -174,22 +204,15 @@ public class LevelSelectManager : MonoBehaviour
     private bool HasValidSelection()
     {
         if (!HasLevels())
-        {
             return false;
-        }
 
-        currentIndex = Mathf.Clamp(
-            currentIndex,
-            0,
-            levels.Length - 1
-        );
+        currentIndex = Mathf.Clamp(currentIndex, 0, levels.Length - 1);
 
         if (levels[currentIndex] == null ||
             levels[currentIndex].levelData == null)
         {
             Debug.LogWarning(
-                "LevelSelectManager: The selected level " +
-                "or its LevelData is not assigned.",
+                "LevelSelectManager: Selected level or LevelData is missing.",
                 this
             );
 
@@ -199,52 +222,21 @@ public class LevelSelectManager : MonoBehaviour
         return true;
     }
 
-    // =====================================================
-    // AUDIO
-    // =====================================================
-
     private void PlayNavigationSound()
     {
-        if (AudioManager.Instance == null)
-        {
-            Debug.LogWarning(
-                "LevelSelectManager: AudioManager is not available.",
-                this
-            );
-
-            return;
-        }
-
-        AudioManager.Instance.PlayNavigationButton();
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayNavigationButton();
     }
 
     private void PlayMajorButtonSound()
     {
-        if (AudioManager.Instance == null)
-        {
-            Debug.LogWarning(
-                "LevelSelectManager: AudioManager is not available.",
-                this
-            );
-
-            return;
-        }
-
-        AudioManager.Instance.PlayMajorButton();
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayMajorButton();
     }
 
     private void PlayWindowSwitchSound()
     {
-        if (AudioManager.Instance == null)
-        {
-            Debug.LogWarning(
-                "LevelSelectManager: AudioManager is not available.",
-                this
-            );
-
-            return;
-        }
-
-        AudioManager.Instance.PlayWindowSwitch();
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayWindowSwitch();
     }
 }

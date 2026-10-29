@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 [System.Serializable]
@@ -5,6 +6,7 @@ public class LevelData
 {
     [Header("Information")]
     public string levelName;
+
     [TextArea]
     public string description;
 
@@ -12,10 +14,13 @@ public class LevelData
     public int targetPopulation;
     public bool unlocked;
 
+    [Header("Building Configuration")]
+    public BuildingGameplayConfig buildingConfiguration;
+
     [Header("Visuals")]
     public Sprite buildingIcon;
     public Sprite highlightIcon;
 
     [Header("Scene")]
-    public string gameplayScene;
+    public string gameplayScene = "Gameplay1";
 }

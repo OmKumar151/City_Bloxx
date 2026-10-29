@@ -4,94 +4,102 @@ using UnityEngine;
 [RequireComponent(typeof(SpriteRenderer))]
 public class BuildingTier : MonoBehaviour
 {
-    [System.Serializable]
-    public class TierData
-    {
-        public string tierName = "Tier";
-        [Min(1)] public int floorsPerTier = 3;
-        public Sprite[] sprites;
-        public Color fallbackColor = Color.white;
-    }
+    [Header("Fallback Sprites")]
+    [Tooltip("Used if no BuildingGameplayConfig is selected.")]
+    public Sprite groundSprite;
 
-    [Header("Tier Definitions (bottom to top)")]
-    public TierData[] tiers =
-    {
-        new TierData
-        {
-            tierName = "Base",
-            floorsPerTier = 3,
-            fallbackColor = new Color(0.82f, 0.71f, 0.55f)
-        },
-        new TierData
-        {
-            tierName = "Mid-Rise",
-            floorsPerTier = 3,
-            fallbackColor = new Color(0.55f, 0.65f, 0.75f)
-        },
-        new TierData
-        {
-            tierName = "High-Rise",
-            floorsPerTier = 3,
-            fallbackColor = new Color(0.85f, 0.55f, 0.35f)
-        },
-        new TierData
-        {
-            tierName = "Penthouse",
-            floorsPerTier = 3,
-            fallbackColor = new Color(0.65f, 0.85f, 0.95f)
-        }
-    };
+    public Sprite floorSprite;
+    public Sprite topSprite;
+    public Sprite specialTopSprite;
+
+    [Header("Fallback Settings")]
+    public bool useSpecialTop;
+    public Color fallbackColor = Color.white;
 
     private SpriteRenderer spriteRenderer;
+    private BuildingGameplayConfig configuration;
 
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
+    public void Configure(BuildingGameplayConfig selectedConfiguration)
+    {
+        configuration = selectedConfiguration;
+
+        if (configuration == null)
+            return;
+
+        groundSprite = configuration.groundSprite;
+        floorSprite = configuration.floorSprite;
+        topSprite = configuration.standardRoofSprite;
+        specialTopSprite = configuration.specialRoofSprite;
+    }
+
     public void ApplyTierForFloor(int floorNumber)
     {
-        if (spriteRenderer == null ||
-            tiers == null || tiers.Length == 0)
-            return;
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
 
-        int remaining = Mathf.Max(1, floorNumber);
-        int tierIndex = 0;
-
-        for (int i = 0; i < tiers.Length; i++)
+        if (spriteRenderer == null)
         {
-            TierData tier = tiers[i];
+            Debug.LogError(
+                "BuildingTier: No SpriteRenderer found.",
+                this
+            );
 
-            if (tier == null)
-                continue;
-
-            int floorsInTier = Mathf.Max(1, tier.floorsPerTier);
-
-            if (remaining <= floorsInTier)
-            {
-                tierIndex = i;
-                break;
-            }
-
-            remaining -= floorsInTier;
-            tierIndex = i;
+            return;
         }
 
-        TierData selected = tiers[tierIndex];
+        GameManager manager = GameManager.Instance;
 
-        if (selected == null)
-            return;
+        floorNumber = Mathf.Max(1, floorNumber);
 
-        if (selected.sprites != null &&
-            selected.sprites.Length > 0)
+        int totalFloors = manager != null
+            ? Mathf.Max(1, manager.floorsToComplete)
+            : 1;
+
+        Sprite selectedSprite;
+
+        if (floorNumber == 1)
         {
-            spriteRenderer.sprite =
-                selected.sprites[Random.Range(0, selected.sprites.Length)];
+            selectedSprite = groundSprite;
+        }
+        else if (floorNumber >= totalFloors)
+        {
+            bool specialRoofAllowed = useSpecialTop;
+
+            if (configuration != null)
+            {
+                specialRoofAllowed =
+                    manager != null &&
+                    manager.score >= configuration.specialRoofScoreThreshold;
+            }
+
+            selectedSprite = specialRoofAllowed && specialTopSprite != null
+                ? specialTopSprite
+                : topSprite;
+        }
+        else
+        {
+            selectedSprite = floorSprite;
+        }
+
+        if (selectedSprite != null)
+        {
+            spriteRenderer.sprite = selectedSprite;
             spriteRenderer.color = Color.white;
         }
         else
         {
-            spriteRenderer.color = selected.fallbackColor;
+            spriteRenderer.color = fallbackColor;
+
+            Debug.LogWarning(
+                "BuildingTier: No sprite assigned for floor " +
+                floorNumber + ". Check the selected building configuration.",
+                this
+            );
         }
     }
 }

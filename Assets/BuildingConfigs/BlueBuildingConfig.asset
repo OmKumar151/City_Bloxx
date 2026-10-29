@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00f4970e6a2e14b4998873fb731856d6, type: 3}
+  m_Name: BlueBuildingConfig
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingGameplayConfig
+  buildingId: blue
+  displayName: Blue Building
+  floorsToComplete: 10
+  hangingBlockPrefab: {fileID: 4873505803641195100, guid: 81b159bc9a7f05449aa3c0d960e70698, type: 3}
+  groundSprite: {fileID: 3879516571654153043, guid: 7310f57dbc79cc447836b083348faa28, type: 3}
+  floorSprite: {fileID: -2323974005142630397, guid: 3012c9a1b7ed9d64187167bc0010d8c2, type: 3}
+  standardRoofSprite: {fileID: -347233292637626677, guid: b087ed844a105654b97b78e8a4bd6eba, type: 3}
+  specialRoofSprite: {fileID: -3146857190420745851, guid: 475418318e97ad647a8ccaf27912db2a, type: 3}
+  specialRoofScoreThreshold: 500
+  requiredPopulationReward: 0

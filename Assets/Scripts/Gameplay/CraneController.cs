@@ -27,6 +27,7 @@ public class CraneController : MonoBehaviour
     private SwingPivotController swingController;
     private RopeController ropeController;
     private Transform ropeTopPoint;
+    private BuildingGameplayConfig activeConfiguration;
 
     private bool stopped;
     private bool movingCraneUp;
@@ -57,6 +58,35 @@ public class CraneController : MonoBehaviour
 
     private void Start()
     {
+        GameManager manager = GameManager.Instance;
+
+        if (manager == null)
+        {
+            Debug.LogError(
+                "CraneController: GameManager.Instance was not found.",
+                this
+            );
+            return;
+        }
+
+        activeConfiguration = manager.ActiveConfiguration;
+
+        // A selected configuration takes priority over the Inspector prefab.
+        if (activeConfiguration != null)
+        {
+            if (activeConfiguration.hangingBlockPrefab == null)
+            {
+                Debug.LogError(
+                    "CraneController: The selected building configuration " +
+                    "has no Hanging Block Prefab assigned.",
+                    activeConfiguration
+                );
+                return;
+            }
+
+            hangingBlockPrefab = activeConfiguration.hangingBlockPrefab;
+        }
+
         if (craneRoot == null)
         {
             Debug.LogError(
@@ -88,17 +118,6 @@ public class CraneController : MonoBehaviour
         {
             Debug.LogError(
                 "CraneController: Hanging Block Prefab is not assigned.",
-                this
-            );
-            return;
-        }
-
-        GameManager manager = GameManager.Instance;
-
-        if (manager == null)
-        {
-            Debug.LogError(
-                "CraneController: GameManager.Instance was not found.",
                 this
             );
             return;
@@ -188,17 +207,13 @@ public class CraneController : MonoBehaviour
             return;
         }
 
-        // Clear the reference first to prevent duplicate release attempts.
         currentBlock = null;
 
-        // Detach while preserving the block's world position.
         releasedBlock.transform.SetParent(null, true);
 
-        // Stop swinging while leaving the crane itself operational.
         if (swingController != null)
             swingController.StopSwing();
 
-        // Configure physics for the released block.
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
         rb.gravityScale = 1f;
@@ -206,7 +221,6 @@ public class CraneController : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         rb.bodyType = RigidbodyType2D.Dynamic;
 
-        // IMPORTANT: Allow BlockLanding to process collisions after release.
         landing.MarkAsReleased();
 
         ConfigureRope();
@@ -313,8 +327,18 @@ public class CraneController : MonoBehaviour
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.freezeRotation = true;
 
-        // The new block must not be treated as released yet.
-        // ReleaseBlock() calls MarkAsReleased() when the player drops it.
+        // Apply the selected building's appearance before the block swings.
+        BuildingTier tier = block.GetComponent<BuildingTier>();
+
+        if (tier != null)
+        {
+            tier.Configure(activeConfiguration);
+
+            GameManager manager = GameManager.Instance;
+
+            if (manager != null)
+                tier.ApplyTierForFloor(manager.floorsBuilt + 1);
+        }
 
         if (swingController != null)
             swingController.StartSwing();

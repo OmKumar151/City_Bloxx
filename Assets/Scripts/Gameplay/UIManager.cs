@@ -1,4 +1,3 @@
-
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,7 +19,6 @@ public class UIManager : MonoBehaviour
     public Color lifeLostColor = new Color(0.3f, 0.3f, 0.35f, 0.65f);
 
     [Header("Score Settings")]
-    public string scorePrefix = "SCORE";
     public int displayedScore;
 
     [Header("Combo Bar")]
@@ -81,13 +79,17 @@ public class UIManager : MonoBehaviour
         displayedScore = Mathf.Max(0, score);
 
         if (scoreText != null)
-            scoreText.text = scorePrefix + ": " + displayedScore.ToString("N0");
+        {
+            scoreText.text =
+                "Score\n" + displayedScore.ToString("N0");
+        }
 
         if (finalScoreText != null &&
-            completePanel != null && completePanel.activeSelf)
+            completePanel != null &&
+            completePanel.activeSelf)
         {
             finalScoreText.text =
-                "FINAL SCORE: " + displayedScore.ToString("N0");
+                "Final Score\n" + displayedScore.ToString("N0");
         }
     }
 
@@ -116,10 +118,16 @@ public class UIManager : MonoBehaviour
     public void UpdateFloors(int floors)
     {
         if (floorText != null)
-            floorText.text = "FLOORS: " + Mathf.Max(0, floors);
+        {
+            floorText.text =
+                "Floor\n" + Mathf.Max(0, floors);
+        }
     }
 
-    public void UpdateCombo(int comboCount, int maxCombo, bool wasPerfect)
+    public void UpdateCombo(
+        int comboCount,
+        int maxCombo,
+        bool wasPerfect)
     {
         int safeCombo = Mathf.Max(0, comboCount);
         int safeMaxCombo = Mathf.Max(1, maxCombo);
@@ -131,7 +139,8 @@ public class UIManager : MonoBehaviour
             comboBarFill.fillAmount =
                 Mathf.Clamp01((float)safeCombo / safeMaxCombo);
 
-            comboBarFill.color = maxed ? comboMaxColor : comboNormalColor;
+            comboBarFill.color =
+                maxed ? comboMaxColor : comboNormalColor;
         }
 
         if (comboText != null)
@@ -145,7 +154,10 @@ public class UIManager : MonoBehaviour
             comboBarContainer.SetActive(safeCombo > 0);
 
         if (comboStarIcon != null)
-            comboStarIcon.color = maxed ? comboMaxColor : comboNormalColor;
+        {
+            comboStarIcon.color =
+                maxed ? comboMaxColor : comboNormalColor;
+        }
     }
 
     public void ShowGameOver()
@@ -154,10 +166,7 @@ public class UIManager : MonoBehaviour
             gameOverPanel.SetActive(true);
 
         if (gameOverText != null)
-        {
-            gameOverText.text = "GAME OVER";
             gameOverText.enabled = true;
-        }
     }
 
     public void ShowBuildingComplete(int score)
@@ -170,7 +179,7 @@ public class UIManager : MonoBehaviour
         if (finalScoreText != null)
         {
             finalScoreText.text =
-                "FINAL SCORE: " + Mathf.Max(0, score).ToString("N0");
+                "Final Score\n" + Mathf.Max(0, score).ToString("N0");
         }
     }
 
