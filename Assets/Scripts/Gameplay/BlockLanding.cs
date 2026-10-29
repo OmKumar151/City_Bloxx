@@ -41,7 +41,6 @@ public class BlockLanding : MonoBehaviour
             Debug.LogError("BlockLanding: No Rigidbody2D found.", this);
     }
 
-    // Called by CraneController when the player releases this block.
     public void MarkAsReleased()
     {
         if (resolved)
@@ -57,7 +56,6 @@ public class BlockLanding : MonoBehaviour
 
     private void Update()
     {
-        // Do not resolve a miss while the block is still attached to the crane.
         if (resolved || !hasBeenReleased || body == null)
             return;
 
@@ -87,10 +85,7 @@ public class BlockLanding : MonoBehaviour
 
             if (unresolvedContactTimer >= unresolvedContactTimeout)
             {
-                ResolveMiss(
-                    "contact occurred without a valid landing"
-                );
-
+                ResolveMiss("contact occurred without a valid landing");
                 return;
             }
         }
@@ -101,11 +96,7 @@ public class BlockLanding : MonoBehaviour
             stationaryTimer += Time.deltaTime;
 
             if (stationaryTimer >= stationaryMissTimeout)
-            {
-                ResolveMiss(
-                    "stopped moving without a valid landing"
-                );
-            }
+                ResolveMiss("stopped moving without a valid landing");
         }
         else
         {
@@ -146,7 +137,6 @@ public class BlockLanding : MonoBehaviour
                 "Landing check stopped: game manager is unavailable " +
                 "or the game has ended."
             );
-
             return;
         }
 
@@ -168,10 +158,7 @@ public class BlockLanding : MonoBehaviour
             if (targetCollider == null || !targetCollider.enabled)
                 continue;
 
-            if (IsCollisionWithTarget(
-                collision,
-                target,
-                targetCollider))
+            if (IsCollisionWithTarget(collision, target, targetCollider))
             {
                 matchedTargetCollider = targetCollider;
                 break;
@@ -193,15 +180,12 @@ public class BlockLanding : MonoBehaviour
             Mathf.Max(blockBounds.min.x, targetBounds.min.x)
         );
 
-        float verticalGap =
-            blockBounds.min.y - targetBounds.max.y;
+        float verticalGap = blockBounds.min.y - targetBounds.max.y;
 
         bool correctHeight =
             verticalGap >= -landingHeightTolerance &&
             verticalGap <= landingHeightTolerance;
 
-        // Verify that the contact is near the falling block's
-        // bottom and the target's top surface.
         bool contactNearTop = false;
 
         for (int i = 0; i < collision.contactCount; i++)
@@ -240,7 +224,38 @@ public class BlockLanding : MonoBehaviour
                 ? Mathf.Clamp01(overlapWidth / blockBounds.size.x)
                 : 0f;
 
-            ResolveSuccess(manager, targetBounds, accuracy);
+            // Check the horizontal distance between the two block centers.
+            float centerOffset = Mathf.Abs(
+                blockBounds.center.x - targetBounds.center.x
+            );
+
+            float perfectDistance = Mathf.Max(
+                0f,
+                manager.perfectLandingDistance
+            );
+
+            // A sufficiently close landing will snap to the target center.
+            bool snapToCenter = centerOffset <= perfectDistance;
+
+            // A snapped landing receives full accuracy and qualifies
+            // for the existing perfect bonus and combo logic.
+            if (snapToCenter)
+                accuracy = 1f;
+
+            Log(
+                $"Landing accepted. CenterOffset={centerOffset:F3}, " +
+                $"PerfectDistance={perfectDistance:F3}, " +
+                $"SnapToCenter={snapToCenter}, " +
+                $"FinalAccuracy={accuracy:F2}"
+            );
+
+            ResolveSuccess(
+                manager,
+                targetBounds,
+                accuracy,
+                snapToCenter
+            );
+
             return;
         }
 
@@ -255,9 +270,7 @@ public class BlockLanding : MonoBehaviour
         hasUnresolvedContact = true;
         unresolvedContactTimer = 0f;
 
-        Log(
-            "Contact detected, but it has not yet qualified as a valid landing."
-        );
+        Log("Contact detected, but it has not yet qualified as a valid landing.");
     }
 
     private bool IsCollisionWithTarget(
@@ -284,7 +297,8 @@ public class BlockLanding : MonoBehaviour
     private void ResolveSuccess(
         GameManager manager,
         Bounds targetBounds,
-        float accuracy)
+        float accuracy,
+        bool snapToCenter)
     {
         if (resolved)
             return;
@@ -292,23 +306,35 @@ public class BlockLanding : MonoBehaviour
         resolved = true;
         hasUnresolvedContact = false;
 
-        // Stop all physics movement before correcting the position.
+        // Stop physics before correcting the final position.
         body.linearVelocity = Vector2.zero;
         body.angularVelocity = 0f;
-
-        // Freeze the block in place before correcting its final pose.
         body.bodyType = RigidbodyType2D.Kinematic;
         body.freezeRotation = true;
 
-        // Reset the world rotation so the block stacks horizontally.
-        // This assumes the block's intended upright rotation is 0 degrees.
+        // Keep the block upright.
         transform.rotation = Quaternion.identity;
 
-        // Recalculate the collider bounds after resetting rotation.
         Bounds correctedBlockBounds = blockCollider.bounds;
 
-        // Align the bottom of this block with the top of the target.
-        // Both values are world-space coordinates.
+        // Only perfect-threshold landings are horizontally centered.
+        if (snapToCenter)
+        {
+            float horizontalCorrection =
+                targetBounds.center.x - correctedBlockBounds.center.x;
+
+            transform.position += Vector3.right * horizontalCorrection;
+
+            Log(
+                $"Perfect alignment applied. Horizontal correction=" +
+                $"{horizontalCorrection:F3}"
+            );
+
+            // Recalculate bounds after horizontal alignment.
+            correctedBlockBounds = blockCollider.bounds;
+        }
+
+        // Align the bottom of this block with the top of the previous one.
         float correctionY =
             targetBounds.max.y - correctedBlockBounds.min.y;
 
@@ -326,7 +352,8 @@ public class BlockLanding : MonoBehaviour
         Log(
             $"LANDING SUCCESS. Accuracy={accuracy:F2}. " +
             $"Floors before update={manager.floorsBuilt}. " +
-            $"Vertical correction={correctionY:F3}."
+            $"Vertical correction={correctionY:F3}. " +
+            $"SnappedToCenter={snapToCenter}."
         );
 
         manager.AddFloor(accuracy);

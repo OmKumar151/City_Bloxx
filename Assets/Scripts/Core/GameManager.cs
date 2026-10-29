@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -11,7 +12,13 @@ public class GameManager : MonoBehaviour
     [Header("Scoring")]
     [Min(0)] public int baseScorePerFloor = 100;
     [Min(0)] public int perfectLandingBonus = 100;
-    [Range(0f, 1f)] public float perfectAccuracyThreshold = 0.9f;
+
+    [Range(0f, 1f)]
+    public float perfectAccuracyThreshold = 0.9f;
+
+    [Min(0f)]
+    public float perfectLandingDistance = 0.25f;
+
     [Min(1)] public int maxCombo = 5;
 
     [Header("Scene References")]
@@ -64,6 +71,8 @@ public class GameManager : MonoBehaviour
                 this
             );
         }
+
+        perfectLandingDistance = Mathf.Max(0f, perfectLandingDistance);
 
         ResetGameState();
 
@@ -164,7 +173,6 @@ public class GameManager : MonoBehaviour
         floorsBuilt++;
         accuracy = Mathf.Clamp01(accuracy);
 
-        // Update the displayed floor count.
         RefreshFloorUI();
 
         bool perfect = accuracy >= perfectAccuracyThreshold;
@@ -210,8 +218,6 @@ public class GameManager : MonoBehaviour
             return;
 
         score = Mathf.Max(0, score + amount);
-
-        // Update the displayed score.
         RefreshScoreUI();
     }
 

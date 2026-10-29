@@ -524,7 +524,6 @@ GameObject:
   - component: {fileID: 191644969}
   - component: {fileID: 191644968}
   - component: {fileID: 191644967}
-  - component: {fileID: 191644970}
   m_Layer: 0
   m_Name: Background
   m_TagString: Untagged
@@ -620,36 +619,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 5.56}
   m_SizeDelta: {x: 1080, y: 1920}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &191644970
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 191644966}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &222140942
 GameObject:
   m_ObjectHideFlags: 0
@@ -1663,7 +1632,6 @@ MonoBehaviour:
   - {fileID: 651529892}
   lifeActiveColor: {r: 1, g: 0.2, b: 0.25, a: 1}
   lifeLostColor: {r: 0.3, g: 0.3, b: 0.35, a: 0.65}
-  scorePrefix: SCORE
   displayedScore: 0
   comboBarFill: {fileID: 0}
   comboText: {fileID: 0}
@@ -3618,6 +3586,7 @@ MonoBehaviour:
   baseScorePerFloor: 100
   perfectLandingBonus: 100
   perfectAccuracyThreshold: 1
+  perfectLandingDistance: 0.25
   maxCombo: 5
   startingBuilding: {fileID: 1728915540}
   score: 0
