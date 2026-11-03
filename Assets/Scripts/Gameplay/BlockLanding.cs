@@ -195,9 +195,6 @@ public class BlockLanding : MonoBehaviour
             $"RequiredOverlap={minOverlap:F3}"
         );
 
-        // Keep the existing validity rules. The centering threshold
-        // does not allow a block with insufficient physical overlap
-        // to land successfully.
         if (contactNearTop &&
             correctHeight &&
             overlapWidth >= minOverlap)
@@ -229,8 +226,6 @@ public class BlockLanding : MonoBehaviour
         Bounds targetBounds = matchedTargetCollider.bounds;
         Bounds blockBounds = blockCollider.bounds;
 
-        // Measure the distance between the actual collider centres,
-        // rather than assuming the transform pivot is at the centre.
         float horizontalOffset =
             blockBounds.center.x - targetBounds.center.x;
 
@@ -242,8 +237,6 @@ public class BlockLanding : MonoBehaviour
 
         if (shouldAutoCenter)
         {
-            // Move the block so its collider centre aligns with the
-            // target collider centre.
             Vector3 position = transform.position;
 
             position.x += targetBounds.center.x - blockBounds.center.x;
@@ -263,7 +256,6 @@ public class BlockLanding : MonoBehaviour
             );
         }
 
-        // Align the bottom of this block with the target top.
         blockBounds = blockCollider.bounds;
         targetBounds = matchedTargetCollider.bounds;
 
@@ -272,7 +264,6 @@ public class BlockLanding : MonoBehaviour
 
         transform.position += Vector3.up * correctionY;
 
-        // Calculate the final physical overlap.
         blockBounds = blockCollider.bounds;
         targetBounds = matchedTargetCollider.bounds;
 
@@ -285,9 +276,6 @@ public class BlockLanding : MonoBehaviour
             ? Mathf.Clamp01(finalOverlapWidth / blockBounds.size.x)
             : 0f;
 
-        // A landing inside the configured auto-centering threshold
-        // explicitly qualifies as perfect, even if tiny collider or
-        // floating-point differences affect the measured overlap.
         if (shouldAutoCenter)
         {
             accuracy = Mathf.Max(
@@ -312,7 +300,6 @@ public class BlockLanding : MonoBehaviour
             $"PerfectThreshold={manager.perfectAccuracyThreshold:F2}"
         );
 
-        // GameManager handles score, combo, and streak timer updates.
         manager.AddFloor(accuracy);
 
         ContinueCraneIfPlaying();
@@ -384,6 +371,11 @@ public class BlockLanding : MonoBehaviour
 
         body.linearVelocity = Vector2.zero;
         body.angularVelocity = 0f;
+
+        // Reset the missed block to an upright rotation.
+        transform.rotation = Quaternion.identity;
+
+        body.freezeRotation = true;
         body.bodyType = RigidbodyType2D.Kinematic;
 
         manager.LoseLife();

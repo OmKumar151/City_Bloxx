@@ -167,7 +167,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 1
-  m_Constraints: 4
+  m_Constraints: 5
 --- !u!114 &9100744240261391800
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -200,16 +200,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c71d755ca21c994993f4610e997d324, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BuildingTier
-  tiers:
-  - tierName: Base
-    floorsPerTier: 3
-    sprites: []
-    fallbackColor: {r: 0.82, g: 0.71, b: 0.55, a: 1}
-  - tierName: Mid-Rise
-    floorsPerTier: 3
-    sprites: []
-    fallbackColor: {r: 0.55, g: 0.65, b: 0.75, a: 1}
-  - tierName: High-Rise
-    floorsPerTier: 3
-    sprites: []
-    fallbackColor: {r: 0.85, g: 0.55, b: 0.35, a: 1}
+  groundSprite: {fileID: 0}
+  floorSprite: {fileID: 0}
+  topSprite: {fileID: 0}
+  specialTopSprite: {fileID: 0}
+  useSpecialTop: 0
+  fallbackColor: {r: 1, g: 1, b: 1, a: 1}

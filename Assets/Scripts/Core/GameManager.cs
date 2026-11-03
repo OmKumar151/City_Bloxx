@@ -147,10 +147,19 @@ public class GameManager : MonoBehaviour
         if (isGameOver || isBuildingComplete)
             return;
 
+        // Capture whether this is the foundation landing
+        // before incrementing the floor count.
+        bool isFoundationLanding = floorsBuilt == 0;
+
         floorsBuilt++;
+
         accuracy = Mathf.Clamp01(accuracy);
 
-        bool isPerfect = accuracy >= perfectAccuracyThreshold;
+        // Foundation landing must never count as perfect.
+        // Every subsequent floor uses the normal perfect threshold.
+        bool isPerfect =
+            !isFoundationLanding &&
+            accuracy >= perfectAccuracyThreshold;
 
         int floorPoints =
             baseScorePerFloor +
@@ -210,7 +219,9 @@ public class GameManager : MonoBehaviour
             return;
 
         lives = Mathf.Max(0, lives - 1);
+
         ResetPerfectStreak();
+
         RefreshUI();
 
         if (lives <= 0)
@@ -244,6 +255,7 @@ public class GameManager : MonoBehaviour
             return;
 
         isGameOver = true;
+
         ResetPerfectStreak();
 
         if (CraneController.Instance != null)

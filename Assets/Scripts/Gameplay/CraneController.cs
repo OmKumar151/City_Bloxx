@@ -163,7 +163,6 @@ public class CraneController : MonoBehaviour
 
         ConfigureRope();
 
-        // Spawn the first block immediately, but delay its swing.
         SpawnBlock();
     }
 
@@ -213,20 +212,27 @@ public class CraneController : MonoBehaviour
             return;
         }
 
-        // Pause the perfect-streak timer while the block is falling.
         manager.NotifyBlockReleased();
 
         currentBlock = null;
 
+        // Detach while preserving the current world position.
         releasedBlock.transform.SetParent(null, true);
 
+        // Stop the rope swinging.
         if (swingController != null)
             swingController.StopSwing();
 
+        // Reset the released block's rotation.
+        releasedBlock.transform.rotation = Quaternion.identity;
+        rb.rotation = 0f;
+
+        // Reset physics before enabling gravity.
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
-        rb.gravityScale = 1f;
+
         rb.freezeRotation = true;
+        rb.gravityScale = 1f;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         rb.bodyType = RigidbodyType2D.Dynamic;
 
@@ -236,7 +242,7 @@ public class CraneController : MonoBehaviour
 
         Debug.Log(
             $"CraneController: Released '{releasedBlock.name}'. " +
-            "BlockLanding.MarkAsReleased() was called.",
+            "Block rotation reset to zero.",
             releasedBlock
         );
     }
@@ -299,6 +305,15 @@ public class CraneController : MonoBehaviour
             return;
         }
 
+        // IMPORTANT:
+        // Reset the swing pivot before spawning the next block.
+        // This prevents the next block from inheriting the
+        // previous block's release angle.
+        if (swingController != null)
+        {
+            swingController.ResetSwing();
+        }
+
         GameObject block = Instantiate(
             hangingBlockPrefab,
             hook.position,
@@ -323,12 +338,18 @@ public class CraneController : MonoBehaviour
 
         currentBlock = block;
 
+        // Attach the block to the hook.
         block.transform.SetParent(hook, true);
+
         block.transform.localPosition = new Vector3(
             0f,
             -blockBelowHook,
             0f
         );
+
+        // Ensure the new block starts upright.
+        block.transform.rotation = Quaternion.identity;
+        rb.rotation = 0f;
 
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
@@ -362,12 +383,13 @@ public class CraneController : MonoBehaviour
         }
         else
         {
-            // Subsequent blocks swing as soon as they spawn.
             StartBlockSwing();
         }
 
         Debug.Log(
-            $"CraneController: Spawned '{block.name}'.",
+            $"CraneController: Spawned '{block.name}'. " +
+            $"Transform Z: {block.transform.eulerAngles.z}, " +
+            $"Rigidbody2D rotation: {rb.rotation}.",
             block
         );
     }
@@ -403,7 +425,6 @@ public class CraneController : MonoBehaviour
         if (swingController != null)
             swingController.StartSwing();
 
-        // The streak timer only counts down while a block is swinging.
         GameManager manager = GameManager.Instance;
 
         if (manager != null && manager.perfectStreakTimer != null)
