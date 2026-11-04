@@ -1,5 +1,6 @@
 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class NavigationManager : MonoBehaviour
 {
@@ -16,6 +17,15 @@ public class NavigationManager : MonoBehaviour
 
     [Header("Building Selection")]
     [SerializeField] private int numberOfBuildings = 4;
+
+    [Header("Gameplay Launch")]
+    [Tooltip("One config per building index: 0 Blue, 1 Red, 2 Green, 3 Yellow.")]
+    [SerializeField] private BuildingGameplayConfig[] buildingConfigurations =
+        new BuildingGameplayConfig[4];
+
+    [SerializeField] private string gameplaySceneName = "Gameplay1";
+
+    private bool isLoadingGameplay;
 
     private int selectedBuilding = 0;
     private GridCell currentBoardCell;
@@ -294,9 +304,99 @@ public class NavigationManager : MonoBehaviour
     public void OK()
     {
         if (currentMode == NavigationMode.BuildingSelection)
-            EnterBoardPlacementMode();
+            LaunchGameplayForSelectedBuilding();
         else
             ConfirmBoardPosition();
+    }
+
+    // =========================================================
+    // GAMEPLAY LAUNCH
+    // =========================================================
+
+    // Sends the selected building's config, floor count and special
+    // roof flag to the Gameplay scene, then loads it.
+    private void LaunchGameplayForSelectedBuilding()
+    {
+        if (isLoadingGameplay)
+            return;
+
+        if (!IsBuildingUnlocked(selectedBuilding))
+        {
+            ShowNoValidPlacement();
+            return;
+        }
+
+        BuildingGameplayConfig configuration =
+            GetBuildingConfiguration(selectedBuilding);
+
+        if (configuration == null)
+        {
+            Debug.LogError(
+                "NavigationManager: No BuildingGameplayConfig assigned for " +
+                GetBuildingName(selectedBuilding) + " (index " +
+                selectedBuilding + "). Assign it in Building Configurations.",
+                this
+            );
+            return;
+        }
+
+        if (!configuration.HasValidGameplaySetup())
+            return;
+
+        if (string.IsNullOrWhiteSpace(gameplaySceneName) ||
+            !Application.CanStreamedLevelBeLoaded(gameplaySceneName))
+        {
+            Debug.LogError(
+                "NavigationManager: Scene '" + gameplaySceneName +
+                "' cannot be loaded. Check its name and Build Settings.",
+                this
+            );
+            return;
+        }
+
+        bool specialRoofUnlocked = IsSpecialRoofUnlocked(configuration);
+
+        GameplaySelection.Select(configuration, specialRoofUnlocked);
+
+        Debug.Log(
+            "NavigationManager: Launching " + configuration.buildingId +
+            " | Floors: " + configuration.floorsToComplete +
+            " | Special roof unlocked: " + specialRoofUnlocked
+        );
+
+        SaveMap();
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayMajorButton();
+
+        isLoadingGameplay = true;
+        SceneManager.LoadScene(gameplaySceneName);
+    }
+
+    private BuildingGameplayConfig GetBuildingConfiguration(int buildingIndex)
+    {
+        if (buildingConfigurations == null ||
+            buildingIndex < 0 ||
+            buildingIndex >= buildingConfigurations.Length)
+        {
+            return null;
+        }
+
+        return buildingConfigurations[buildingIndex];
+    }
+
+    private bool IsSpecialRoofUnlocked(BuildingGameplayConfig configuration)
+    {
+        if (configuration == null ||
+            configuration.specialRoofSprite == null ||
+            PopulationProgressionManager.Instance == null)
+        {
+            return false;
+        }
+
+        return PopulationProgressionManager.Instance.IsRewardUnlocked(
+            configuration.specialRoofUnlockReward
+        );
     }
 
     private void EnterBoardPlacementMode()

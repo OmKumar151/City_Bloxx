@@ -3932,7 +3932,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   startingLives: 3
-  floorsToComplete: 30
+  floorsToComplete: 50
   baseScorePerFloor: 100
   perfectLandingBonus: 100
   perfectAccuracyThreshold: 1

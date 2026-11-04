@@ -34,6 +34,19 @@ public class GameManager : MonoBehaviour
     public GameObject LastPlacedBlock { get; private set; }
     public BuildingGameplayConfig ActiveConfiguration { get; private set; }
 
+    /// <summary>Flag sent from LevelSelect (colour's Star unlocked).</summary>
+    public bool SpecialRoofUnlocked { get; private set; }
+
+    /// <summary>
+    /// True when the special roof is unlocked for this building AND the
+    /// current score has reached the building's threshold.
+    /// </summary>
+    public bool IsSpecialRoofEarned =>
+        ActiveConfiguration != null &&
+        SpecialRoofUnlocked &&
+        ActiveConfiguration.specialRoofSprite != null &&
+        score >= ActiveConfiguration.specialRoofScoreThreshold;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -47,7 +60,7 @@ public class GameManager : MonoBehaviour
         if (perfectStreakTimer == null)
             perfectStreakTimer = FindObjectOfType<PerfectStreakTimer>();
 
-        ActiveConfiguration = GameplaySelection.SelectedBuilding;
+        ApplySelectedBuilding();
 
         ResetGameState();
         FindStartingBuilding();
@@ -61,6 +74,39 @@ public class GameManager : MonoBehaviour
 
         if (startingBuilding != null)
             LastPlacedBlock = startingBuilding;
+    }
+
+    // Reads the building chosen in LevelSelect. Without a selection
+    // (e.g. Gameplay1 opened directly in the editor) the Inspector
+    // values and the prefab's fallback sprites are used.
+    private void ApplySelectedBuilding()
+    {
+        ActiveConfiguration = GameplaySelection.SelectedBuilding;
+
+        if (ActiveConfiguration == null)
+        {
+            SpecialRoofUnlocked = false;
+
+            Debug.Log(
+                "GameManager: No building selected. Using Inspector " +
+                "floors (" + floorsToComplete + ") and fallback sprites.",
+                this
+            );
+
+            return;
+        }
+
+        floorsToComplete = Mathf.Max(1, GameplaySelection.FloorsToComplete);
+        SpecialRoofUnlocked = GameplaySelection.SpecialRoofUnlocked;
+
+        Debug.Log(
+            "GameManager: Building '" + GameplaySelection.BuildingId +
+            "' | Floors: " + floorsToComplete +
+            " | Special roof unlocked: " + SpecialRoofUnlocked +
+            " (needs " + ActiveConfiguration.specialRoofScoreThreshold +
+            " points)",
+            this
+        );
     }
 
     public void ResetGameState()
@@ -238,6 +284,8 @@ public class GameManager : MonoBehaviour
         if (perfectStreakTimer != null)
             perfectStreakTimer.StopTimer();
 
+        RefreshRoofSprite();
+
         if (CraneController.Instance != null)
             CraneController.Instance.StopCrane();
 
@@ -247,6 +295,31 @@ public class GameManager : MonoBehaviour
             UIManager.Instance.ShowBuildingComplete(score);
 
         Time.timeScale = 0f;
+    }
+
+    // The roof block lands before its floor points are added, so the
+    // roof is re-evaluated here against the final score. If the special
+    // roof is unlocked and the threshold was reached, the roof sprite
+    // is swapped for the special roof sprite.
+    private void RefreshRoofSprite()
+    {
+        if (LastPlacedBlock == null)
+            return;
+
+        BuildingTier roofTier = LastPlacedBlock.GetComponent<BuildingTier>();
+
+        if (roofTier == null)
+            return;
+
+        roofTier.ApplyTierForFloor(floorsToComplete);
+
+        if (IsSpecialRoofEarned)
+        {
+            Debug.Log(
+                "GameManager: Special roof earned with score " + score + ".",
+                this
+            );
+        }
     }
 
     public void GameOver()

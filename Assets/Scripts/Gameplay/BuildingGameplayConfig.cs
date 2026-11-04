@@ -24,7 +24,12 @@ public class BuildingGameplayConfig : ScriptableObject
     public Sprite specialRoofSprite;
 
     [Min(0)]
+    [Tooltip("Gameplay score needed at completion to show the special roof.")]
     public int specialRoofScoreThreshold = 500;
+
+    [Tooltip("LevelSelect reward that unlocks the special roof for this building.")]
+    public PopulationProgressionManager.RewardType specialRoofUnlockReward =
+        PopulationProgressionManager.RewardType.BlueStar;
 
     [Header("Population Progression")]
     public PopulationProgressionManager.RewardType requiredPopulationReward =

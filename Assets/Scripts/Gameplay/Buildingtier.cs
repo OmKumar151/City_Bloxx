@@ -70,11 +70,15 @@ public class BuildingTier : MonoBehaviour
         {
             bool specialRoofAllowed = useSpecialTop;
 
+            // With a selected building, the special roof needs BOTH the
+            // LevelSelect unlock flag and the score threshold. GameManager
+            // re-applies this tier when the building completes, so the
+            // final score (including the roof floor) is what counts.
             if (configuration != null)
             {
                 specialRoofAllowed =
                     manager != null &&
-                    manager.score >= configuration.specialRoofScoreThreshold;
+                    manager.IsSpecialRoofEarned;
             }
 
             selectedSprite = specialRoofAllowed && specialTopSprite != null
