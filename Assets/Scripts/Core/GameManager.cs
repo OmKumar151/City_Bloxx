@@ -1,5 +1,6 @@
 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -7,20 +8,38 @@ public class GameManager : MonoBehaviour
 
     [Header("Game Settings")]
     [Min(1)] public int startingLives = 3;
+    [Tooltip("Only used when Gameplay1 is opened directly. Normally the " +
+             "selected building's config sets this.")]
     [Min(1)] public int floorsToComplete = 30;
 
+    // Floor points = base + base x accuracy (+ perfect bonus if perfect),
+    // then x the combo multiplier while a perfect streak is running.
     [Header("Scoring")]
+    [Tooltip("Points for every landed floor. Accuracy adds up to the same " +
+             "amount again (a dead-centre landing scores 2x this).")]
     [Min(0)] public int baseScorePerFloor = 100;
+    [Tooltip("Extra points for a perfect landing (before the combo multiplier).")]
     [Min(0)] public int perfectLandingBonus = 100;
+    [Tooltip("Accuracy (overlap / block width) needed for a perfect. " +
+             "Auto-centred landings always count as 1.")]
     [Range(0f, 1f)] public float perfectAccuracyThreshold = 0.9f;
+    [Tooltip("Longest perfect streak that keeps raising the multiplier.")]
     [Min(1)] public int maxCombo = 5;
-    [Min(0f)] public float perfectLandingDistance = 0.25f;
+    [Tooltip("Each perfect in a row adds this much to the multiplier: " +
+             "x1, x1.25, x1.5 ... capped at Max Combo (x2 at 5).")]
+    [Min(0f)] public float comboMultiplierStep = 0.25f;
+    [Tooltip("Horizontal offset (world units, blocks are 1 wide) that " +
+             "still counts as a perfect, auto-centred landing.")]
+    [Min(0f)] public float perfectLandingDistance = 0.2f;
 
     [Header("Building")]
     public GameObject startingBuilding;
 
     [Header("Perfect Streak")]
     public PerfectStreakTimer perfectStreakTimer;
+
+    [Header("Scenes")]
+    public string levelSelectScene = "LevelSelect";
 
     [Header("Runtime State")]
     public int score;
@@ -211,7 +230,7 @@ public class GameManager : MonoBehaviour
             baseScorePerFloor +
             Mathf.RoundToInt(baseScorePerFloor * accuracy);
 
-        int multiplier = 1;
+        float multiplier = 1f;
 
         if (isPerfect)
         {
@@ -219,7 +238,10 @@ public class GameManager : MonoBehaviour
             totalPerfectLandings++;
 
             floorPoints += perfectLandingBonus;
-            multiplier = Mathf.Max(1, comboCount);
+
+            // Additive streak bonus. A straight xCombo multiplier let one
+            // streak outweigh the rest of the run (and every checkpoint).
+            multiplier = 1f + comboMultiplierStep * Mathf.Max(0, comboCount - 1);
 
             if (perfectStreakTimer != null)
                 perfectStreakTimer.StartOrResetTimer();
@@ -229,7 +251,7 @@ public class GameManager : MonoBehaviour
             ResetPerfectStreak();
         }
 
-        score += floorPoints * multiplier;
+        score += Mathf.RoundToInt(floorPoints * multiplier);
 
         RefreshUI();
 
@@ -340,6 +362,79 @@ public class GameManager : MonoBehaviour
             UIManager.Instance.ShowGameOver(score);
 
         Time.timeScale = 0f;
+    }
+
+    // =========================================================
+    // END PANEL ACTIONS
+    // =========================================================
+
+    private bool isLeavingScene;
+
+    /// <summary>
+    /// Replays the same building. GameplaySelection is static, so the
+    /// reloaded scene uses the same sprites, floors and roof flag.
+    /// </summary>
+    public void RestartGame()
+    {
+        if (isLeavingScene)
+            return;
+
+        isLeavingScene = true;
+        Time.timeScale = 1f;
+
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    /// <summary>
+    /// Win panel "Next": adds the final score to the city's population,
+    /// then returns to LevelSelect. Only works after a completed building.
+    /// </summary>
+    public void BankScoreAndReturnToLevelSelect()
+    {
+        if (isLeavingScene || !isBuildingComplete)
+            return;
+
+        string cityId = GameplaySelection.CityId;
+
+        if (string.IsNullOrWhiteSpace(cityId))
+            cityId = PopulationBonusStore.ActiveCityId;
+
+        PopulationBonusStore.Add(cityId, score);
+
+        // The completed building is now the player's to place:
+        // LevelSelect opens board placement for it on load.
+        if (ActiveConfiguration != null)
+            PendingPlacementStore.Set(ActiveConfiguration.buildingId, cityId);
+
+        LoadLevelSelect();
+    }
+
+    /// <summary>Fail panel: back to LevelSelect without adding score.</summary>
+    public void ReturnToLevelSelect()
+    {
+        if (isLeavingScene)
+            return;
+
+        LoadLevelSelect();
+    }
+
+    private void LoadLevelSelect()
+    {
+        if (string.IsNullOrWhiteSpace(levelSelectScene) ||
+            !Application.CanStreamedLevelBeLoaded(levelSelectScene))
+        {
+            Debug.LogError(
+                "GameManager: Scene '" + levelSelectScene +
+                "' cannot be loaded. Check its name and Build Settings.",
+                this
+            );
+            return;
+        }
+
+        isLeavingScene = true;
+        Time.timeScale = 1f;
+
+        SceneManager.LoadScene(levelSelectScene);
     }
 
     public void RefreshUI()

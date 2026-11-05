@@ -20,11 +20,18 @@ public static class GameplaySelection
     /// </summary>
     public static bool SpecialRoofUnlocked { get; private set; }
 
+    /// <summary>
+    /// City the player launched from. A win's score is added to this
+    /// city's population (CityManager doesn't survive the scene change).
+    /// </summary>
+    public static string CityId { get; private set; }
+
     public static bool HasSelection => SelectedBuilding != null;
 
     public static void Select(
         BuildingGameplayConfig configuration,
-        bool specialRoofUnlocked)
+        bool specialRoofUnlocked,
+        string cityId = null)
     {
         SelectedBuilding = configuration;
 
@@ -37,6 +44,7 @@ public static class GameplaySelection
         BuildingId = configuration.buildingId;
         FloorsToComplete = configuration.floorsToComplete;
         SpecialRoofUnlocked = specialRoofUnlocked;
+        CityId = cityId;
     }
 
     // Kept for existing callers (LevelSelectManager).
@@ -51,5 +59,6 @@ public static class GameplaySelection
         BuildingId = null;
         FloorsToComplete = 0;
         SpecialRoofUnlocked = false;
+        CityId = null;
     }
 }

@@ -205,10 +205,13 @@ public class MapSaveManager : MonoBehaviour
                     continue;
                 }
 
+                // Use the current Inspector value, not the one saved at
+                // placement, so tuning building population applies to
+                // existing maps too.
                 boardManager.RestoreBuilding(
                     cell,
                     building.buildingType,
-                    Mathf.Max(0, building.population)
+                    GridCell.GetBuildingScore(building.buildingType)
                 );
             }
         }
@@ -247,6 +250,13 @@ public class MapSaveManager : MonoBehaviour
             );
             return;
         }
+
+        // A map reset also removes population earned from gameplay scores.
+        PopulationBonusStore.Clear(GetCurrentCityId());
+
+        // ...and any earned building still waiting to be placed here.
+        if (PendingPlacementStore.IsForCity(GetCurrentCityId()))
+            PendingPlacementStore.Clear();
 
         ClearGridAndResetPopulation();
 

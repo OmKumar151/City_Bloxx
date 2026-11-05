@@ -6,6 +6,8 @@ using TMPro;
 public class PerfectStreakTimer : MonoBehaviour
 {
     [Header("Timer Settings")]
+    [Tooltip("Seconds the player has to land the next block (timer runs " +
+             "while it swings) before the perfect streak / combo is lost.")]
     [Min(0.1f)]
     [SerializeField] private float streakDuration = 2.5f;
 

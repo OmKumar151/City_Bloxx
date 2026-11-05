@@ -20,14 +20,24 @@ public class UIManager : MonoBehaviour
     [Header("Floor UI")]
     [SerializeField] private TMP_Text floorText;
 
-    [Header("Game Over UI")]
+    [Header("Game Over (Fail) UI")]
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private TMP_Text gameOverText;
+    [Tooltip("Score shown on the fail panel.")]
     [SerializeField] private TMP_Text finalScoreText;
+    [SerializeField] private Button gameOverRestartButton;
+    [SerializeField] private Button gameOverLevelSelectButton;
 
-    [Header("Building Complete UI")]
+    [Header("Building Complete (Win) UI")]
     [SerializeField] private GameObject completePanel;
+    [Tooltip("Score shown on the win panel.")]
     [SerializeField] private TMP_Text completeFinalScoreText;
+    [SerializeField] private Button completeRestartButton;
+    [Tooltip("Adds the score to the city's population and returns to LevelSelect.")]
+    [SerializeField] private Button completeNextButton;
+
+    [Header("Score Format")]
+    [SerializeField] private string scorePrefix = "Score: ";
 
     private int displayedScore;
 
@@ -41,7 +51,62 @@ public class UIManager : MonoBehaviour
 
         Instance = this;
 
+        WireEndPanelButtons();
         HideEndPanels();
+    }
+
+    private void WireEndPanelButtons()
+    {
+        AddClick(gameOverRestartButton, OnRestartClicked);
+        AddClick(gameOverLevelSelectButton, OnLevelSelectClicked);
+        AddClick(completeRestartButton, OnRestartClicked);
+        AddClick(completeNextButton, OnNextClicked);
+    }
+
+    private static void AddClick(
+        Button button,
+        UnityEngine.Events.UnityAction action)
+    {
+        if (button == null)
+            return;
+
+        button.onClick.RemoveListener(action);
+        button.onClick.AddListener(action);
+    }
+
+    private void OnRestartClicked()
+    {
+        PlayButtonSound();
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.RestartGame();
+    }
+
+    private void OnNextClicked()
+    {
+        PlayButtonSound();
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.BankScoreAndReturnToLevelSelect();
+    }
+
+    private void OnLevelSelectClicked()
+    {
+        PlayButtonSound();
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.ReturnToLevelSelect();
+    }
+
+    private static void PlayButtonSound()
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayMajorButton();
+    }
+
+    private string FormatScore(int score)
+    {
+        return scorePrefix + Mathf.Max(0, score).ToString("N0");
     }
 
     private void Start()
@@ -121,7 +186,9 @@ public class UIManager : MonoBehaviour
             gameOverText.text = "GAME OVER";
 
         if (finalScoreText != null)
-            finalScoreText.text = Mathf.Max(0, finalScore).ToString("N0");
+            finalScoreText.text = FormatScore(finalScore);
+
+        SelectFirstButton(gameOverRestartButton);
     }
 
     public void ShowBuildingComplete(int finalScore)
@@ -133,14 +200,19 @@ public class UIManager : MonoBehaviour
             gameOverPanel.SetActive(false);
 
         if (completeFinalScoreText != null)
+            completeFinalScoreText.text = FormatScore(finalScore);
+
+        SelectFirstButton(completeNextButton);
+    }
+
+    // Lets keyboard / controller players press a button straight away.
+    private static void SelectFirstButton(Button button)
+    {
+        if (button != null &&
+            UnityEngine.EventSystems.EventSystem.current != null)
         {
-            completeFinalScoreText.text =
-                Mathf.Max(0, finalScore).ToString("N0");
-        }
-        else if (finalScoreText != null)
-        {
-            finalScoreText.text =
-                Mathf.Max(0, finalScore).ToString("N0");
+            UnityEngine.EventSystems.EventSystem.current
+                .SetSelectedGameObject(button.gameObject);
         }
     }
 }

@@ -1221,10 +1221,12 @@ public class BoardManager : MonoBehaviour
 
     public int GetTotalPopulation()
     {
+        // Buildings on the board + population earned from gameplay scores.
         return GetBluePopulation() +
                GetRedPopulation() +
                GetGreenPopulation() +
-               GetYellowPopulation();
+               GetYellowPopulation() +
+               PopulationBonusStore.GetForActiveCity();
     }
 
 

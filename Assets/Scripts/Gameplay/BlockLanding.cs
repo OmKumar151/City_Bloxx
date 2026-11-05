@@ -256,13 +256,20 @@ public class BlockLanding : MonoBehaviour
             );
         }
 
-        blockBounds = blockCollider.bounds;
-        targetBounds = matchedTargetCollider.bounds;
+        // Physics bounds don't update when the transform is moved in code,
+        // so push the auto-centre move to the physics engine first.
+        Physics2D.SyncTransforms();
 
+        // Stack on what is DRAWN: put this block's visible bottom exactly
+        // on the target's visible top. Renderer bounds are always current
+        // and every building sprite has a different height, so this keeps
+        // floors flush with no gap or overlap.
         float correctionY =
-            targetBounds.max.y - blockBounds.min.y;
+            GetVisualTop(matchedTargetCollider) - GetVisualBottom();
 
         transform.position += Vector3.up * correctionY;
+
+        Physics2D.SyncTransforms();
 
         blockBounds = blockCollider.bounds;
         targetBounds = matchedTargetCollider.bounds;
@@ -303,6 +310,39 @@ public class BlockLanding : MonoBehaviour
         manager.AddFloor(accuracy);
 
         ContinueCraneIfPlaying();
+    }
+
+    // Solid bottom of this block's wall (sprite minus its soft bottom
+    // fringe), falling back to the sprite, then the collider.
+    private float GetVisualBottom()
+    {
+        BuildingTier tier = GetComponent<BuildingTier>();
+
+        if (tier != null && tier.HasSprite)
+            return tier.SolidBottom;
+
+        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+
+        return spriteRenderer != null && spriteRenderer.sprite != null
+            ? spriteRenderer.bounds.min.y
+            : blockCollider.bounds.min.y;
+    }
+
+    // Solid top of the block below's wall (sprite minus its corner caps and
+    // soft top fringe), falling back to the sprite, then its collider.
+    private static float GetVisualTop(Collider2D targetCollider)
+    {
+        BuildingTier tier = targetCollider.GetComponent<BuildingTier>();
+
+        if (tier != null && tier.HasSprite)
+            return tier.SolidTop;
+
+        SpriteRenderer spriteRenderer =
+            targetCollider.GetComponent<SpriteRenderer>();
+
+        return spriteRenderer != null && spriteRenderer.sprite != null
+            ? spriteRenderer.bounds.max.y
+            : targetCollider.bounds.max.y;
     }
 
     private float CalculateOverlapWidth(

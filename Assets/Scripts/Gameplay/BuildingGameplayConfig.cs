@@ -35,6 +35,138 @@ public class BuildingGameplayConfig : ScriptableObject
     public PopulationProgressionManager.RewardType requiredPopulationReward =
         PopulationProgressionManager.RewardType.BlueBuilding;
 
+    // How far the solid wall edge sits inside the sprite outline, in the
+    // sprite's local units. The art has corner caps and soft anti-aliased
+    // rows above/below the wall, so stacking outline-on-outline leaves a
+    // visible gap. Blocks stack on these solid edges instead.
+    [System.Serializable]
+    public struct StackInsets
+    {
+        [Min(0f)] public float top;
+        [Min(0f)] public float bottom;
+    }
+
+    [Header("Stacking (auto-measured from the sprites in the editor)")]
+    public StackInsets groundInsets;
+    public StackInsets floorInsets;
+    public StackInsets standardRoofInsets;
+    public StackInsets specialRoofInsets;
+
+    public StackInsets GetStackInsets(Sprite sprite)
+    {
+        if (sprite == null)
+            return default;
+
+        if (sprite == groundSprite) return groundInsets;
+        if (sprite == floorSprite) return floorInsets;
+        if (sprite == standardRoofSprite) return standardRoofInsets;
+        if (sprite == specialRoofSprite) return specialRoofInsets;
+
+        return default;
+    }
+
+#if UNITY_EDITOR
+    // A row counts as solid wall once its average opacity reaches this.
+    private const float SolidRowAlpha = 0.5f;
+
+    private void OnValidate()
+    {
+        UnityEditor.EditorApplication.delayCall += MeasureStackInsets;
+    }
+
+    [ContextMenu("Measure Stack Insets")]
+    private void MeasureStackInsets()
+    {
+        if (this == null)
+            return;
+
+        StackInsets ground = Measure(groundSprite);
+        StackInsets floor = Measure(floorSprite);
+        StackInsets roof = Measure(standardRoofSprite);
+        StackInsets special = Measure(specialRoofSprite);
+
+        if (ground.Equals(groundInsets) && floor.Equals(floorInsets) &&
+            roof.Equals(standardRoofInsets) && special.Equals(specialRoofInsets))
+            return;
+
+        groundInsets = ground;
+        floorInsets = floor;
+        standardRoofInsets = roof;
+        specialRoofInsets = special;
+
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    // Reads the source PNG (the imported texture isn't CPU-readable) and
+    // counts the mostly-transparent rows at the top and bottom of the
+    // sprite rect.
+    private static StackInsets Measure(Sprite sprite)
+    {
+        if (sprite == null)
+            return default;
+
+        string path = UnityEditor.AssetDatabase.GetAssetPath(sprite);
+
+        if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
+            return default;
+
+        Texture2D texture = new Texture2D(2, 2);
+
+        try
+        {
+            if (!texture.LoadImage(System.IO.File.ReadAllBytes(path)))
+                return default;
+
+            Rect rect = sprite.rect;
+
+            // sprite.rect is in imported-texture pixels; scale to the PNG.
+            float scaleX = texture.width / (float)sprite.texture.width;
+            float scaleY = texture.height / (float)sprite.texture.height;
+
+            int xMin = Mathf.RoundToInt(rect.xMin * scaleX);
+            int xMax = Mathf.RoundToInt(rect.xMax * scaleX);
+            int yMin = Mathf.RoundToInt(rect.yMin * scaleY);
+            int yMax = Mathf.RoundToInt(rect.yMax * scaleY);
+            int width = Mathf.Max(1, xMax - xMin);
+
+            Color32[] pixels = texture.GetPixels32();
+
+            bool IsSolidRow(int y)
+            {
+                int sum = 0;
+
+                for (int x = xMin; x < xMax; x++)
+                    sum += pixels[y * texture.width + x].a;
+
+                return sum / (255f * width) >= SolidRowAlpha;
+            }
+
+            int topRows = 0;
+
+            for (int y = yMax - 1; y >= yMin && !IsSolidRow(y); y--)
+                topRows++;
+
+            int bottomRows = 0;
+
+            for (int y = yMin; y < yMax && !IsSolidRow(y); y++)
+                bottomRows++;
+
+            // Convert source pixels to the sprite's local units.
+            float unitsPerPixel = 1f / (sprite.pixelsPerUnit * scaleY);
+
+            return new StackInsets
+            {
+                top = topRows * unitsPerPixel,
+                bottom = bottomRows * unitsPerPixel
+            };
+        }
+        finally
+        {
+            DestroyImmediate(texture);
+        }
+    }
+#endif
+
     public bool HasValidGameplaySetup()
     {
         bool valid = true;

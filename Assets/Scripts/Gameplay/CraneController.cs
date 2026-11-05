@@ -16,6 +16,10 @@ public class CraneController : MonoBehaviour
     [Header("Block Settings")]
     [Min(0f)] public float blockBelowHook = 0.65f;
 
+    [Tooltip("Hang the block so its sprite's top edge sits at the hook " +
+             "(end of the rope). When off, Block Below Hook is used.")]
+    public bool hangBlockFromSpriteTop = true;
+
     [Header("Crane Movement")]
     [Min(0f)] public float verticalClearance = 1.5f;
     [Min(0f)] public float craneMoveSpeed = 3f;
@@ -369,6 +373,9 @@ public class CraneController : MonoBehaviour
                 tier.ApplyTierForFloor(manager.floorsBuilt + 1);
         }
 
+        // Now the final sprite is known, hang it from its top edge.
+        HangBlockFromSpriteTop(block);
+
         ConfigureRope();
 
         if (isFirstBlock)
@@ -441,8 +448,35 @@ public class CraneController : MonoBehaviour
 
         lastHeightFloor = floorsBuilt;
 
-        targetCraneY += verticalClearance;
+        targetCraneY += GetLandedBlockHeight();
         movingCraneUp = true;
+    }
+
+    // Building sprites differ in height, so rise by the block that just
+    // landed. This keeps the same gap above the tower on every floor.
+    // Falls back to Vertical Clearance if the height can't be read.
+    private float GetLandedBlockHeight()
+    {
+        GameManager manager = GameManager.Instance;
+        GameObject landedBlock = manager != null ? manager.LastPlacedBlock : null;
+
+        if (landedBlock != null)
+        {
+            // Floors overlap by their soft edges, so use the stacked
+            // (solid wall) height, not the full sprite height.
+            BuildingTier tier = landedBlock.GetComponent<BuildingTier>();
+
+            if (tier != null && tier.HasSprite)
+                return tier.StackedHeight;
+
+            SpriteRenderer spriteRenderer =
+                landedBlock.GetComponent<SpriteRenderer>();
+
+            if (spriteRenderer != null && spriteRenderer.sprite != null)
+                return spriteRenderer.bounds.size.y;
+        }
+
+        return verticalClearance;
     }
 
     private void MoveCraneUp()
@@ -489,6 +523,32 @@ public class CraneController : MonoBehaviour
 
         if (swingController != null)
             swingController.StopSwing();
+    }
+
+    // Places the block directly under the hook so the rope ends at the
+    // top of the visible sprite. Works for any sprite height (floors,
+    // taller roofs) and any pivot, because it uses the rendered bounds.
+    private void HangBlockFromSpriteTop(GameObject block)
+    {
+        if (!hangBlockFromSpriteTop || block == null || hook == null)
+            return;
+
+        SpriteRenderer spriteRenderer = block.GetComponent<SpriteRenderer>();
+
+        if (spriteRenderer == null || spriteRenderer.sprite == null)
+            return;
+
+        // Distance from the block's origin up to the sprite's top edge.
+        float originToTop =
+            spriteRenderer.bounds.max.y - block.transform.position.y;
+
+        Vector3 hookWorldPosition = hook.position;
+
+        block.transform.position = new Vector3(
+            hookWorldPosition.x,
+            hookWorldPosition.y - originToTop,
+            block.transform.position.z
+        );
     }
 
     private void ConfigureRope()

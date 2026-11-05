@@ -80,6 +80,10 @@ public class NavigationManager : MonoBehaviour
         Debug.Log(
             "NavigationManager: Navigation reset after switching city."
         );
+
+        // The new city's map is loaded during the switch; if a building
+        // was earned for this city, go straight to placing it.
+        StartCoroutine(OpenPendingPlacementNextFrame());
     }
 
     private void Start()
@@ -90,6 +94,104 @@ public class NavigationManager : MonoBehaviour
         ResetNavigationToBlue();
 
         Debug.Log("Navigation started. Building Selection Mode.");
+
+        StartCoroutine(OpenPendingPlacementNextFrame());
+    }
+
+    // =========================================================
+    // PENDING PLACEMENT (building earned in Gameplay)
+    // =========================================================
+
+    private bool HasPendingPlacementForActiveCity =>
+        PendingPlacementStore.IsForCity(PopulationBonusStore.ActiveCityId);
+
+    // Waits a frame so MapSaveManager has restored the board first;
+    // placement validity depends on the buildings already placed.
+    private System.Collections.IEnumerator OpenPendingPlacementNextFrame()
+    {
+        yield return null;
+
+        TryOpenPendingPlacement();
+    }
+
+    // Completing a building in Gameplay earns it: LevelSelect opens
+    // board placement for that building straight away.
+    private bool TryOpenPendingPlacement()
+    {
+        if (isLoadingGameplay || !HasPendingPlacementForActiveCity)
+            return false;
+
+        if (currentMode == NavigationMode.BoardPlacement)
+            return true;
+
+        int buildingIndex = GetBuildingIndex(PendingPlacementStore.BuildingId);
+
+        if (buildingIndex < 0)
+        {
+            Debug.LogWarning(
+                "NavigationManager: Pending building '" +
+                PendingPlacementStore.BuildingId +
+                "' has no entry in Building Configurations. Discarding it.",
+                this
+            );
+
+            PendingPlacementStore.Clear();
+            return false;
+        }
+
+        selectedBuilding = buildingIndex;
+
+        UpdateBuildingSelectionVisual();
+        UpdateCurrentBuildingScore();
+
+        EnterBoardPlacementMode(requireUnlock: false);
+
+        if (currentMode == NavigationMode.BoardPlacement)
+        {
+            Debug.Log(
+                "NavigationManager: Placing earned " +
+                GetBuildingName(buildingIndex) + " building."
+            );
+
+            return true;
+        }
+
+        // Nowhere on the board can take it (EnterBoardPlacementMode has
+        // already shown "no valid placement"). Drop it so the player
+        // isn't locked in; the score was still added to population.
+        Debug.LogWarning(
+            "NavigationManager: No valid cell for earned " +
+            GetBuildingName(buildingIndex) + " building. Discarding it.",
+            this
+        );
+
+        PendingPlacementStore.Clear();
+        return false;
+    }
+
+    private int GetBuildingIndex(string buildingId)
+    {
+        if (string.IsNullOrWhiteSpace(buildingId) ||
+            buildingConfigurations == null)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < buildingConfigurations.Length; i++)
+        {
+            BuildingGameplayConfig configuration = buildingConfigurations[i];
+
+            if (configuration != null &&
+                string.Equals(
+                    configuration.buildingId,
+                    buildingId,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     // =========================================================
@@ -304,7 +406,17 @@ public class NavigationManager : MonoBehaviour
     public void OK()
     {
         if (currentMode == NavigationMode.BuildingSelection)
+        {
+            // An earned building must be placed before playing again.
+            // If it couldn't be placed, that press only shows the message.
+            if (HasPendingPlacementForActiveCity)
+            {
+                TryOpenPendingPlacement();
+                return;
+            }
+
             LaunchGameplayForSelectedBuilding();
+        }
         else
             ConfirmBoardPosition();
     }
@@ -356,7 +468,11 @@ public class NavigationManager : MonoBehaviour
 
         bool specialRoofUnlocked = IsSpecialRoofUnlocked(configuration);
 
-        GameplaySelection.Select(configuration, specialRoofUnlocked);
+        GameplaySelection.Select(
+            configuration,
+            specialRoofUnlocked,
+            PopulationBonusStore.ActiveCityId
+        );
 
         Debug.Log(
             "NavigationManager: Launching " + configuration.buildingId +
@@ -399,7 +515,9 @@ public class NavigationManager : MonoBehaviour
         );
     }
 
-    private void EnterBoardPlacementMode()
+    // requireUnlock is false for a building earned in Gameplay: the player
+    // already built it, so it is placed regardless of unlock state.
+    private void EnterBoardPlacementMode(bool requireUnlock = true)
     {
         FindReferences();
 
@@ -409,7 +527,7 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        if (!IsBuildingUnlocked(selectedBuilding))
+        if (requireUnlock && !IsBuildingUnlocked(selectedBuilding))
         {
             ShowNoValidPlacement();
             return;
@@ -523,6 +641,9 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+        // The earned building is now on the board.
+        PendingPlacementStore.Clear();
+
         SyncPopulationManager();
         SaveMap();
 
@@ -592,6 +713,20 @@ public class NavigationManager : MonoBehaviour
     {
         if (currentMode != NavigationMode.BoardPlacement)
             return;
+
+        // An earned building can't be thrown away: stay in placement.
+        if (HasPendingPlacementForActiveCity)
+        {
+            if (infoPanel != null)
+            {
+                infoPanel.ShowMessage(
+                    "Place your " + GetBuildingName(selectedBuilding) +
+                    " building first"
+                );
+            }
+
+            return;
+        }
 
         currentMode = NavigationMode.BuildingSelection;
         currentBoardCell = null;

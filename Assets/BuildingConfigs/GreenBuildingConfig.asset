@@ -20,6 +20,18 @@ MonoBehaviour:
   floorSprite: {fileID: -409420624541922537, guid: a333e5fbfb861624fb52c88673c4c8f4, type: 3}
   standardRoofSprite: {fileID: 9018555339864086277, guid: 7ee9cae0e574c644abc51ca4847a1cf5, type: 3}
   specialRoofSprite: {fileID: -4251952773178311214, guid: a70120585ca257146b998233ed0d93db, type: 3}
-  specialRoofScoreThreshold: 1500
+  specialRoofScoreThreshold: 7500
   specialRoofUnlockReward: 6
   requiredPopulationReward: 2
+  groundInsets:
+    top: 0.023584906
+    bottom: 0.014150944
+  floorInsets:
+    top: 0.020746889
+    bottom: 0.012448134
+  standardRoofInsets:
+    top: 0.17535546
+    bottom: 0.01421801
+  specialRoofInsets:
+    top: 0.20642202
+    bottom: 0.0091743115

@@ -84,9 +84,18 @@ public class GridCell : MonoBehaviour
     // BUILDING SCORES
     // =========================================================
 
+    // Values are edited on PopulationProgressionManager (Building
+    // Population). The numbers below are only a fallback for when it
+    // isn't in the scene.
     public static int GetBuildingScore(
         BuildingType buildingType)
     {
+        if (PopulationProgressionManager.Instance != null)
+        {
+            return PopulationProgressionManager.Instance
+                .GetBuildingPopulation(buildingType);
+        }
+
         switch (buildingType)
         {
             case BuildingType.Blue:

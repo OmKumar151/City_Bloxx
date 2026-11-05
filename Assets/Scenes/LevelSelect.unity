@@ -4833,8 +4833,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23fd3d279b8420c4ba5527fa34f74608, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PopulationProgressionManager
-  populationCheckpoints: 00000000f4010000e8030000dc050000d0070000c4090000b80b0000ac0d0000
-  checkpointUnlocked: 0100000000000000
+  checkpoints:
+  - name: BlueBuilding
+    population: 0
+    unlocked: 1
+  - name: RedBuilding
+    population: 6000
+    unlocked: 0
+  - name: GreenBuilding
+    population: 15000
+    unlocked: 0
+  - name: BlueStar
+    population: 22000
+    unlocked: 0
+  - name: YellowBuilding
+    population: 32000
+    unlocked: 0
+  - name: RedStar
+    population: 45000
+    unlocked: 0
+  - name: GreenStar
+    population: 60000
+    unlocked: 0
+  - name: YellowStar
+    population: 80000
+    unlocked: 0
+  bluePopulation: 100
+  redPopulation: 250
+  greenPopulation: 500
+  yellowPopulation: 750
 --- !u!1 &444695883
 GameObject:
   m_ObjectHideFlags: 0
