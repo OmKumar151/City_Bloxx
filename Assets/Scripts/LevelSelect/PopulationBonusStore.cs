@@ -52,6 +52,23 @@ public static class PopulationBonusStore
         );
     }
 
+    public static void Subtract(string cityId, int amount)
+    {
+        if (amount <= 0)
+            return;
+
+        string key = KeyPrefix + Normalize(cityId);
+
+        int total = Mathf.Max(0, PlayerPrefs.GetInt(key, 0) - amount);
+        PlayerPrefs.SetInt(key, total);
+        PlayerPrefs.Save();
+
+        Debug.Log(
+            "PopulationBonusStore: -" + amount + " population for city '" +
+            Normalize(cityId) + "'. Bonus total: " + total
+        );
+    }
+
     public static void Clear(string cityId)
     {
         PlayerPrefs.DeleteKey(KeyPrefix + Normalize(cityId));

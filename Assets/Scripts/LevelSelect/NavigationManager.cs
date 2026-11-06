@@ -438,6 +438,17 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
+        // The finished building has to go on the board, so don't start a
+        // game for one that has nowhere to be placed.
+        FindReferences();
+
+        if (boardManager == null ||
+            !boardManager.HasValidPlacementOrReplacement(selectedBuilding))
+        {
+            ShowNoValidPlacement();
+            return;
+        }
+
         BuildingGameplayConfig configuration =
             GetBuildingConfiguration(selectedBuilding);
 
@@ -714,19 +725,7 @@ public class NavigationManager : MonoBehaviour
         if (currentMode != NavigationMode.BoardPlacement)
             return;
 
-        // An earned building can't be thrown away: stay in placement.
-        if (HasPendingPlacementForActiveCity)
-        {
-            if (infoPanel != null)
-            {
-                infoPanel.ShowMessage(
-                    "Place your " + GetBuildingName(selectedBuilding) +
-                    " building first"
-                );
-            }
-
-            return;
-        }
+        bool discardedEarnedBuilding = DiscardPendingPlacement();
 
         currentMode = NavigationMode.BuildingSelection;
         currentBoardCell = null;
@@ -736,10 +735,47 @@ public class NavigationManager : MonoBehaviour
         UpdateCurrentBuildingScore();
         UpdateBuildingSelectionVisual();
 
+        if (discardedEarnedBuilding)
+        {
+            // Leave the "lost" message up instead of overwriting it.
+            if (infoPanel != null)
+            {
+                infoPanel.ShowMessage(
+                    GetBuildingName(selectedBuilding) + " building lost"
+                );
+            }
+
+            return;
+        }
+
         if (infoPanel != null)
             infoPanel.ShowBuildingCancelled();
 
         ShowBuildingSelected();
+    }
+
+    // Cancelling an earned building throws it away and takes back the
+    // gameplay score that was added to population when it was banked.
+    private bool DiscardPendingPlacement()
+    {
+        if (!HasPendingPlacementForActiveCity)
+            return false;
+
+        string cityId = PopulationBonusStore.ActiveCityId;
+        int bankedScore = PendingPlacementStore.Score;
+
+        PopulationBonusStore.Subtract(cityId, bankedScore);
+        PendingPlacementStore.Clear();
+
+        SyncPopulationManager();
+        SaveMap();
+
+        Debug.Log(
+            "NavigationManager: Earned " + GetBuildingName(selectedBuilding) +
+            " building discarded. Population -" + bankedScore + "."
+        );
+
+        return true;
     }
 
     // =========================================================

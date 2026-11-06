@@ -19,6 +19,10 @@ public class BuildingGameplayConfig : ScriptableObject
     public Sprite groundSprite;
     public Sprite floorSprite;
 
+    [Tooltip("Stretch floor blocks to exactly the ground sprite's width and " +
+             "height. The floor art is scaled, not cropped.")]
+    public bool stretchFloorToGroundSize;
+
     [Header("Special Roof")]
     public Sprite standardRoofSprite;
     public Sprite specialRoofSprite;
@@ -63,6 +67,33 @@ public class BuildingGameplayConfig : ScriptableObject
         if (sprite == specialRoofSprite) return specialRoofInsets;
 
         return default;
+    }
+
+    /// <summary>
+    /// Extra scale for a block showing this sprite. Floors are stretched to
+    /// the ground sprite's size when stretchFloorToGroundSize is on;
+    /// every other sprite keeps its own size.
+    /// </summary>
+    public Vector2 GetSpriteScale(Sprite sprite)
+    {
+        if (!stretchFloorToGroundSize ||
+            sprite == null ||
+            sprite != floorSprite ||
+            groundSprite == null)
+        {
+            return Vector2.one;
+        }
+
+        Vector2 floorSize = sprite.bounds.size;
+        Vector2 groundSize = groundSprite.bounds.size;
+
+        if (floorSize.x <= 0f || floorSize.y <= 0f)
+            return Vector2.one;
+
+        return new Vector2(
+            groundSize.x / floorSize.x,
+            groundSize.y / floorSize.y
+        );
     }
 
 #if UNITY_EDITOR

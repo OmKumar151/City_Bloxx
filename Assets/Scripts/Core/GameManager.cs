@@ -404,7 +404,7 @@ public class GameManager : MonoBehaviour
         // The completed building is now the player's to place:
         // LevelSelect opens board placement for it on load.
         if (ActiveConfiguration != null)
-            PendingPlacementStore.Set(ActiveConfiguration.buildingId, cityId);
+            PendingPlacementStore.Set(ActiveConfiguration.buildingId, cityId, score);
 
         LoadLevelSelect();
     }

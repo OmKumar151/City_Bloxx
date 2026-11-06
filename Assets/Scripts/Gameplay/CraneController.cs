@@ -14,10 +14,12 @@ public class CraneController : MonoBehaviour
     public GameObject hangingBlockPrefab;
 
     [Header("Block Settings")]
+    [Tooltip("Used only when Hang Block From Sprite Top is off: gap " +
+             "between the hook's tip and the block's origin.")]
     [Min(0f)] public float blockBelowHook = 0.65f;
 
-    [Tooltip("Hang the block so its sprite's top edge sits at the hook " +
-             "(end of the rope). When off, Block Below Hook is used.")]
+    [Tooltip("Hang the block so its sprite's top edge sits at the hook's " +
+             "tip. When off, Block Below Hook is used.")]
     public bool hangBlockFromSpriteTop = true;
 
     [Header("Crane Movement")]
@@ -33,6 +35,7 @@ public class CraneController : MonoBehaviour
     private GameObject currentBlock;
     private SwingPivotController swingController;
     private RopeController ropeController;
+    private HookController hookController;
     private Transform ropeTopPoint;
     private BuildingGameplayConfig activeConfiguration;
 
@@ -342,14 +345,13 @@ public class CraneController : MonoBehaviour
 
         currentBlock = block;
 
-        // Attach the block to the hook.
-        block.transform.SetParent(hook, true);
+        // Attach to the swing pivot, not the hook: the hook is scaled to
+        // size its sprite, and a child would inherit that scale. The
+        // block still swings with the hook because both share the pivot.
+        block.transform.SetParent(GetBlockParent(), true);
 
-        block.transform.localPosition = new Vector3(
-            0f,
-            -blockBelowHook,
-            0f
-        );
+        block.transform.position =
+            GetHookBlockPoint() + Vector3.down * blockBelowHook;
 
         // Ensure the new block starts upright.
         block.transform.rotation = Quaternion.identity;
@@ -539,16 +541,49 @@ public class CraneController : MonoBehaviour
             return;
 
         // Distance from the block's origin up to the sprite's top edge.
-        float originToTop =
-            spriteRenderer.bounds.max.y - block.transform.position.y;
+        // Worked out through the transform, not spriteRenderer.bounds:
+        // the block was just scaled (floor stretch) and the renderer's
+        // bounds can still hold the old size this frame, which left a gap
+        // between the hook and the block.
+        Vector3 spriteTop = block.transform.TransformPoint(
+            new Vector3(0f, spriteRenderer.sprite.bounds.max.y, 0f)
+        );
 
-        Vector3 hookWorldPosition = hook.position;
+        float originToTop = spriteTop.y - block.transform.position.y;
+
+        Vector3 hangPoint = GetHookBlockPoint();
 
         block.transform.position = new Vector3(
-            hookWorldPosition.x,
-            hookWorldPosition.y - originToTop,
+            hangPoint.x,
+            hangPoint.y - originToTop,
             block.transform.position.z
         );
+    }
+
+    private Transform GetBlockParent()
+    {
+        return swingPivot != null ? swingPivot : hook;
+    }
+
+    // The hook's tip when it has a HookController, else the hook origin.
+    private Vector3 GetHookBlockPoint()
+    {
+        if (hookController == null && hook != null)
+            hookController = hook.GetComponent<HookController>();
+
+        return hookController != null
+            ? hookController.BlockAttachPoint
+            : hook.position;
+    }
+
+    private Vector3 GetHookRopePoint()
+    {
+        if (hookController == null && hook != null)
+            hookController = hook.GetComponent<HookController>();
+
+        return hookController != null
+            ? hookController.RopeAttachPoint
+            : hook.position;
     }
 
     private void ConfigureRope()
@@ -565,7 +600,7 @@ public class CraneController : MonoBehaviour
         rope.positionCount = 2;
         rope.useWorldSpace = true;
         rope.SetPosition(0, ropeTopPoint.position);
-        rope.SetPosition(1, hook.position);
+        rope.SetPosition(1, GetHookRopePoint());
     }
 
     private void OnDestroy()

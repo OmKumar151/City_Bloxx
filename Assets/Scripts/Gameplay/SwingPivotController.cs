@@ -6,8 +6,37 @@ public class SwingPivotController : MonoBehaviour
     [Header("Pendulum Settings")]
     [Min(0f)] public float maxAngle = 35f;
 
+    [Tooltip("Starting swing speed, before any perfect landings.")]
     [Min(0.01f)]
     public float swingSpeed = 2f;
+
+    [Header("Perfect Speed-Up")]
+    [Tooltip("How many perfect landings it takes to speed up once.")]
+    [Min(1)] public int perfectsPerSpeedUp = 2;
+
+    [Tooltip("Swing speed added each time Perfects Per Speed Up is reached.")]
+    [Min(0f)] public float speedIncreasePerStep = 0.05f;
+
+    [Tooltip("The swing never gets faster than this.")]
+    [Min(0.01f)] public float maxSwingSpeed = 3f;
+
+    /// <summary>Swing speed after this game's perfect landings.</summary>
+    public float CurrentSwingSpeed
+    {
+        get
+        {
+            int perfects = GameManager.Instance != null
+                ? GameManager.Instance.totalPerfectLandings
+                : 0;
+
+            // Whole steps only: perfects 0-1 = no change, 2-3 = one step...
+            int steps = perfects / Mathf.Max(1, perfectsPerSpeedUp);
+
+            float speed = swingSpeed + speedIncreasePerStep * steps;
+
+            return Mathf.Min(speed, Mathf.Max(swingSpeed, maxSwingSpeed));
+        }
+    }
 
     private bool isSwinging;
 
@@ -41,7 +70,9 @@ public class SwingPivotController : MonoBehaviour
         if (!isSwinging)
             return;
 
-        swingTime += Time.deltaTime * swingSpeed;
+        // Speed only scales how fast the phase advances, so a speed change
+        // never makes the angle jump.
+        swingTime += Time.deltaTime * CurrentSwingSpeed;
 
         // Continue the same oscillation rather than restarting at zero.
         currentAngle = Mathf.Sin(swingTime) * maxAngle;

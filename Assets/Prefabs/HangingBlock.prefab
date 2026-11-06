@@ -83,7 +83,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 9f579b92d1610a34394e8ce2f6ae7e6c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -206,3 +206,4 @@ MonoBehaviour:
   specialTopSprite: {fileID: 0}
   useSpecialTop: 0
   fallbackColor: {r: 1, g: 1, b: 1, a: 1}
+  matchColliderToSprite: 1

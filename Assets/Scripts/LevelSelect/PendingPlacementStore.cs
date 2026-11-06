@@ -10,6 +10,7 @@ public static class PendingPlacementStore
 {
     private const string BuildingKey = "CityBloxx_PendingPlacement_Building";
     private const string CityKey = "CityBloxx_PendingPlacement_City";
+    private const string ScoreKey = "CityBloxx_PendingPlacement_Score";
 
     public static bool HasPending =>
         !string.IsNullOrEmpty(PlayerPrefs.GetString(BuildingKey, string.Empty));
@@ -20,13 +21,20 @@ public static class PendingPlacementStore
     /// <summary>City the building was earned for.</summary>
     public static string CityId => PlayerPrefs.GetString(CityKey, string.Empty);
 
-    public static void Set(string buildingId, string cityId)
+    /// <summary>
+    /// Gameplay score that was added to population with this building.
+    /// Removed from population again if the placement is cancelled.
+    /// </summary>
+    public static int Score => Mathf.Max(0, PlayerPrefs.GetInt(ScoreKey, 0));
+
+    public static void Set(string buildingId, string cityId, int score)
     {
         if (string.IsNullOrWhiteSpace(buildingId))
             return;
 
         PlayerPrefs.SetString(BuildingKey, buildingId.Trim());
         PlayerPrefs.SetString(CityKey, Normalize(cityId));
+        PlayerPrefs.SetInt(ScoreKey, Mathf.Max(0, score));
         PlayerPrefs.Save();
     }
 
@@ -39,6 +47,7 @@ public static class PendingPlacementStore
     {
         PlayerPrefs.DeleteKey(BuildingKey);
         PlayerPrefs.DeleteKey(CityKey);
+        PlayerPrefs.DeleteKey(ScoreKey);
         PlayerPrefs.Save();
     }
 

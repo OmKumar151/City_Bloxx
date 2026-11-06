@@ -18,6 +18,7 @@ MonoBehaviour:
   hangingBlockPrefab: {fileID: 4873505803641195100, guid: 81b159bc9a7f05449aa3c0d960e70698, type: 3}
   groundSprite: {fileID: 6675677287853098342, guid: 067b5de0cf0ecd248b560a573ce9f6c5, type: 3}
   floorSprite: {fileID: 2209137618658393855, guid: 44fe25ab63c0a104ca141597264badd4, type: 3}
+  stretchFloorToGroundSize: 0
   standardRoofSprite: {fileID: -557759191489693976, guid: d2ee5f0f8ffbc0a48ba6dad74a9bd9e1, type: 3}
   specialRoofSprite: {fileID: -4237205082546721175, guid: d3eaecfd299abed4aa389451f62072e9, type: 3}
   specialRoofScoreThreshold: 5500

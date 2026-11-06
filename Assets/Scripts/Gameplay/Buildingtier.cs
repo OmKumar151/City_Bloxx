@@ -48,9 +48,65 @@ public class BuildingTier : MonoBehaviour
     // How much this block adds to the tower once stacked.
     public float StackedHeight => SolidTop - SolidBottom;
 
+    // The prefab's own world scale, captured before the block is attached
+    // to the crane; sprite stretching is applied on top of it.
+    private Vector3 baseScale;
+    private bool hasBaseScale;
+
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        CaptureBaseScale();
+    }
+
+    private void CaptureBaseScale()
+    {
+        if (hasBaseScale)
+            return;
+
+        baseScale = transform.lossyScale;
+        hasBaseScale = true;
+    }
+
+    private void ApplySpriteScale(Sprite sprite)
+    {
+        CaptureBaseScale();
+
+        Vector2 stretch = configuration != null
+            ? configuration.GetSpriteScale(sprite)
+            : Vector2.one;
+
+        // The result is the block's size on screen, whatever it is attached
+        // to: the parent's scale is cancelled out.
+        Vector3 parentScale = transform.parent != null
+            ? transform.parent.lossyScale
+            : Vector3.one;
+
+        transform.localScale = new Vector3(
+            baseScale.x * stretch.x / SafeScale(parentScale.x),
+            baseScale.y * stretch.y / SafeScale(parentScale.y),
+            baseScale.z
+        );
+    }
+
+    // The hook's draw order, so blocks can sit just above it.
+    // 0 when there is no crane hook in the scene.
+    private static int GetHookSortingOrder()
+    {
+        CraneController crane = CraneController.Instance;
+
+        if (crane == null || crane.hook == null)
+            return 0;
+
+        HookController hookController =
+            crane.hook.GetComponent<HookController>();
+
+        return hookController != null ? hookController.sortingOrder : 0;
+    }
+
+    private static float SafeScale(float value)
+    {
+        return Mathf.Abs(value) < 0.0001f ? 1f : value;
     }
 
     public void Configure(BuildingGameplayConfig selectedConfiguration)
@@ -152,6 +208,10 @@ public class BuildingTier : MonoBehaviour
             spriteRenderer.sprite = selectedSprite;
             spriteRenderer.color = Color.white;
 
+            // Before the bottom is re-measured, so the stretched block
+            // stays seated.
+            ApplySpriteScale(selectedSprite);
+
             insets = configuration != null
                 ? configuration.GetStackInsets(selectedSprite)
                 : default;
@@ -159,8 +219,9 @@ public class BuildingTier : MonoBehaviour
             if (keepBottom)
                 transform.position += Vector3.up * (previousBottom - SolidBottom);
 
-            // Higher floors draw over lower ones where their edges overlap.
-            spriteRenderer.sortingOrder = floorNumber;
+            // Higher floors draw over lower ones where their edges overlap,
+            // and every block draws above the crane hook (hook + floor).
+            spriteRenderer.sortingOrder = GetHookSortingOrder() + floorNumber;
 
             MatchColliderToSprite();
             Physics2D.SyncTransforms();
