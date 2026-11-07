@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingGameplayConfig
   buildingId: yellow
   displayName: Yellow Building
-  floorsToComplete: 25
+  floorsToComplete: 40
   hangingBlockPrefab: {fileID: 4873505803641195100, guid: 81b159bc9a7f05449aa3c0d960e70698, type: 3}
   groundSprite: {fileID: 8595164571498623133, guid: d098c8e4799ac25489e3c04573504279, type: 3}
   floorSprite: {fileID: 3676224844774487467, guid: 9b0425040277f204c8814c538697a5f1, type: 3}
   stretchFloorToGroundSize: 1
   standardRoofSprite: {fileID: -1202594665513785713, guid: 53f9b4dde00e2c140b556efdabff5ed2, type: 3}
   specialRoofSprite: {fileID: -6518588438204022641, guid: 3e28192bf3f45df459e33d10b20d0c85, type: 3}
-  specialRoofScoreThreshold: 9500
+  specialRoofScoreThreshold: 1560
   specialRoofUnlockReward: 7
   requiredPopulationReward: 4
   groundInsets:

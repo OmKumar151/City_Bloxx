@@ -12,10 +12,12 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_Text scoreText;
 
     [Header("Lives UI")]
-    [SerializeField] private TMP_Text livesText;
+    [Tooltip("Number of lives remaining (e.g. the Text under Lives).")]
+    public TMP_Text livesText;
+
+    [Tooltip("Full hearts, first life first. A lost life hides its heart " +
+             "so the empty heart behind it shows. Sprites are never tinted.")]
     [SerializeField] private List<Image> lifeIcons = new List<Image>();
-    [SerializeField] private Color lifeActiveColor = Color.white;
-    [SerializeField] private Color lifeLostColor = Color.gray;
 
     [Header("Floor UI")]
     [SerializeField] private TMP_Text floorText;
@@ -142,9 +144,9 @@ public class UIManager : MonoBehaviour
             if (lifeIcons[i] == null)
                 continue;
 
-            lifeIcons[i].color = i < lives
-                ? lifeActiveColor
-                : lifeLostColor;
+            // Show or hide only; keep the sprite's own colours.
+            lifeIcons[i].color = Color.white;
+            lifeIcons[i].enabled = i < lives;
         }
     }
 

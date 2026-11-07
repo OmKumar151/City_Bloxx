@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingGameplayConfig
   buildingId: green
   displayName: Green Building
-  floorsToComplete: 20
+  floorsToComplete: 30
   hangingBlockPrefab: {fileID: 4873505803641195100, guid: 81b159bc9a7f05449aa3c0d960e70698, type: 3}
   groundSprite: {fileID: 5629725146053588324, guid: a9a72f93801e4b74392775c78d14337e, type: 3}
   floorSprite: {fileID: -409420624541922537, guid: a333e5fbfb861624fb52c88673c4c8f4, type: 3}
   stretchFloorToGroundSize: 1
   standardRoofSprite: {fileID: 9018555339864086277, guid: 7ee9cae0e574c644abc51ca4847a1cf5, type: 3}
   specialRoofSprite: {fileID: -4251952773178311214, guid: a70120585ca257146b998233ed0d93db, type: 3}
-  specialRoofScoreThreshold: 7500
+  specialRoofScoreThreshold: 1140
   specialRoofUnlockReward: 6
   requiredPopulationReward: 2
   groundInsets:

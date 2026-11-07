@@ -23,6 +23,10 @@ public class CraneController : MonoBehaviour
     public bool hangBlockFromSpriteTop = true;
 
     [Header("Crane Movement")]
+    [Tooltip("Landings before the crane (and the camera following it) " +
+             "starts rising. The first rise happens on the next landing.")]
+    [Min(0)] public int floorsBeforeCraneRises = 2;
+
     [Min(0f)] public float verticalClearance = 1.5f;
     [Min(0f)] public float craneMoveSpeed = 3f;
 
@@ -449,6 +453,11 @@ public class CraneController : MonoBehaviour
             return;
 
         lastHeightFloor = floorsBuilt;
+
+        // The first floors fill the gap below the hook; the crane and
+        // camera hold still until they are placed.
+        if (floorsBuilt <= floorsBeforeCraneRises)
+            return;
 
         targetCraneY += GetLandedBlockHeight();
         movingCraneUp = true;

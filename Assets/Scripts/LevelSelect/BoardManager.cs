@@ -417,8 +417,8 @@ public class BoardManager : MonoBehaviour
             return;
         }
 
-        int score =
-            GridCell.GetBuildingScore(currentlySelectedCell.CurrentBuilding);
+        // Each building holds the score it was built with.
+        int score = currentlySelectedCell.BuildingPopulation;
 
         BuildingScoreManager.Instance.SetExistingBuildingScore(score);
 
@@ -817,7 +817,11 @@ public class BoardManager : MonoBehaviour
     // NORMAL PLACEMENT EXECUTION
     // =========================================================
 
-    public bool PlaceBuilding(int buildingIndex)
+    /// <summary>
+    /// Places the building on the selected cell. Its population is the
+    /// score the player earned building it in Gameplay.
+    /// </summary>
+    public bool PlaceBuilding(int buildingIndex, int population)
     {
         if (currentlySelectedCell == null)
         {
@@ -851,7 +855,7 @@ public class BoardManager : MonoBehaviour
         GridCell.BuildingType buildingType =
             GetBuildingType(buildingIndex);
 
-        int population = GridCell.GetBuildingScore(buildingType);
+        population = Mathf.Max(0, population);
 
         currentlySelectedCell.SetBuilding(
             spriteToPlace,
@@ -986,7 +990,11 @@ public class BoardManager : MonoBehaviour
     // REPLACEMENT EXECUTION
     // =========================================================
 
-    public bool ReplaceBuilding(int buildingIndex)
+    /// <summary>
+    /// Replaces the building on the selected cell. The old building's
+    /// population is removed and the new one's earned score is used.
+    /// </summary>
+    public bool ReplaceBuilding(int buildingIndex, int population)
     {
         if (currentlySelectedCell == null)
         {
@@ -1048,8 +1056,7 @@ public class BoardManager : MonoBehaviour
         int oldPopulation =
             currentlySelectedCell.BuildingPopulation;
 
-        int newPopulation =
-            GridCell.GetBuildingScore(replacementType);
+        int newPopulation = Mathf.Max(0, population);
 
         currentlySelectedCell.SetBuilding(
             spriteToPlace,
@@ -1221,12 +1228,12 @@ public class BoardManager : MonoBehaviour
 
     public int GetTotalPopulation()
     {
-        // Buildings on the board + population earned from gameplay scores.
+        // Each placed building holds the score it was built with, so the
+        // city's population is the sum of its buildings.
         return GetBluePopulation() +
                GetRedPopulation() +
                GetGreenPopulation() +
-               GetYellowPopulation() +
-               PopulationBonusStore.GetForActiveCity();
+               GetYellowPopulation();
     }
 
 

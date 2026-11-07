@@ -23,7 +23,8 @@ public class PopulationUI : MonoBehaviour
     [Tooltip("Longest count, so big changes don't drag on.")]
     [SerializeField, Min(0.05f)] private float maxCountDuration = 1.5f;
 
-    [Tooltip("Pause before counting up the score earned in Gameplay.")]
+    [Tooltip("Pause before counting up an earned building's score " +
+             "(not used while scores join population on placement).")]
     [SerializeField, Min(0f)] private float earnedScoreDelay = 0.4f;
 
     private float displayedValue;
@@ -43,16 +44,13 @@ public class PopulationUI : MonoBehaviour
         FindBoardManager();
         SubscribeToCityManager();
 
-        // Returning from a won game: the earned score is already in the
-        // total. Start below it so it counts up into view.
-        earnedScoreAtLoad =
-            PendingPlacementStore.IsForCity(PopulationBonusStore.ActiveCityId)
-                ? PendingPlacementStore.Score
-                : 0;
+        // An earned building's score joins the population when the building
+        // is placed, and the count animates up then.
+        earnedScoreAtLoad = 0;
 
         // MapSaveManager restores the board during Start; wait a frame.
         snapUntilFrame = Time.frameCount + 1;
-        Snap(GetTotalPopulation() - earnedScoreAtLoad);
+        Snap(GetTotalPopulation());
     }
 
     private void OnDestroy()
@@ -73,11 +71,7 @@ public class PopulationUI : MonoBehaviour
     // A different city's population is a different number, not a change.
     private void HandleCityChanged(int previousCityIndex, int newCityIndex)
     {
-        earnedScoreAtLoad =
-            PendingPlacementStore.IsForCity(PopulationBonusStore.ActiveCityId)
-                ? PendingPlacementStore.Score
-                : 0;
-
+        earnedScoreAtLoad = 0;
         snapUntilFrame = Time.frameCount + 1;
     }
 
@@ -161,7 +155,7 @@ public class PopulationUI : MonoBehaviour
     private void SetText(int value)
     {
         if (populationText != null)
-            populationText.text = Mathf.Max(0, value).ToString();
+            populationText.text = Mathf.Max(0, value).ToString("N0");
     }
 
     private int GetTotalPopulation()

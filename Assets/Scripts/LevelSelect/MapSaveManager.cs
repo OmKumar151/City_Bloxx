@@ -205,13 +205,11 @@ public class MapSaveManager : MonoBehaviour
                     continue;
                 }
 
-                // Use the current Inspector value, not the one saved at
-                // placement, so tuning building population applies to
-                // existing maps too.
+                // Each building keeps the score it was built with.
                 boardManager.RestoreBuilding(
                     cell,
                     building.buildingType,
-                    GridCell.GetBuildingScore(building.buildingType)
+                    Mathf.Max(0, building.population)
                 );
             }
         }

@@ -40,8 +40,8 @@ public class PopulationProgressionManager : MonoBehaviour
     private Checkpoint[] checkpoints = CreateDefaultCheckpoints();
 
     [Header("Building Population")]
-    [Tooltip("Population a building adds to the city when placed on the board. " +
-             "Saved maps use these values when they load.")]
+    [Tooltip("Not used for placed buildings any more: a placed building " +
+             "adds the score earned building it. Kept only as a fallback.")]
     [Min(0)] [SerializeField] private int bluePopulation = 100;
     [Min(0)] [SerializeField] private int redPopulation = 250;
     [Min(0)] [SerializeField] private int greenPopulation = 500;
@@ -49,7 +49,7 @@ public class PopulationProgressionManager : MonoBehaviour
 
     private static readonly int[] DefaultPopulations =
     {
-        0, 6000, 15000, 22000, 32000, 45000, 60000, 80000
+        0, 810, 2370, 3450, 4740, 6270, 7980, 9600
     };
 
     private bool suppressZeroPopulationCheckpoints;
@@ -172,14 +172,29 @@ public class PopulationProgressionManager : MonoBehaviour
         }
     }
 
-    /// <summary>Population needed to unlock the given reward.</summary>
+    /// <summary>
+    /// Population needed to unlock the given reward in the active city.
+    /// Uses the city's own thresholds (CityManager) when it has them,
+    /// otherwise the checkpoints on this component.
+    /// </summary>
     public int GetCheckpointPopulation(RewardType reward)
     {
+        if (CityManager.Instance != null &&
+            CityManager.Instance.TryGetRewardPopulation(reward, out int cityPopulation))
+        {
+            return reward == RewardType.BlueBuilding ? 0 : cityPopulation;
+        }
+
         int index = (int)reward;
 
         return checkpoints != null && index >= 0 && index < checkpoints.Length
             ? checkpoints[index].population
             : 0;
+    }
+
+    private int GetRequiredPopulation(int index)
+    {
+        return GetCheckpointPopulation((RewardType)index);
     }
 
     public bool IsRewardUnlocked(RewardType reward)
@@ -223,7 +238,7 @@ public class PopulationProgressionManager : MonoBehaviour
             if (checkpoint.unlocked)
                 continue;
 
-            if (population >= checkpoint.population)
+            if (population >= GetRequiredPopulation(i))
             {
                 checkpoint.unlocked = true;
                 OnRewardUnlocked?.Invoke(reward);
@@ -265,11 +280,11 @@ public class PopulationProgressionManager : MonoBehaviour
                 continue;
 
             if (!IsRewardUnlocked(reward))
-                return checkpoints[i].population;
+                return GetRequiredPopulation(i);
         }
 
         return checkpoints.Length > 0
-            ? checkpoints[checkpoints.Length - 1].population
+            ? GetRequiredPopulation(checkpoints.Length - 1)
             : 0;
     }
 
@@ -286,11 +301,11 @@ public class PopulationProgressionManager : MonoBehaviour
                 continue;
 
             if (IsRewardUnlocked(reward) &&
-                checkpoints[i].population <= population)
+                GetRequiredPopulation(i) <= population)
             {
-                previousCheckpoint = checkpoints[i].population;
+                previousCheckpoint = GetRequiredPopulation(i);
             }
-            else if (checkpoints[i].population > population)
+            else if (GetRequiredPopulation(i) > population)
             {
                 break;
             }

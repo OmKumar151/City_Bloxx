@@ -368,11 +368,19 @@ public class NavigationManager : MonoBehaviour
         if (BuildingScoreManager.Instance == null)
             return;
 
-        GridCell.BuildingType buildingType = GetBuildingType(selectedBuilding);
-
-        BuildingScoreManager.Instance.SetCurrentBuildingScore(
-            GridCell.GetBuildingScore(buildingType)
-        );
+        // A building is worth the score it was built with, so there is only
+        // a number to show once one has been earned and is being placed.
+        if (HasPendingPlacementForActiveCity &&
+            GetBuildingIndex(PendingPlacementStore.BuildingId) == selectedBuilding)
+        {
+            BuildingScoreManager.Instance.SetCurrentBuildingScore(
+                PendingPlacementStore.Score
+            );
+        }
+        else
+        {
+            BuildingScoreManager.Instance.ClearCurrentBuildingScore();
+        }
     }
 
     private void UpdateExistingBuildingScore()
@@ -386,11 +394,10 @@ public class NavigationManager : MonoBehaviour
             return;
         }
 
-        int score = GridCell.GetBuildingScore(
-            currentBoardCell.CurrentBuilding
+        // The score that building was built with.
+        BuildingScoreManager.Instance.SetExistingBuildingScore(
+            currentBoardCell.BuildingPopulation
         );
-
-        BuildingScoreManager.Instance.SetExistingBuildingScore(score);
     }
 
     private void ClearExistingBuildingScore()
@@ -639,12 +646,17 @@ public class NavigationManager : MonoBehaviour
         if (!currentBoardCell.gameObject.activeInHierarchy)
             return;
 
+        // The building's population is the score earned building it.
+        int earnedScore = HasPendingPlacementForActiveCity
+            ? PendingPlacementStore.Score
+            : 0;
+
         bool successful;
 
         if (currentBoardCell.IsOccupied)
-            successful = boardManager.ReplaceBuilding(selectedBuilding);
+            successful = boardManager.ReplaceBuilding(selectedBuilding, earnedScore);
         else
-            successful = boardManager.PlaceBuilding(selectedBuilding);
+            successful = boardManager.PlaceBuilding(selectedBuilding, earnedScore);
 
         if (!successful)
         {
@@ -754,25 +766,22 @@ public class NavigationManager : MonoBehaviour
         ShowBuildingSelected();
     }
 
-    // Cancelling an earned building throws it away and takes back the
-    // gameplay score that was added to population when it was banked.
+    // Cancelling an earned building throws it away, and the score it would
+    // have added to population with it. Nothing was added yet, so there is
+    // nothing to take back.
     private bool DiscardPendingPlacement()
     {
         if (!HasPendingPlacementForActiveCity)
             return false;
 
-        string cityId = PopulationBonusStore.ActiveCityId;
-        int bankedScore = PendingPlacementStore.Score;
+        int lostScore = PendingPlacementStore.Score;
 
-        PopulationBonusStore.Subtract(cityId, bankedScore);
         PendingPlacementStore.Clear();
-
-        SyncPopulationManager();
         SaveMap();
 
         Debug.Log(
             "NavigationManager: Earned " + GetBuildingName(selectedBuilding) +
-            " building discarded. Population -" + bankedScore + "."
+            " building discarded with its " + lostScore + " population."
         );
 
         return true;

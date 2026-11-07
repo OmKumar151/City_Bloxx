@@ -16,8 +16,70 @@ public class CityManager : MonoBehaviour
         public Transform gridRoot;
 
         [Min(0)]
-        [Tooltip("Population required in the previous/current city to unlock this city. City 1 is unlocked automatically.")]
+        [Tooltip("Population required in the previous city to unlock this city. City 1 is unlocked automatically.")]
         public int unlockPopulationRequirement = 0;
+
+        [Tooltip("Population this city needs for each reward. Sized to the " +
+                 "city's number of cells.")]
+        public RewardThresholds rewardThresholds = new RewardThresholds();
+    }
+
+    /// <summary>
+    /// Population needed in one city for each reward. When Use City
+    /// Thresholds is off, PopulationProgressionManager's checkpoints are used.
+    /// </summary>
+    [Serializable]
+    public class RewardThresholds
+    {
+        public bool useCityThresholds;
+
+        [Min(0)] public int redBuilding;
+        [Min(0)] public int greenBuilding;
+        [Min(0)] public int blueStar;
+        [Min(0)] public int yellowBuilding;
+        [Min(0)] public int redStar;
+        [Min(0)] public int greenStar;
+        [Min(0)] public int yellowStar;
+
+        public int Get(PopulationProgressionManager.RewardType reward)
+        {
+            switch (reward)
+            {
+                case PopulationProgressionManager.RewardType.RedBuilding: return redBuilding;
+                case PopulationProgressionManager.RewardType.GreenBuilding: return greenBuilding;
+                case PopulationProgressionManager.RewardType.BlueStar: return blueStar;
+                case PopulationProgressionManager.RewardType.YellowBuilding: return yellowBuilding;
+                case PopulationProgressionManager.RewardType.RedStar: return redStar;
+                case PopulationProgressionManager.RewardType.GreenStar: return greenStar;
+                case PopulationProgressionManager.RewardType.YellowStar: return yellowStar;
+                default: return 0;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The active city's population requirement for a reward, when that
+    /// city has its own thresholds.
+    /// </summary>
+    public bool TryGetRewardPopulation(
+        PopulationProgressionManager.RewardType reward,
+        out int population)
+    {
+        population = 0;
+
+        if (!IsValidCityIndex(activeCityIndex) ||
+            cities[activeCityIndex] == null)
+        {
+            return false;
+        }
+
+        RewardThresholds thresholds = cities[activeCityIndex].rewardThresholds;
+
+        if (thresholds == null || !thresholds.useCityThresholds)
+            return false;
+
+        population = Mathf.Max(0, thresholds.Get(reward));
+        return true;
     }
 
     public static CityManager Instance { get; private set; }

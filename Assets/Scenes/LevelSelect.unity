@@ -4838,25 +4838,25 @@ MonoBehaviour:
     population: 0
     unlocked: 1
   - name: RedBuilding
-    population: 6000
+    population: 810
     unlocked: 0
   - name: GreenBuilding
-    population: 15000
+    population: 2370
     unlocked: 0
   - name: BlueStar
-    population: 22000
+    population: 3450
     unlocked: 0
   - name: YellowBuilding
-    population: 32000
+    population: 4740
     unlocked: 0
   - name: RedStar
-    population: 45000
+    population: 6270
     unlocked: 0
   - name: GreenStar
-    population: 60000
+    population: 7980
     unlocked: 0
   - name: YellowStar
-    population: 80000
+    population: 9600
     unlocked: 0
   bluePopulation: 100
   redPopulation: 250
@@ -7746,26 +7746,80 @@ MonoBehaviour:
     displayName: City 1
     gridRoot: {fileID: 1448530982}
     unlockPopulationRequirement: 0
+    rewardThresholds:
+      useCityThresholds: 1
+      redBuilding: 1200
+      greenBuilding: 3570
+      blueStar: 5190
+      yellowBuilding: 7140
+      redStar: 9390
+      greenStar: 12000
+      yellowStar: 14430
   - cityId: city_2
     displayName: City 2
     gridRoot: {fileID: 1905498255}
-    unlockPopulationRequirement: 0
+    unlockPopulationRequirement: 10800
+    rewardThresholds:
+      useCityThresholds: 1
+      redBuilding: 810
+      greenBuilding: 2370
+      blueStar: 3450
+      yellowBuilding: 4740
+      redStar: 6270
+      greenStar: 7980
+      yellowStar: 9600
   - cityId: city_3
     displayName: City 3
     gridRoot: {fileID: 1590813028}
-    unlockPopulationRequirement: 0
+    unlockPopulationRequirement: 7200
+    rewardThresholds:
+      useCityThresholds: 1
+      redBuilding: 900
+      greenBuilding: 2670
+      blueStar: 3900
+      yellowBuilding: 5340
+      redStar: 7050
+      greenStar: 9000
+      yellowStar: 10800
   - cityId: city_4
     displayName: City 4
     gridRoot: {fileID: 1590372153}
-    unlockPopulationRequirement: 0
+    unlockPopulationRequirement: 8100
+    rewardThresholds:
+      useCityThresholds: 1
+      redBuilding: 810
+      greenBuilding: 2370
+      blueStar: 3450
+      yellowBuilding: 4740
+      redStar: 6270
+      greenStar: 7980
+      yellowStar: 9600
   - cityId: city_5
     displayName: City 5
     gridRoot: {fileID: 972985890}
-    unlockPopulationRequirement: 0
+    unlockPopulationRequirement: 7200
+    rewardThresholds:
+      useCityThresholds: 1
+      redBuilding: 900
+      greenBuilding: 2670
+      blueStar: 3900
+      yellowBuilding: 5340
+      redStar: 7050
+      greenStar: 9000
+      yellowStar: 10800
   - cityId: city_6
     displayName: City 6
     gridRoot: {fileID: 1415178578}
-    unlockPopulationRequirement: 0
+    unlockPopulationRequirement: 8100
+    rewardThresholds:
+      useCityThresholds: 1
+      redBuilding: 810
+      greenBuilding: 2370
+      blueStar: 3450
+      yellowBuilding: 4740
+      redStar: 6270
+      greenStar: 7980
+      yellowStar: 9600
   startingCityIndex: 0
   boardManager: {fileID: 1499414280}
   mapSaveManager: {fileID: 1494890314}

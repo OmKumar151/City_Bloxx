@@ -12,14 +12,17 @@ public class GameManager : MonoBehaviour
              "selected building's config sets this.")]
     [Min(1)] public int floorsToComplete = 30;
 
-    // Floor points = base + base x accuracy (+ perfect bonus if perfect),
-    // then x the combo multiplier while a perfect streak is running.
+    // Floor points = base + accuracy bonus x accuracy (+ perfect bonus if
+    // perfect), then x the combo multiplier while a perfect streak is running.
+    // Defaults give 20-30 points a floor: the residents one floor houses. before the multiplier.
     [Header("Scoring")]
-    [Tooltip("Points for every landed floor. Accuracy adds up to the same " +
-             "amount again (a dead-centre landing scores 2x this).")]
-    [Min(0)] public int baseScorePerFloor = 100;
+    [Tooltip("Points for every landed floor.")]
+    [Min(0)] public int baseScorePerFloor = 20;
+    [Tooltip("Extra points for accuracy: the full amount for a dead-centre " +
+             "landing, less the further off-centre it lands.")]
+    [Min(0)] public int accuracyBonusPerFloor = 10;
     [Tooltip("Extra points for a perfect landing (before the combo multiplier).")]
-    [Min(0)] public int perfectLandingBonus = 100;
+    [Min(0)] public int perfectLandingBonus = 0;
     [Tooltip("Accuracy (overlap / block width) needed for a perfect. " +
              "Auto-centred landings always count as 1.")]
     [Range(0f, 1f)] public float perfectAccuracyThreshold = 0.9f;
@@ -37,6 +40,11 @@ public class GameManager : MonoBehaviour
 
     [Header("Perfect Streak")]
     public PerfectStreakTimer perfectStreakTimer;
+
+    [Header("Tower Sway")]
+    [Tooltip("Sways the tower after off-centre landings. Found or added " +
+             "on this object automatically if left empty.")]
+    public TowerSway towerSway;
 
     [Header("Scenes")]
     public string levelSelectScene = "LevelSelect";
@@ -78,6 +86,12 @@ public class GameManager : MonoBehaviour
 
         if (perfectStreakTimer == null)
             perfectStreakTimer = FindObjectOfType<PerfectStreakTimer>();
+
+        if (towerSway == null)
+            towerSway = FindObjectOfType<TowerSway>();
+
+        if (towerSway == null)
+            towerSway = gameObject.AddComponent<TowerSway>();
 
         ApplySelectedBuilding();
 
@@ -228,7 +242,7 @@ public class GameManager : MonoBehaviour
 
         int floorPoints =
             baseScorePerFloor +
-            Mathf.RoundToInt(baseScorePerFloor * accuracy);
+            Mathf.RoundToInt(accuracyBonusPerFloor * accuracy);
 
         float multiplier = 1f;
 
@@ -250,6 +264,10 @@ public class GameManager : MonoBehaviour
         {
             ResetPerfectStreak();
         }
+
+        // Off-centre landings make the tower sway more, central ones calm it.
+        if (towerSway != null)
+            towerSway.RegisterLanding(LastPlacedBlock, floorsBuilt, accuracy, isPerfect);
 
         score += Mathf.RoundToInt(floorPoints * multiplier);
 
@@ -386,8 +404,10 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Win panel "Next": adds the final score to the city's population,
-    /// then returns to LevelSelect. Only works after a completed building.
+    /// Win panel "Next": the completed building goes to LevelSelect to be
+    /// placed, carrying its final score. The score becomes that building's
+    /// population when it is placed (nothing is added before then).
+    /// Only works after a completed building.
     /// </summary>
     public void BankScoreAndReturnToLevelSelect()
     {
@@ -399,9 +419,6 @@ public class GameManager : MonoBehaviour
         if (string.IsNullOrWhiteSpace(cityId))
             cityId = PopulationBonusStore.ActiveCityId;
 
-        PopulationBonusStore.Add(cityId, score);
-
-        // The completed building is now the player's to place:
         // LevelSelect opens board placement for it on load.
         if (ActiveConfiguration != null)
             PendingPlacementStore.Set(ActiveConfiguration.buildingId, cityId, score);
