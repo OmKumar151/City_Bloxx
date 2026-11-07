@@ -14,7 +14,8 @@ public class GameManager : MonoBehaviour
 
     // Floor points = base + accuracy bonus x accuracy (+ perfect bonus if
     // perfect), then x the combo multiplier while a perfect streak is running.
-    // Defaults give 20-30 points a floor: the residents one floor houses. before the multiplier.
+    // Defaults give 20-30 points a floor before the multiplier: the
+    // residents one floor houses.
     [Header("Scoring")]
     [Tooltip("Points for every landed floor.")]
     [Min(0)] public int baseScorePerFloor = 20;
@@ -34,6 +35,20 @@ public class GameManager : MonoBehaviour
     [Tooltip("Horizontal offset (world units, blocks are 1 wide) that " +
              "still counts as a perfect, auto-centred landing.")]
     [Min(0f)] public float perfectLandingDistance = 0.2f;
+
+    [Header("Perfect Roof")]
+    [Tooltip("Bonus residents for landing the roof (the final block) " +
+             "perfectly, per floor of the building: 5 gives Blue (10 floors) " +
+             "+50 and Yellow (40 floors) +200. Counts toward the special roof.")]
+    [Min(0)] public int perfectRoofBonusPerFloor = 5;
+
+    /// <summary>Bonus earned by a perfect roof this game (0 if none).</summary>
+    public int PerfectRoofBonus { get; private set; }
+
+    [Header("Building Complete")]
+    [Tooltip("Seconds between the roof landing and the win panel appearing, " +
+             "so the player can see the finished building.")]
+    [Min(0f)] public float winPanelDelay = 1.25f;
 
     [Header("Building")]
     public GameObject startingBuilding;
@@ -149,6 +164,7 @@ public class GameManager : MonoBehaviour
         floorsBuilt = 0;
         comboCount = 0;
         totalPerfectLandings = 0;
+        PerfectRoofBonus = 0;
 
         isGameOver = false;
         isBuildingComplete = false;
@@ -271,6 +287,21 @@ public class GameManager : MonoBehaviour
 
         score += Mathf.RoundToInt(floorPoints * multiplier);
 
+        // The roof is special: a perfect one adds a bonus that grows with
+        // the building's height.
+        bool isRoof = floorsBuilt >= floorsToComplete;
+
+        if (isRoof && isPerfect)
+        {
+            PerfectRoofBonus = perfectRoofBonusPerFloor * floorsToComplete;
+            score += PerfectRoofBonus;
+
+            Debug.Log(
+                "GameManager: Perfect roof! +" + PerfectRoofBonus + " residents.",
+                this
+            );
+        }
+
         RefreshUI();
 
         if (CraneController.Instance != null)
@@ -330,6 +361,16 @@ public class GameManager : MonoBehaviour
             CraneController.Instance.StopCrane();
 
         RefreshUI();
+
+        // Give the player a moment to see the roof land (and a special roof
+        // appear) before the win panel covers the building.
+        StartCoroutine(ShowWinPanelAfterDelay());
+    }
+
+    private System.Collections.IEnumerator ShowWinPanelAfterDelay()
+    {
+        if (winPanelDelay > 0f)
+            yield return new WaitForSecondsRealtime(winPanelDelay);
 
         if (UIManager.Instance != null)
             UIManager.Instance.ShowBuildingComplete(score);

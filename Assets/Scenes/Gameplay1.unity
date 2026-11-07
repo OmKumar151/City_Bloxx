@@ -5153,6 +5153,7 @@ MonoBehaviour:
   maxCombo: 5
   comboMultiplierStep: 0.25
   perfectLandingDistance: 0.2
+  perfectRoofBonusPerFloor: 5
   startingBuilding: {fileID: 1728915540}
   perfectStreakTimer: {fileID: 1614594905}
   towerSway: {fileID: 1834082810}
@@ -5191,13 +5192,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81fc0d83f02c4cad958d118000010661, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TowerSway
-  swayStartFloor: 5
-  maxSwayDistance: 0.45
+  swayStartFloor: 3
+  maxSwayDistance: 1
   floorsToFullSway: 6
-  minSwaySpeed: 2
-  maxSwaySpeed: 4
-  minImperfectIncrease: 0.25
-  maxImperfectIncrease: 0.5
+  minSwaySpeed: 0.8
+  maxSwaySpeed: 1.6
+  minImperfectIncrease: 0.12
+  maxImperfectIncrease: 0.25
   worstOffCentre: 0.7
   perfectDecrease: 0.35
   responseSpeed: 3
