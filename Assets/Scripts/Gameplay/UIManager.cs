@@ -41,7 +41,15 @@ public class UIManager : MonoBehaviour
     [Header("Score Format")]
     [SerializeField] private string scorePrefix = "Score: ";
 
+    [Header("End Panel Animation")]
+    [Tooltip("Seconds for the win / game over panel to fade in.")]
+    [SerializeField, Min(0f)] private float panelFadeDuration = 0.4f;
+
+    [Tooltip("Size the panel starts at while fading in (1 = no scale-up).")]
+    [SerializeField, Range(0.5f, 1f)] private float panelStartScale = 0.9f;
+
     private int displayedScore;
+    private Coroutine panelFadeRoutine;
 
     private void Awake()
     {
@@ -169,6 +177,8 @@ public class UIManager : MonoBehaviour
 
     public void HideEndPanels()
     {
+        StopPanelFade();
+
         if (gameOverPanel != null)
             gameOverPanel.SetActive(false);
 
@@ -178,11 +188,10 @@ public class UIManager : MonoBehaviour
 
     public void ShowGameOver(int finalScore)
     {
-        if (gameOverPanel != null)
-            gameOverPanel.SetActive(true);
-
         if (completePanel != null)
             completePanel.SetActive(false);
+
+        FadeInPanel(gameOverPanel);
 
         if (gameOverText != null)
             gameOverText.text = "GAME OVER";
@@ -195,16 +204,103 @@ public class UIManager : MonoBehaviour
 
     public void ShowBuildingComplete(int finalScore)
     {
-        if (completePanel != null)
-            completePanel.SetActive(true);
-
         if (gameOverPanel != null)
             gameOverPanel.SetActive(false);
+
+        FadeInPanel(completePanel);
 
         if (completeFinalScoreText != null)
             completeFinalScoreText.text = FormatScore(finalScore);
 
         SelectFirstButton(completeNextButton);
+    }
+
+    // =========================================================
+    // END PANEL FADE
+    // =========================================================
+
+    private void FadeInPanel(GameObject panel)
+    {
+        if (panel == null)
+            return;
+
+        StopPanelFade();
+
+        panel.SetActive(true);
+
+        if (panelFadeDuration <= 0f || !isActiveAndEnabled)
+            return;
+
+        panelFadeRoutine = StartCoroutine(FadeInRoutine(panel));
+    }
+
+    // Unscaled time: the game is paused (timeScale 0) while panels show.
+    private System.Collections.IEnumerator FadeInRoutine(GameObject panel)
+    {
+        CanvasGroup group = panel.GetComponent<CanvasGroup>();
+
+        if (group == null)
+            group = panel.AddComponent<CanvasGroup>();
+
+        Transform panelTransform = panel.transform;
+        Vector3 endScale = Vector3.one;
+        Vector3 startScale = endScale * panelStartScale;
+
+        // No clicks until the panel is fully in.
+        group.interactable = false;
+        group.blocksRaycasts = true;
+
+        float elapsed = 0f;
+
+        while (elapsed < panelFadeDuration)
+        {
+            float t = Mathf.Clamp01(elapsed / panelFadeDuration);
+
+            // Ease out: quick at first, settling gently.
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
+
+            group.alpha = eased;
+            panelTransform.localScale = Vector3.LerpUnclamped(startScale, endScale, eased);
+
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        group.alpha = 1f;
+        group.interactable = true;
+        panelTransform.localScale = endScale;
+
+        panelFadeRoutine = null;
+    }
+
+    // Stops a fade part-way and leaves both panels fully visible-ready, so
+    // a panel shown again never stays half transparent.
+    private void StopPanelFade()
+    {
+        if (panelFadeRoutine != null)
+        {
+            StopCoroutine(panelFadeRoutine);
+            panelFadeRoutine = null;
+        }
+
+        ResetPanelVisuals(gameOverPanel);
+        ResetPanelVisuals(completePanel);
+    }
+
+    private static void ResetPanelVisuals(GameObject panel)
+    {
+        if (panel == null)
+            return;
+
+        CanvasGroup group = panel.GetComponent<CanvasGroup>();
+
+        if (group != null)
+        {
+            group.alpha = 1f;
+            group.interactable = true;
+        }
+
+        panel.transform.localScale = Vector3.one;
     }
 
     // Lets keyboard / controller players press a button straight away.
