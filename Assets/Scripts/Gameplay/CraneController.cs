@@ -174,6 +174,26 @@ public class CraneController : MonoBehaviour
 
         ConfigureRope();
 
+        // The first block appears only once the camera's opening pan has
+        // arrived at the crane.
+        spawnCoroutine = StartCoroutine(SpawnFirstBlockAfterOpeningPan());
+    }
+
+    private IEnumerator SpawnFirstBlockAfterOpeningPan()
+    {
+        CameraFollow cameraFollow = FindObjectOfType<CameraFollow>();
+
+        if (cameraFollow != null)
+        {
+            yield return new WaitUntil(
+                () => cameraFollow == null || cameraFollow.IsOpeningPanFinished);
+        }
+
+        spawnCoroutine = null;
+
+        if (stopped)
+            yield break;
+
         SpawnBlock();
     }
 
@@ -316,14 +336,9 @@ public class CraneController : MonoBehaviour
             return;
         }
 
-        // IMPORTANT:
-        // Reset the swing pivot before spawning the next block.
-        // This prevents the next block from inheriting the
-        // previous block's release angle.
-        if (swingController != null)
-        {
-            swingController.ResetSwing();
-        }
+        // The swing is NOT reset: the new block hangs at the angle the rope
+        // stopped at and the swing carries on from there in the same
+        // direction (StartSwing picks up the paused phase).
 
         GameObject block = Instantiate(
             hangingBlockPrefab,
@@ -354,12 +369,14 @@ public class CraneController : MonoBehaviour
         // block still swings with the hook because both share the pivot.
         block.transform.SetParent(GetBlockParent(), true);
 
-        block.transform.position =
-            GetHookBlockPoint() + Vector3.down * blockBelowHook;
+        // Line the block up with the rope, which may be part-way through a
+        // swing: upright relative to the pivot, so it tilts with the hook
+        // exactly as it would have if it had hung there from the start.
+        block.transform.localRotation = Quaternion.identity;
+        rb.rotation = block.transform.eulerAngles.z;
 
-        // Ensure the new block starts upright.
-        block.transform.rotation = Quaternion.identity;
-        rb.rotation = 0f;
+        block.transform.position =
+            GetHookBlockPoint() - block.transform.up * blockBelowHook;
 
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
@@ -558,15 +575,15 @@ public class CraneController : MonoBehaviour
             new Vector3(0f, spriteRenderer.sprite.bounds.max.y, 0f)
         );
 
-        float originToTop = spriteTop.y - block.transform.position.y;
+        // Full vector, not just height: the block may be tilted with the
+        // rope, so its top-centre is not straight above its origin.
+        Vector3 originToTop = spriteTop - block.transform.position;
 
         Vector3 hangPoint = GetHookBlockPoint();
+        Vector3 position = hangPoint - originToTop;
+        position.z = block.transform.position.z;
 
-        block.transform.position = new Vector3(
-            hangPoint.x,
-            hangPoint.y - originToTop,
-            block.transform.position.z
-        );
+        block.transform.position = position;
     }
 
     private Transform GetBlockParent()

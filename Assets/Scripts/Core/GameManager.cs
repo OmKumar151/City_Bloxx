@@ -63,6 +63,21 @@ public class GameManager : MonoBehaviour
 
     [Header("Scenes")]
     public string levelSelectScene = "LevelSelect";
+    [Tooltip("Where the fail panel's exit button goes in Quick Play.")]
+    public string mainMenuScene = "Main Menu";
+
+    [Header("Quick Play")]
+    [Tooltip("Quick Play only: a dropped block that falls this far below " +
+             "the top of the tower counts as a miss straight away, instead " +
+             "of falling all the way to the ground of a very tall tower.")]
+    [Min(0.5f)] public float endlessMissDepth = 3f;
+
+    /// <summary>
+    /// Quick Play with a colour chosen: floors never run out, the game only
+    /// ends when the last life is lost.
+    /// </summary>
+    public bool IsEndless =>
+        GameplaySelection.IsQuickPlay && ActiveConfiguration != null;
 
     [Header("Runtime State")]
     public int score;
@@ -287,6 +302,10 @@ public class GameManager : MonoBehaviour
 
         score += Mathf.RoundToInt(floorPoints * multiplier);
 
+        // Impact: a light bump for a perfect landing, harder off-centre.
+        if (CameraShake.Instance != null)
+            CameraShake.Instance.ShakeForLanding(accuracy, isPerfect);
+
         // The roof is special: a perfect one adds a bonus that grows with
         // the building's height.
         bool isRoof = floorsBuilt >= floorsToComplete;
@@ -318,6 +337,9 @@ public class GameManager : MonoBehaviour
 
     public void NotifyBlockReleased()
     {
+        if (CameraShake.Instance != null)
+            CameraShake.Instance.ShakeForRelease();
+
         if (perfectStreakTimer != null)
             perfectStreakTimer.PauseTimer();
     }
@@ -336,6 +358,9 @@ public class GameManager : MonoBehaviour
             return;
 
         lives = Mathf.Max(0, lives - 1);
+
+        if (CameraShake.Instance != null)
+            CameraShake.Instance.ShakeForMiss();
 
         ResetPerfectStreak();
 
@@ -417,8 +442,18 @@ public class GameManager : MonoBehaviour
 
         RefreshUI();
 
-        if (UIManager.Instance != null)
+        // Quick Play: save the best score and show the Quick Play end panel.
+        if (IsEndless)
+        {
+            bool isNewBest = QuickPlayScores.Record(score, out int bestScore);
+
+            if (UIManager.Instance != null)
+                UIManager.Instance.ShowQuickPlayEnd(score, bestScore, isNewBest);
+        }
+        else if (UIManager.Instance != null)
+        {
             UIManager.Instance.ShowGameOver(score);
+        }
 
         Time.timeScale = 0f;
     }
@@ -467,13 +502,46 @@ public class GameManager : MonoBehaviour
         LoadLevelSelect();
     }
 
-    /// <summary>Fail panel: back to LevelSelect without adding score.</summary>
+    /// <summary>
+    /// Fail panel: back to LevelSelect without adding score. Quick Play
+    /// came from the main menu, so it goes back there instead.
+    /// </summary>
     public void ReturnToLevelSelect()
     {
         if (isLeavingScene)
             return;
 
+        if (GameplaySelection.IsQuickPlay)
+        {
+            LoadMainMenu();
+            return;
+        }
+
         LoadLevelSelect();
+    }
+
+    public void LoadMainMenu()
+    {
+        if (isLeavingScene)
+            return;
+
+        if (string.IsNullOrWhiteSpace(mainMenuScene) ||
+            !Application.CanStreamedLevelBeLoaded(mainMenuScene))
+        {
+            Debug.LogError(
+                "GameManager: Scene '" + mainMenuScene +
+                "' cannot be loaded. Check its name and Build Settings.",
+                this
+            );
+            return;
+        }
+
+        isLeavingScene = true;
+        Time.timeScale = 1f;
+
+        GameplaySelection.ClearSelection();
+
+        SceneManager.LoadScene(mainMenuScene);
     }
 
     private void LoadLevelSelect()

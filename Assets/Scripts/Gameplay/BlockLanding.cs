@@ -69,6 +69,18 @@ public class BlockLanding : MonoBehaviour
             return;
         }
 
+        // Quick Play towers get very tall: a block that drops past the top
+        // of the tower is a miss now, not after a long fall to the ground.
+        if (manager.IsEndless &&
+            manager.LastPlacedBlock != null &&
+            manager.LastPlacedBlock != gameObject &&
+            transform.position.y <
+                manager.LastPlacedBlock.transform.position.y - manager.endlessMissDepth)
+        {
+            ResolveMiss("fell past the top of the tower");
+            return;
+        }
+
         if (hasUnresolvedContact)
         {
             unresolvedContactTimer += Time.deltaTime;

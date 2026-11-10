@@ -38,8 +38,24 @@ public class UIManager : MonoBehaviour
     [Tooltip("Adds the score to the city's population and returns to LevelSelect.")]
     [SerializeField] private Button completeNextButton;
 
+    [Header("Quick Play End UI")]
+    [Tooltip("Shown instead of the Game Over panel when a Quick Play run " +
+             "ends. Empty = Quick Play uses the Game Over panel.")]
+    [SerializeField] private GameObject quickPlayEndPanel;
+    [Tooltip("Score shown on the Quick Play end panel.")]
+    [SerializeField] private TMP_Text quickPlayFinalScoreText;
+    [Tooltip("Highest Quick Play score, or this run's score when it is a new best.")]
+    [SerializeField] private TMP_Text quickPlayBestScoreText;
+    [SerializeField] private string bestScorePrefix = "Best: ";
+    [SerializeField] private string newBestScorePrefix = "New Best: ";
+
     [Header("Score Format")]
     [SerializeField] private string scorePrefix = "Score: ";
+
+    [Tooltip("Label above the score on the gameplay HUD.")]
+    [SerializeField] private string hudScoreLabel = "Score:";
+    [Tooltip("Label above the floor count on the gameplay HUD.")]
+    [SerializeField] private string hudFloorLabel = "Floor:";
 
     [Header("End Panel Animation")]
     [Tooltip("Seconds for the win / game over panel to fade in.")]
@@ -137,7 +153,7 @@ public class UIManager : MonoBehaviour
         displayedScore = Mathf.Max(0, score);
 
         if (scoreText != null)
-            scoreText.text = displayedScore.ToString("N0");
+            scoreText.text = hudScoreLabel + "\n" + displayedScore.ToString("N0");
     }
 
     public void UpdateLives(int lives)
@@ -160,12 +176,23 @@ public class UIManager : MonoBehaviour
 
     public void UpdateFloors(int floorsBuilt, int floorsToComplete)
     {
-        if (floorText != null)
+        if (floorText == null)
+            return;
+
+        // Quick Play has no target floor: show only how many are built.
+        // Also covers the building picker, before a building is chosen,
+        // when GameManager still holds the Inspector's floor target.
+        if (GameplaySelection.IsQuickPlay ||
+            floorsToComplete >= GameplaySelection.EndlessFloors)
         {
-            floorText.text =
-                Mathf.Max(0, floorsBuilt) + " / " +
-                Mathf.Max(1, floorsToComplete);
+            floorText.text = hudFloorLabel + "\n" + Mathf.Max(0, floorsBuilt);
+            return;
         }
+
+        floorText.text =
+            hudFloorLabel + "\n" +
+            Mathf.Max(0, floorsBuilt) + " / " +
+            Mathf.Max(1, floorsToComplete);
     }
 
     // Kept for compatibility with any older scripts that call UpdateCombo.
@@ -184,6 +211,9 @@ public class UIManager : MonoBehaviour
 
         if (completePanel != null)
             completePanel.SetActive(false);
+
+        if (quickPlayEndPanel != null)
+            quickPlayEndPanel.SetActive(false);
     }
 
     public void ShowGameOver(int finalScore)
@@ -200,6 +230,40 @@ public class UIManager : MonoBehaviour
             finalScoreText.text = FormatScore(finalScore);
 
         SelectFirstButton(gameOverRestartButton);
+    }
+
+    /// <summary>
+    /// End of a Quick Play run: score and best score. When this run set a
+    /// new best, the best text shows it as the new best.
+    /// </summary>
+    public void ShowQuickPlayEnd(int finalScore, int bestScore, bool isNewBest)
+    {
+        if (quickPlayEndPanel == null)
+        {
+            ShowGameOver(finalScore);
+            return;
+        }
+
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(false);
+
+        if (completePanel != null)
+            completePanel.SetActive(false);
+
+        FadeInPanel(quickPlayEndPanel);
+
+        if (quickPlayFinalScoreText != null)
+            quickPlayFinalScoreText.text = FormatScore(finalScore);
+
+        if (quickPlayBestScoreText != null)
+        {
+            string prefix = isNewBest ? newBestScorePrefix : bestScorePrefix;
+
+            quickPlayBestScoreText.text =
+                prefix + Mathf.Max(0, bestScore).ToString("N0");
+        }
+
+        SelectFirstButton(quickPlayEndPanel.GetComponentInChildren<Button>());
     }
 
     public void ShowBuildingComplete(int finalScore)
@@ -285,6 +349,7 @@ public class UIManager : MonoBehaviour
 
         ResetPanelVisuals(gameOverPanel);
         ResetPanelVisuals(completePanel);
+        ResetPanelVisuals(quickPlayEndPanel);
     }
 
     private static void ResetPanelVisuals(GameObject panel)

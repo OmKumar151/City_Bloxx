@@ -26,9 +26,20 @@ public class CameraFollow : MonoBehaviour
     private float highestCameraY;
     private bool isOpeningPanPlaying;
 
+    /// <summary>
+    /// True once the opening pan has reached the crane, or straight away
+    /// when there is no opening pan. The crane waits for this before
+    /// hanging the first block.
+    /// </summary>
+    public bool IsOpeningPanFinished { get; private set; }
+
     private void Awake()
     {
         highestCameraY = transform.position.y;
+
+        // Set here (not in Start) so it is right whichever script's Start
+        // runs first. Start makes the same checks before playing the pan.
+        IsOpeningPanFinished = openingStartPoint == null || target == null;
     }
 
     private void Start()
@@ -98,6 +109,7 @@ public class CameraFollow : MonoBehaviour
 
         highestCameraY = transform.position.y;
         isOpeningPanPlaying = false;
+        IsOpeningPanFinished = true;
     }
 
     private Vector3 GetTargetCameraPosition()

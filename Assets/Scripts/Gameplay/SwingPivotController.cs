@@ -17,22 +17,39 @@ public class SwingPivotController : MonoBehaviour
     [Tooltip("Swing speed added each time Perfects Per Speed Up is reached.")]
     [Min(0f)] public float speedIncreasePerStep = 0.05f;
 
+    [Header("Height Speed-Up")]
+    [Tooltip("The swing speeds up once every this many floors built.")]
+    [Min(1)] public int floorsPerSpeedUp = 5;
+
+    [Tooltip("Swing speed added every Floors Per Speed Up floors.")]
+    [Min(0f)] public float speedIncreasePerFloorStep = 0.1f;
+
+    [Header("Limit")]
     [Tooltip("The swing never gets faster than this.")]
     [Min(0.01f)] public float maxSwingSpeed = 3f;
 
-    /// <summary>Swing speed after this game's perfect landings.</summary>
+    /// <summary>
+    /// Swing speed after this game's perfect landings and floors built.
+    /// </summary>
     public float CurrentSwingSpeed
     {
         get
         {
-            int perfects = GameManager.Instance != null
-                ? GameManager.Instance.totalPerfectLandings
-                : 0;
+            GameManager manager = GameManager.Instance;
+
+            int perfects = manager != null ? manager.totalPerfectLandings : 0;
+            int floors = manager != null ? manager.floorsBuilt : 0;
 
             // Whole steps only: perfects 0-1 = no change, 2-3 = one step...
-            int steps = perfects / Mathf.Max(1, perfectsPerSpeedUp);
+            int perfectSteps = perfects / Mathf.Max(1, perfectsPerSpeedUp);
 
-            float speed = swingSpeed + speedIncreasePerStep * steps;
+            // Floors 0-4 = no change, 5-9 = one step, 10-14 = two...
+            int floorSteps = floors / Mathf.Max(1, floorsPerSpeedUp);
+
+            float speed =
+                swingSpeed +
+                speedIncreasePerStep * perfectSteps +
+                speedIncreasePerFloorStep * floorSteps;
 
             return Mathf.Min(speed, Mathf.Max(swingSpeed, maxSwingSpeed));
         }
@@ -77,7 +94,10 @@ public class SwingPivotController : MonoBehaviour
         // Continue the same oscillation rather than restarting at zero.
         currentAngle = Mathf.Sin(swingTime) * maxAngle;
 
-        float velocity = Mathf.Cos(swingTime) * swingDirection;
+        // Direction of travel is the slope of the sine wave. (Multiplying
+        // by the old direction flipped it every frame on the way back, so
+        // a resumed swing could set off the wrong way.)
+        float velocity = Mathf.Cos(swingTime);
 
         if (velocity > 0.001f)
             swingDirection = 1f;

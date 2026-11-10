@@ -27,6 +27,9 @@ public class MainMenuManager : MonoBehaviour
     {
         PlayWindowSwitchSound();
 
+        // No colour yet: Gameplay1 shows the Quick Play colour picker.
+        GameplaySelection.StartQuickPlay();
+
         SceneManager.LoadScene("Gameplay1");
     }
 

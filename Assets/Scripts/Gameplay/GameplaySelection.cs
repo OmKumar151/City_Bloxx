@@ -4,6 +4,12 @@
 /// </summary>
 public static class GameplaySelection
 {
+    /// <summary>
+    /// Floor count used by Quick Play: the building never reaches its roof,
+    /// so the player keeps stacking until they run out of lives.
+    /// </summary>
+    public const int EndlessFloors = int.MaxValue;
+
     /// <summary>The full configuration (sprites, prefab, thresholds).</summary>
     public static BuildingGameplayConfig SelectedBuilding { get; private set; }
 
@@ -26,6 +32,12 @@ public static class GameplaySelection
     /// </summary>
     public static string CityId { get; private set; }
 
+    /// <summary>
+    /// True when the game was started from the main menu's Quick Play
+    /// button: endless floors, no city, no roof.
+    /// </summary>
+    public static bool IsQuickPlay { get; private set; }
+
     public static bool HasSelection => SelectedBuilding != null;
 
     public static void Select(
@@ -33,6 +45,9 @@ public static class GameplaySelection
         bool specialRoofUnlocked,
         string cityId = null)
     {
+        // Any normal (LevelSelect) launch leaves Quick Play.
+        IsQuickPlay = false;
+
         SelectedBuilding = configuration;
 
         if (configuration == null)
@@ -53,6 +68,33 @@ public static class GameplaySelection
         Select(configuration, false);
     }
 
+    /// <summary>
+    /// Main menu Quick Play: no building yet. The Gameplay scene shows the
+    /// colour picker and calls SelectQuickPlayBuilding.
+    /// </summary>
+    public static void StartQuickPlay()
+    {
+        ClearSelection();
+        IsQuickPlay = true;
+    }
+
+    /// <summary>Quick Play colour chosen: endless floors of this building.</summary>
+    public static void SelectQuickPlayBuilding(BuildingGameplayConfig configuration)
+    {
+        if (configuration == null)
+        {
+            StartQuickPlay();
+            return;
+        }
+
+        SelectedBuilding = configuration;
+        BuildingId = configuration.buildingId;
+        FloorsToComplete = EndlessFloors;
+        SpecialRoofUnlocked = false;
+        CityId = null;
+        IsQuickPlay = true;
+    }
+
     public static void ClearSelection()
     {
         SelectedBuilding = null;
@@ -60,5 +102,6 @@ public static class GameplaySelection
         FloorsToComplete = 0;
         SpecialRoofUnlocked = false;
         CityId = null;
+        IsQuickPlay = false;
     }
 }
