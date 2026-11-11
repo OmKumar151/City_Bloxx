@@ -375,8 +375,8 @@ public class TutorialManager : MonoBehaviour
 
     private void MarkTutorialCompleted(string tutorialId)
     {
-        PlayerPrefs.SetInt(CompletedPrefix + tutorialId, 1);
-        PlayerPrefs.Save();
+        SaveStore.SetInt(CompletedPrefix + tutorialId, 1);
+        SaveStore.Save();
 
         Debug.Log(
             "TutorialManager: Tutorial '" + tutorialId +
@@ -406,9 +406,9 @@ public class TutorialManager : MonoBehaviour
     [ContextMenu("Reset Main Menu and Level Select Tutorials")]
     private void ResetCurrentTutorials()
     {
-        PlayerPrefs.DeleteKey(CompletedPrefix + "WELCOME");
-        PlayerPrefs.DeleteKey(CompletedPrefix + "BUILDING_SELECTION");
-        PlayerPrefs.Save();
+        SaveStore.DeleteKey(CompletedPrefix + "WELCOME");
+        SaveStore.DeleteKey(CompletedPrefix + "BUILDING_SELECTION");
+        SaveStore.Save();
 
         Debug.Log(
             "TutorialManager: Main Menu and Level Select tutorial progress reset."

@@ -184,8 +184,8 @@ public class CityManager : MonoBehaviour
         if (mapSaveManager != null)
             mapSaveManager.LoadMapForActiveCity();
 
-        PlayerPrefs.SetInt(ActiveCityKey, activeCityIndex);
-        PlayerPrefs.Save();
+        SaveStore.SetInt(ActiveCityKey, activeCityIndex);
+        SaveStore.Save();
 
         CheckPopulationUnlocks();
         UpdateNavigationButtonStates();
@@ -220,8 +220,8 @@ public class CityManager : MonoBehaviour
             return;
 
         int firstIndex = Mathf.Clamp(startingCityIndex, 0, cities.Length - 1);
-        PlayerPrefs.SetInt(CityUnlockedPrefix + GetCityId(firstIndex), 1);
-        PlayerPrefs.Save();
+        SaveStore.SetInt(CityUnlockedPrefix + GetCityId(firstIndex), 1);
+        SaveStore.Save();
     }
 
     public bool IsCityUnlocked(int index)
@@ -245,8 +245,8 @@ public class CityManager : MonoBehaviour
         if (PlayerPrefs.GetInt(key, 0) == 1)
             return;
 
-        PlayerPrefs.SetInt(key, 1);
-        PlayerPrefs.Save();
+        SaveStore.SetInt(key, 1);
+        SaveStore.Save();
 
         Debug.Log("CityManager: Unlocked city '" + cities[index].displayName +
                   "' (ID: " + GetCityId(index) + ").", this);
@@ -379,8 +379,8 @@ public class CityManager : MonoBehaviour
             yield break;
         }
 
-        PlayerPrefs.SetInt(ActiveCityKey, activeCityIndex);
-        PlayerPrefs.Save();
+        SaveStore.SetInt(ActiveCityKey, activeCityIndex);
+        SaveStore.Save();
 
         if (mapSaveManager != null)
             mapSaveManager.LoadMapForActiveCity();

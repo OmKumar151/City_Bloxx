@@ -221,7 +221,15 @@ public class BuildingTier : MonoBehaviour
 
             // Higher floors draw over lower ones where their edges overlap,
             // and every block draws above the crane hook (hook + floor).
-            spriteRenderer.sortingOrder = GetHookSortingOrder() + floorNumber;
+            // Exception: the ground floor draws over everything. Some ground
+            // sprites (e.g. Red_Ground's gable) have decoration above the
+            // solid wall line the next floor stacks on; drawn underneath,
+            // that decoration was hidden once floor 2 landed.
+            int floorOrder = floorNumber == 1
+                ? totalFloors + 1
+                : floorNumber;
+
+            spriteRenderer.sortingOrder = GetHookSortingOrder() + floorOrder;
 
             MatchColliderToSprite();
             Physics2D.SyncTransforms();

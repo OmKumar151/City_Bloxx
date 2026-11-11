@@ -43,8 +43,8 @@ public static class PopulationBonusStore
 
         // long math guards against int overflow on very large totals.
         long total = (long)PlayerPrefs.GetInt(key, 0) + amount;
-        PlayerPrefs.SetInt(key, (int)Mathf.Min(total, int.MaxValue));
-        PlayerPrefs.Save();
+        SaveStore.SetInt(key, (int)Mathf.Min(total, int.MaxValue));
+        SaveStore.Save();
 
         Debug.Log(
             "PopulationBonusStore: +" + amount + " population for city '" +
@@ -60,8 +60,8 @@ public static class PopulationBonusStore
         string key = KeyPrefix + Normalize(cityId);
 
         int total = Mathf.Max(0, PlayerPrefs.GetInt(key, 0) - amount);
-        PlayerPrefs.SetInt(key, total);
-        PlayerPrefs.Save();
+        SaveStore.SetInt(key, total);
+        SaveStore.Save();
 
         Debug.Log(
             "PopulationBonusStore: -" + amount + " population for city '" +
@@ -71,8 +71,8 @@ public static class PopulationBonusStore
 
     public static void Clear(string cityId)
     {
-        PlayerPrefs.DeleteKey(KeyPrefix + Normalize(cityId));
-        PlayerPrefs.Save();
+        SaveStore.DeleteKey(KeyPrefix + Normalize(cityId));
+        SaveStore.Save();
     }
 
     private static string Normalize(string cityId)

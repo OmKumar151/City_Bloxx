@@ -11,6 +11,10 @@ public class SettingsPanelUI : MonoBehaviour
     [SerializeField] private Slider sfxSlider;
     [SerializeField] private Toggle muteToggle;
 
+    [Header("Haptics")]
+    [Tooltip("On = vibration enabled.")]
+    [SerializeField] private Toggle vibrationToggle;
+
     private void Awake()
     {
         Debug.Log(
@@ -31,6 +35,11 @@ public class SettingsPanelUI : MonoBehaviour
         if (muteToggle != null)
             muteToggle.onValueChanged.AddListener(
                 OnMuteToggleChanged
+            );
+
+        if (vibrationToggle != null)
+            vibrationToggle.onValueChanged.AddListener(
+                OnVibrationToggleChanged
             );
     }
 
@@ -62,6 +71,11 @@ public class SettingsPanelUI : MonoBehaviour
         if (muteToggle != null)
             muteToggle.onValueChanged.RemoveListener(
                 OnMuteToggleChanged
+            );
+
+        if (vibrationToggle != null)
+            vibrationToggle.onValueChanged.RemoveListener(
+                OnVibrationToggleChanged
             );
     }
 
@@ -163,8 +177,21 @@ public class SettingsPanelUI : MonoBehaviour
         AudioManager.Instance.SetMuted(value);
     }
 
+    public void OnVibrationToggleChanged(bool value)
+    {
+        Haptics.Enabled = value;
+
+        // A short buzz so the player feels it was switched on.
+        if (value)
+            Haptics.BlockLanded(0f, false);
+    }
+
     private void LoadCurrentAudioSettings()
     {
+        // Haptics don't depend on AudioManager, so load them first.
+        if (vibrationToggle != null)
+            vibrationToggle.SetIsOnWithoutNotify(Haptics.Enabled);
+
         if (AudioManager.Instance == null)
         {
             Debug.LogError(
@@ -218,6 +245,8 @@ public class SettingsPanelUI : MonoBehaviour
         PlayButtonSound();
 
         AudioManager.Instance.ResetAudioSettings();
+
+        Haptics.Enabled = true;
 
         LoadCurrentAudioSettings();
     }

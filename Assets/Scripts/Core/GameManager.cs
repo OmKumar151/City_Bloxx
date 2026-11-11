@@ -306,6 +306,8 @@ public class GameManager : MonoBehaviour
         if (CameraShake.Instance != null)
             CameraShake.Instance.ShakeForLanding(accuracy, isPerfect);
 
+        Haptics.BlockLanded(accuracy, isPerfect);
+
         // The roof is special: a perfect one adds a bonus that grows with
         // the building's height.
         bool isRoof = floorsBuilt >= floorsToComplete;
@@ -340,6 +342,8 @@ public class GameManager : MonoBehaviour
         if (CameraShake.Instance != null)
             CameraShake.Instance.ShakeForRelease();
 
+        Haptics.BlockReleased();
+
         if (perfectStreakTimer != null)
             perfectStreakTimer.PauseTimer();
     }
@@ -361,6 +365,8 @@ public class GameManager : MonoBehaviour
 
         if (CameraShake.Instance != null)
             CameraShake.Instance.ShakeForMiss();
+
+        Haptics.BlockMissed();
 
         ResetPerfectStreak();
 
@@ -469,6 +475,27 @@ public class GameManager : MonoBehaviour
     /// reloaded scene uses the same sprites, floors and roof flag.
     /// </summary>
     public void RestartGame()
+    {
+        if (isLeavingScene || isShowingRestartAd)
+            return;
+
+        // The player has to watch an ad to restart. If no ad is available
+        // (offline, no fill) AdsService lets the restart straight through.
+        isShowingRestartAd = true;
+
+        AdsService.ShowRestartAd(
+            onAllowed: () =>
+            {
+                isShowingRestartAd = false;
+                ReloadForRestart();
+            },
+            onCancelled: () => isShowingRestartAd = false
+        );
+    }
+
+    private bool isShowingRestartAd;
+
+    private void ReloadForRestart()
     {
         if (isLeavingScene)
             return;

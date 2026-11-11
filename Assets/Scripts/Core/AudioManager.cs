@@ -438,12 +438,12 @@ public class AudioManager : MonoBehaviour
     {
         musicVolume = Mathf.Clamp01(value);
 
-        PlayerPrefs.SetFloat(
+        SaveStore.SetFloat(
             MusicVolumeKey,
             musicVolume
         );
 
-        PlayerPrefs.Save();
+        SaveStore.Save();
 
         ApplyMusicSettings();
 
@@ -457,12 +457,12 @@ public class AudioManager : MonoBehaviour
     {
         sfxVolume = Mathf.Clamp01(value);
 
-        PlayerPrefs.SetFloat(
+        SaveStore.SetFloat(
             SFXVolumeKey,
             sfxVolume
         );
 
-        PlayerPrefs.Save();
+        SaveStore.Save();
 
         ApplySFXSettings();
 
@@ -476,12 +476,12 @@ public class AudioManager : MonoBehaviour
     {
         isMuted = muted;
 
-        PlayerPrefs.SetInt(
+        SaveStore.SetInt(
             MuteKey,
             isMuted ? 1 : 0
         );
 
-        PlayerPrefs.Save();
+        SaveStore.Save();
 
         ApplyAudioSettings();
 
@@ -497,22 +497,22 @@ public class AudioManager : MonoBehaviour
         sfxVolume = defaultSFXVolume;
         isMuted = false;
 
-        PlayerPrefs.SetFloat(
+        SaveStore.SetFloat(
             MusicVolumeKey,
             musicVolume
         );
 
-        PlayerPrefs.SetFloat(
+        SaveStore.SetFloat(
             SFXVolumeKey,
             sfxVolume
         );
 
-        PlayerPrefs.SetInt(
+        SaveStore.SetInt(
             MuteKey,
             0
         );
 
-        PlayerPrefs.Save();
+        SaveStore.Save();
 
         ApplyAudioSettings();
 

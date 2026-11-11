@@ -14,6 +14,14 @@ public class MainMenuManager : MonoBehaviour
             Debug.LogWarning(
                 "MainMenuManager: AudioManager is not available.");
         }
+
+        AdsService.ShowBanner();
+    }
+
+    // The banner belongs to the main menu only.
+    private void OnDestroy()
+    {
+        AdsService.HideBanner();
     }
 
     public void OpenBuildCity()

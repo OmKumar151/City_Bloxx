@@ -20,8 +20,8 @@ public static class QuickPlayScores
 
         if (score > previousBest)
         {
-            PlayerPrefs.SetInt(BestScoreKey, score);
-            PlayerPrefs.Save();
+            SaveStore.SetInt(BestScoreKey, score);
+            SaveStore.Save();
 
             best = score;
             return true;

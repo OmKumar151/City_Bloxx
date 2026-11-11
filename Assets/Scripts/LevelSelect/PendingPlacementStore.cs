@@ -32,10 +32,10 @@ public static class PendingPlacementStore
         if (string.IsNullOrWhiteSpace(buildingId))
             return;
 
-        PlayerPrefs.SetString(BuildingKey, buildingId.Trim());
-        PlayerPrefs.SetString(CityKey, Normalize(cityId));
-        PlayerPrefs.SetInt(ScoreKey, Mathf.Max(0, score));
-        PlayerPrefs.Save();
+        SaveStore.SetString(BuildingKey, buildingId.Trim());
+        SaveStore.SetString(CityKey, Normalize(cityId));
+        SaveStore.SetInt(ScoreKey, Mathf.Max(0, score));
+        SaveStore.Save();
     }
 
     public static bool IsForCity(string cityId)
@@ -45,10 +45,10 @@ public static class PendingPlacementStore
 
     public static void Clear()
     {
-        PlayerPrefs.DeleteKey(BuildingKey);
-        PlayerPrefs.DeleteKey(CityKey);
-        PlayerPrefs.DeleteKey(ScoreKey);
-        PlayerPrefs.Save();
+        SaveStore.DeleteKey(BuildingKey);
+        SaveStore.DeleteKey(CityKey);
+        SaveStore.DeleteKey(ScoreKey);
+        SaveStore.Save();
     }
 
     // Same id rules as PopulationBonusStore.

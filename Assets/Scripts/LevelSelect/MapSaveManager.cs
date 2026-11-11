@@ -104,8 +104,8 @@ public class MapSaveManager : MonoBehaviour
             });
         }
 
-        PlayerPrefs.SetString(ActiveSaveKey, JsonUtility.ToJson(data));
-        PlayerPrefs.Save();
+        SaveStore.SetString(ActiveSaveKey, JsonUtility.ToJson(data));
+        SaveStore.Save();
 
         Debug.Log(
             "MapSaveManager: Saved city '" + GetCurrentCityId() +
@@ -134,12 +134,12 @@ public class MapSaveManager : MonoBehaviour
             CityManager.Instance.ActiveCityIndex == 0 &&
             PlayerPrefs.HasKey(LegacySaveKey))
         {
-            PlayerPrefs.SetString(
+            SaveStore.SetString(
                 key,
                 PlayerPrefs.GetString(LegacySaveKey)
             );
 
-            PlayerPrefs.Save();
+            SaveStore.Save();
         }
 
         if (!PlayerPrefs.HasKey(key))
@@ -300,8 +300,8 @@ public class MapSaveManager : MonoBehaviour
 
     public void DeleteMap()
     {
-        PlayerPrefs.DeleteKey(ActiveSaveKey);
-        PlayerPrefs.Save();
+        SaveStore.DeleteKey(ActiveSaveKey);
+        SaveStore.Save();
 
         Debug.Log(
             "MapSaveManager: Deleted save for city '" +
