@@ -209,7 +209,8 @@ public class QuickPlayManager : MonoBehaviour
         CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = referenceResolution;
-        scaler.matchWidthOrHeight = 0.5f;
+        // Expand: the whole layout always fits, whatever the screen shape.
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
         pickerPanel = canvasObject;
 

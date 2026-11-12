@@ -1,31 +1,13 @@
 using UnityEngine;
 
+/// <summary>
+/// No longer used: CraneInput (in the Gameplay scene) drops the block for
+/// both touch and mouse. Kept only because the block prefabs still have
+/// this component; it can be removed from CurrentBlock and RoofBlock.
+///
+/// It used the old Input Manager (Input.GetMouseButtonDown), which throws
+/// every frame because the project uses the new Input System only.
+/// </summary>
 public class BlockDrop : MonoBehaviour
 {
-    private bool dropped = false;
-
-    private void Update()
-    {
-        if (dropped)
-            return;
-
-        if (Input.GetMouseButtonDown(0))
-        {
-            dropped = true;
-
-            // Release the block through the crane controller.
-            // BlockSwing is no longer needed because the crane
-            // now controls the hanging block's movement.
-            if (CraneController.Instance != null)
-            {
-                CraneController.Instance.ReleaseBlock();
-            }
-            else
-            {
-                Debug.LogWarning(
-                    "BlockDrop: CraneController instance was not found."
-                );
-            }
-        }
-    }
 }

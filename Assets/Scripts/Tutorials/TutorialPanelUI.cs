@@ -102,10 +102,10 @@ public class TutorialPanelUI : MonoBehaviour
             scaler.referenceResolution =
                 new Vector2(1080f, 1920f);
 
+            // Expand: the whole 1080x1920 layout always fits on screen,
+            // so nothing is cropped on tall phones or tablets.
             scaler.screenMatchMode =
-                CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-
-            scaler.matchWidthOrHeight = 0.5f;
+                CanvasScaler.ScreenMatchMode.Expand;
         }
     }
 
