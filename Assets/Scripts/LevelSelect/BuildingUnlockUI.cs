@@ -73,6 +73,16 @@ public class BuildingUnlockUI : MonoBehaviour
 
         if (infoPanelUI != null)
             infoPanelUI.ShowRewardUnlocked(reward);
+
+        // The first building unlock and the first star each get a short
+        // explanation (once per player).
+        if (TutorialManager.Instance != null)
+        {
+            TutorialManager.Instance.TryShowTutorial(
+                GuideContent.IsStar(reward) ? GuideContent.Stars : GuideContent.NewBuilding,
+                GuideContent.RewardBuildingIndex(reward)
+            );
+        }
     }
 
     private void HandleProgressionReset()

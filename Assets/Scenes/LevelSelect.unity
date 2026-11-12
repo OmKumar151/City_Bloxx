@@ -2325,6 +2325,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PopulationUI
   populationText: {fileID: 1048416999}
   boardManager: {fileID: 1499414280}
+  countSpeed: 2000
+  minCountDuration: 0.5
+  maxCountDuration: 1.5
+  earnedScoreDelay: 0.4
 --- !u!1 &255510828
 GameObject:
   m_ObjectHideFlags: 0
@@ -8287,7 +8291,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -385, y: -750}
+  m_AnchoredPosition: {x: -385, y: -521}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &833782962
@@ -11810,6 +11814,7 @@ MonoBehaviour:
   musicSlider: {fileID: 1971817079}
   sfxSlider: {fileID: 1825285789}
   muteToggle: {fileID: 1825104242}
+  vibrationToggle: {fileID: 0}
 --- !u!1 &1172788090 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6334081148819733287, guid: 1a7ff0b862d855f42b3ab460f72f26fe, type: 3}
@@ -21894,7 +21899,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -381, y: -510}
+  m_AnchoredPosition: {x: 396, y: -510}
   m_SizeDelta: {x: 123, y: 113.6991}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2137087139

@@ -1302,6 +1302,64 @@ public class BoardManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Buildings a building type needs next to it (corners count), in
+    /// Blue, Red, Green order. Blue needs none.
+    /// </summary>
+    public static GridCell.BuildingType[] GetRequiredNeighbours(GridCell.BuildingType buildingType)
+    {
+        switch (buildingType)
+        {
+            case GridCell.BuildingType.Red:
+                return new[] { GridCell.BuildingType.Blue };
+
+            case GridCell.BuildingType.Green:
+                return new[] { GridCell.BuildingType.Blue, GridCell.BuildingType.Red };
+
+            case GridCell.BuildingType.Yellow:
+                return new[]
+                {
+                    GridCell.BuildingType.Blue, GridCell.BuildingType.Red, GridCell.BuildingType.Green
+                };
+
+            default:
+                return new GridCell.BuildingType[0];
+        }
+    }
+
+    /// <summary>
+    /// The required neighbours this cell is missing for the given
+    /// building, so the player can be told why it can't go there.
+    /// </summary>
+    public List<GridCell.BuildingType> GetMissingNeighbours(
+        GridCell cell,
+        int buildingIndex)
+    {
+        List<GridCell.BuildingType> missing = new List<GridCell.BuildingType>();
+
+        foreach (GridCell.BuildingType required in GetRequiredNeighbours(GetBuildingType(buildingIndex)))
+        {
+            if (!HasNeighbourBuilding(cell, required))
+                missing.Add(required);
+        }
+
+        return missing;
+    }
+
+    /// <summary>Required building types that aren't anywhere on the board yet.</summary>
+    public List<GridCell.BuildingType> GetRequiredTypesMissingFromBoard(int buildingIndex)
+    {
+        List<GridCell.BuildingType> missing = new List<GridCell.BuildingType>();
+
+        foreach (GridCell.BuildingType required in GetRequiredNeighbours(GetBuildingType(buildingIndex)))
+        {
+            if (GetBuildingCount(required) == 0)
+                missing.Add(required);
+        }
+
+        return missing;
+    }
+
     // =========================================================
     // BUILDING TYPE
     // =========================================================

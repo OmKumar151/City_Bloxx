@@ -1989,7 +1989,7 @@ MonoBehaviour:
   completeNextButton: {fileID: 0}
   quickPlayEndPanel: {fileID: 28794057}
   quickPlayFinalScoreText: {fileID: 2088007871}
-  quickPlayBestScoreText: {fileID: 0}
+  quickPlayBestScoreText: {fileID: 2083796243}
   bestScorePrefix: 'Best: '
   newBestScorePrefix: 'New Best: '
   scorePrefix: 'Score: '

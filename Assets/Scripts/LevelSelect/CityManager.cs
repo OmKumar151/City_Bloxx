@@ -251,6 +251,12 @@ public class CityManager : MonoBehaviour
         Debug.Log("CityManager: Unlocked city '" + cities[index].displayName +
                   "' (ID: " + GetCityId(index) + ").", this);
 
+        // Only new unlocks get here (already-unlocked cities return above).
+        InfoPanelUI infoPanel = FindAnyObjectByType<InfoPanelUI>();
+
+        if (infoPanel != null)
+            infoPanel.ShowNextMapUnlocked(cities[index].displayName);
+
         UpdateNavigationButtonStates();
     }
 
@@ -282,6 +288,27 @@ public class CityManager : MonoBehaviour
         }
 
         UpdateNavigationButtonStates();
+    }
+
+    /// <summary>
+    /// The city after the active one: its name, the population this city
+    /// needs to unlock it, and whether it is already unlocked.
+    /// </summary>
+    public bool TryGetNextCity(out string cityName, out int requiredPopulation, out bool unlocked)
+    {
+        int nextIndex = activeCityIndex + 1;
+
+        cityName = string.Empty;
+        requiredPopulation = 0;
+        unlocked = false;
+
+        if (!IsValidCityIndex(nextIndex) || cities[nextIndex] == null)
+            return false;
+
+        cityName = cities[nextIndex].displayName;
+        requiredPopulation = cities[nextIndex].unlockPopulationRequirement;
+        unlocked = IsCityUnlocked(nextIndex);
+        return true;
     }
 
     public void PreviousCity()

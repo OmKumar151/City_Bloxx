@@ -36,6 +36,21 @@ public class CraneController : MonoBehaviour
     [Header("Initial Gameplay Delay")]
     [Min(0f)] public float initialSwingDelay = 3f;
 
+    [Header("Anti-Spam")]
+    [Tooltip("How long a block must swing before it can be dropped. Stops " +
+             "dropping a block the instant it appears, from the same spot " +
+             "as the last one (which stacked perfectly every time).")]
+    [Min(0f)] public float minSwingTimeBeforeRelease = 0.35f;
+
+    [Tooltip("A tap while dropping is locked restarts this cooldown, so " +
+             "spamming never gets a block through. The player has to stop " +
+             "tapping briefly and time a real drop.")]
+    [Min(0f)] public float spamCooldown = 0.2f;
+
+    // Time.time the current block started swinging (-1 = not yet).
+    private float swingStartTime = -1f;
+    private float lastRejectedPressTime = float.NegativeInfinity;
+
     private GameObject currentBlock;
     private SwingPivotController swingController;
     private RopeController ropeController;
@@ -220,6 +235,13 @@ public class CraneController : MonoBehaviour
             return;
         }
 
+        if (!CanReleaseNow())
+        {
+            // Every early tap pushes the next allowed drop back.
+            lastRejectedPressTime = Time.time;
+            return;
+        }
+
         GameObject releasedBlock = currentBlock;
 
         Rigidbody2D rb = releasedBlock.GetComponent<Rigidbody2D>();
@@ -246,6 +268,7 @@ public class CraneController : MonoBehaviour
         manager.NotifyBlockReleased();
 
         currentBlock = null;
+        swingStartTime = -1f;
 
         // Detach while preserving the current world position.
         releasedBlock.transform.SetParent(null, true);
@@ -276,6 +299,22 @@ public class CraneController : MonoBehaviour
             "Block rotation reset to zero.",
             releasedBlock
         );
+    }
+
+    // A block can drop only once it has been swinging for a moment and
+    // the player hasn't tapped too early in the last Spam Cooldown.
+    private bool CanReleaseNow()
+    {
+        if (swingStartTime < 0f)
+            return false;
+
+        if (swingController != null && !swingController.IsSwinging)
+            return false;
+
+        if (Time.time - swingStartTime < minSwingTimeBeforeRelease)
+            return false;
+
+        return Time.time - lastRejectedPressTime >= spamCooldown;
     }
 
     public void PrepareNextBlock()
@@ -363,6 +402,7 @@ public class CraneController : MonoBehaviour
         }
 
         currentBlock = block;
+        swingStartTime = -1f;
 
         // Attach to the swing pivot, not the hook: the hook is scaled to
         // size its sprite, and a child would inherit that scale. The
@@ -454,6 +494,8 @@ public class CraneController : MonoBehaviour
 
         if (swingController != null)
             swingController.StartSwing();
+
+        swingStartTime = Time.time;
 
         GameManager manager = GameManager.Instance;
 

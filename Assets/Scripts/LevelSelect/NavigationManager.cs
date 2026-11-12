@@ -39,6 +39,9 @@ public class NavigationManager : MonoBehaviour
     private void Awake()
     {
         FindReferences();
+
+        // The guide and messages quote floors and roof scores from these.
+        GuideContent.RegisterBuildingConfigs(buildingConfigurations);
     }
 
     private void OnEnable()
@@ -92,6 +95,9 @@ public class NavigationManager : MonoBehaviour
         SubscribeToCityManager();
 
         ResetNavigationToBlue();
+
+        if (infoPanel != null)
+            infoPanel.SetIdleHint(GetNextStepHint);
 
         Debug.Log("Navigation started. Building Selection Mode.");
 
@@ -153,6 +159,13 @@ public class NavigationManager : MonoBehaviour
                 GetBuildingName(buildingIndex) + " building."
             );
 
+            if (infoPanel != null)
+                infoPanel.ShowPlacingBuilding(buildingIndex, PendingPlacementStore.Score);
+
+            // First earned building: explain placing, replacing and Cancel Build.
+            if (TutorialManager.Instance != null)
+                TutorialManager.Instance.TryShowTutorial(GuideContent.PlaceBuilding, buildingIndex);
+
             return true;
         }
 
@@ -213,7 +226,11 @@ public class NavigationManager : MonoBehaviour
         ClearExistingBuildingScore();
         UpdateBuildingSelectionVisual();
         UpdateCurrentBuildingScore();
-        ShowBuildingSelected();
+
+        // Don't cover a "placed" / "reset" message; between messages the
+        // panel shows what to do next.
+        if (infoPanel != null)
+            infoPanel.RefreshIdleHint();
 
         Debug.Log(
             "NavigationManager: Reset to Blue and Building Selection Mode."
@@ -418,7 +435,9 @@ public class NavigationManager : MonoBehaviour
             // If it couldn't be placed, that press only shows the message.
             if (HasPendingPlacementForActiveCity)
             {
-                TryOpenPendingPlacement();
+                if (!TryOpenPendingPlacement() && HasPendingPlacementForActiveCity && infoPanel != null)
+                    infoPanel.ShowMustPlaceFirst(selectedBuilding);
+
                 return;
             }
 
@@ -651,9 +670,13 @@ public class NavigationManager : MonoBehaviour
             ? PendingPlacementStore.Score
             : 0;
 
+        bool replacing = currentBoardCell.IsOccupied;
+        int oldBuilding = GuideContent.IndexOf(currentBoardCell.CurrentBuilding);
+        int oldResidents = currentBoardCell.BuildingPopulation;
+
         bool successful;
 
-        if (currentBoardCell.IsOccupied)
+        if (replacing)
             successful = boardManager.ReplaceBuilding(selectedBuilding, earnedScore);
         else
             successful = boardManager.PlaceBuilding(selectedBuilding, earnedScore);
@@ -670,7 +693,13 @@ public class NavigationManager : MonoBehaviour
         SyncPopulationManager();
         SaveMap();
 
-        ShowBuildingPlaced();
+        if (infoPanel != null)
+        {
+            if (replacing)
+                infoPanel.ShowBuildingReplaced(selectedBuilding, oldBuilding, earnedScore - oldResidents);
+            else
+                infoPanel.ShowBuildingPlaced(selectedBuilding, earnedScore);
+        }
 
         // A successful placement or replacement always returns
         // the selection to Blue and exits placement mode.
@@ -727,15 +756,38 @@ public class NavigationManager : MonoBehaviour
             return;
 
         if (boardManager.CanPlaceOrReplaceBuilding(selectedBuilding))
-            infoPanel.ShowBuildingCanBePlaced();
-        else
-            infoPanel.ShowBuildingCannotBePlaced();
+        {
+            if (currentBoardCell.IsOccupied)
+            {
+                infoPanel.ShowBuildingCanReplace(
+                    selectedBuilding,
+                    GuideContent.IndexOf(currentBoardCell.CurrentBuilding),
+                    currentBoardCell.BuildingPopulation
+                );
+            }
+            else
+            {
+                infoPanel.ShowBuildingCanBePlaced(selectedBuilding);
+            }
+
+            return;
+        }
+
+        // Say why: which neighbours this square is missing.
+        infoPanel.ShowBuildingCannotBePlaced(
+            selectedBuilding,
+            ToIndexes(boardManager.GetMissingNeighbours(currentBoardCell, selectedBuilding))
+        );
     }
 
     public void CancelPlacement()
     {
         if (currentMode != NavigationMode.BoardPlacement)
             return;
+
+        int lostResidents = HasPendingPlacementForActiveCity
+            ? PendingPlacementStore.Score
+            : 0;
 
         bool discardedEarnedBuilding = DiscardPendingPlacement();
 
@@ -749,19 +801,11 @@ public class NavigationManager : MonoBehaviour
 
         if (discardedEarnedBuilding)
         {
-            // Leave the "lost" message up instead of overwriting it.
             if (infoPanel != null)
-            {
-                infoPanel.ShowMessage(
-                    GetBuildingName(selectedBuilding) + " building lost"
-                );
-            }
+                infoPanel.ShowBuildingDiscarded(selectedBuilding, lostResidents);
 
             return;
         }
-
-        if (infoPanel != null)
-            infoPanel.ShowBuildingCancelled();
 
         ShowBuildingSelected();
     }
@@ -794,25 +838,93 @@ public class NavigationManager : MonoBehaviour
     private void ShowBuildingSelected()
     {
         if (infoPanel != null)
-            infoPanel.ShowBuildingSelected(GetBuildingName(selectedBuilding));
+            infoPanel.ShowBuildingSelected(selectedBuilding);
     }
 
     private void ShowNoValidPlacement()
     {
-        if (infoPanel != null)
-            infoPanel.ShowNoValidPlacement(GetBuildingName(selectedBuilding));
-    }
+        if (infoPanel == null)
+            return;
 
-    private void ShowBuildingPlaced()
-    {
-        if (infoPanel != null)
-            infoPanel.ShowBuildingPlaced(GetBuildingName(selectedBuilding));
+        System.Collections.Generic.List<int> missingFromCity =
+            boardManager != null
+                ? ToIndexes(boardManager.GetRequiredTypesMissingFromBoard(selectedBuilding))
+                : new System.Collections.Generic.List<int>();
+
+        infoPanel.ShowNoValidPlacement(selectedBuilding, missingFromCity);
     }
 
     private void ShowBuildingCannotBePlaced()
     {
-        if (infoPanel != null)
-            infoPanel.ShowBuildingCannotBePlaced();
+        if (infoPanel == null)
+            return;
+
+        System.Collections.Generic.List<int> missing =
+            boardManager != null && currentBoardCell != null
+                ? ToIndexes(boardManager.GetMissingNeighbours(currentBoardCell, selectedBuilding))
+                : null;
+
+        infoPanel.ShowBuildingCannotBePlaced(selectedBuilding, missing);
+    }
+
+    private static System.Collections.Generic.List<int> ToIndexes(
+        System.Collections.Generic.List<GridCell.BuildingType> types)
+    {
+        System.Collections.Generic.List<int> indexes = new System.Collections.Generic.List<int>();
+
+        if (types == null)
+            return indexes;
+
+        foreach (GridCell.BuildingType type in types)
+            indexes.Add(GuideContent.IndexOf(type));
+
+        return indexes;
+    }
+
+    /// <summary>
+    /// The standing hint in the Info Panel between messages: the one thing
+    /// the player should do next.
+    /// </summary>
+    private string GetNextStepHint()
+    {
+        if (currentMode == NavigationMode.BoardPlacement)
+        {
+            return "Arrows: pick a square. OK: place it. " +
+                   "Cancel Build: throw this building away.";
+        }
+
+        if (HasPendingPlacementForActiveCity)
+        {
+            int pending = GetBuildingIndex(PendingPlacementStore.BuildingId);
+            return "Your new " + GuideContent.Coloured(pending) +
+                   " building is waiting. Press OK to place it.";
+        }
+
+        if (boardManager != null && boardManager.GetTotalBuildingCount() == 0)
+        {
+            return "Start here: press OK to build a " + GuideContent.Coloured(0) + " building (" +
+                   GuideContent.Floors(0) + " floors), then place it in your city.";
+        }
+
+        int population = GuideContent.CurrentPopulation();
+
+        if (GuideContent.TryGetNextReward(
+                out PopulationProgressionManager.RewardType reward, out int needed))
+        {
+            return "Next goal: " + GuideContent.RewardName(reward) + " at " + needed.ToString("N0") +
+                   " residents (you have " + population.ToString("N0") +
+                   "). Pick a building and press OK.";
+        }
+
+        if (CityManager.Instance != null &&
+            CityManager.Instance.TryGetNextCity(out string cityName, out int cityPopulation, out bool cityUnlocked) &&
+            !cityUnlocked)
+        {
+            return "Next goal: reach " + cityPopulation.ToString("N0") + " residents to unlock " +
+                   cityName + " (you have " + population.ToString("N0") + ").";
+        }
+
+        return "Everything here is unlocked! Replace small buildings with bigger ones to grow even more.";
     }
 
     private GridCell.BuildingType GetBuildingType(int buildingIndex)
