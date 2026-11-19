@@ -43,21 +43,6 @@ public class TutorialManager : MonoBehaviour
         public List<TutorialStep> steps = new List<TutorialStep>();
     }
 
-    [Serializable]
-    public class InfoButtonPlacement
-    {
-        public string sceneName;
-        public bool show = true;
-
-        [Tooltip("Anchor on the screen (0,0 bottom-left, 1,1 top-right).")]
-        public Vector2 anchor = new Vector2(0.5f, 0.5f);
-
-        [Tooltip("Offset from the anchor, in the scene canvas's units.")]
-        public Vector2 position;
-
-        [Min(40f)] public float size = 110f;
-    }
-
     // Renamed from "tutorials" on purpose: the old two-page texts saved in
     // the scenes are dropped so the full built-in text in GuideContent is used.
     [Header("Tutorial Content")]
@@ -71,34 +56,6 @@ public class TutorialManager : MonoBehaviour
     [SerializeField] private string levelSelectSceneName = "LevelSelect";
     [SerializeField] private string gameplaySceneName = "Gameplay1";
 
-    [Header("Look")]
-    [Tooltip("Font for the guide. Empty uses Roboto Bold, else the TMP default.")]
-    [SerializeField] private TMP_FontAsset guideFont;
-
-    [Header("Info (i) Button")]
-    [Tooltip("Where the i button sits in each scene. Scenes not listed don't show it.")]
-    [SerializeField]
-    private List<InfoButtonPlacement> infoButtonPlacements = new List<InfoButtonPlacement>
-    {
-        // Mirrors the Settings button on the other side of the screen.
-        new InfoButtonPlacement
-        {
-            sceneName = "Main Menu", anchor = new Vector2(0.5f, 0.5f),
-            position = new Vector2(416f, 845f), size = 120f
-        },
-        new InfoButtonPlacement
-        {
-            sceneName = "LevelSelect", anchor = new Vector2(0.5f, 0.5f),
-            position = new Vector2(391f, 644f), size = 100f
-        },
-        // Under the floor counter, top right.
-        new InfoButtonPlacement
-        {
-            sceneName = "Gameplay1", anchor = new Vector2(0.5f, 1f),
-            position = new Vector2(452f, -235f), size = 90f
-        },
-    };
-
     [Header("Behaviour")]
     [SerializeField] private bool pauseGameWhileTutorialIsOpen = true;
 
@@ -108,7 +65,20 @@ public class TutorialManager : MonoBehaviour
     // so the tap on "GOT IT" doesn't also drop a block.
     private const float InputGraceSeconds = 0.25f;
 
+    // The guide lives in each scene (GuideCanvas); found again after
+    // every scene change, since the old scene's copy is destroyed.
     private GuidePanel panel;
+
+    private GuidePanel Panel
+    {
+        get
+        {
+            if (panel == null)
+                panel = FindAnyObjectByType<GuidePanel>(FindObjectsInactive.Include);
+
+            return panel;
+        }
+    }
     private TutorialDefinition currentTutorial;
     private int currentStepIndex;
     private bool tutorialOpen;
@@ -148,11 +118,6 @@ public class TutorialManager : MonoBehaviour
         // scene change and the LevelSelect tutorial never had a panel.
         transform.SetParent(null, true);
         DontDestroyOnLoad(gameObject);
-
-        if (guideFont == null)
-            guideFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Roboto-Bold SDF");
-
-        panel = GuidePanel.Create(transform, guideFont);
     }
 
     private void OnEnable()
@@ -204,7 +169,6 @@ public class TutorialManager : MonoBehaviour
         yield return null;
 
         GuidePanel.EnsureEventSystem();
-        panel.MatchSceneScaling();
         RefreshInfoButton();
 
         int buildingIndex;
@@ -312,7 +276,7 @@ public class TutorialManager : MonoBehaviour
     {
         return tutorialOpen ||
                Time.unscaledTime - lastClosedTime < InputGraceSeconds ||
-               (panel != null && panel.IsOverInfoButton(screenPoint));
+               (Panel != null && Panel.IsOverInfoButton(screenPoint));
     }
 
     public void NextStep()
@@ -323,7 +287,7 @@ public class TutorialManager : MonoBehaviour
         if (currentStepIndex < currentTutorial.steps.Count - 1)
         {
             currentStepIndex++;
-            panel.Show(currentTutorial, currentStepIndex, currentIsGuide);
+            Panel?.Show(currentTutorial, currentStepIndex, currentIsGuide);
             PlayClick();
         }
         else
@@ -338,7 +302,7 @@ public class TutorialManager : MonoBehaviour
             return;
 
         currentStepIndex--;
-        panel.Show(currentTutorial, currentStepIndex, currentIsGuide);
+        Panel?.Show(currentTutorial, currentStepIndex, currentIsGuide);
         PlayClick();
     }
 
@@ -388,7 +352,7 @@ public class TutorialManager : MonoBehaviour
             Time.timeScale = 0f;
         }
 
-        panel.Show(currentTutorial, currentStepIndex, isGuide);
+        Panel?.Show(currentTutorial, currentStepIndex, isGuide);
     }
 
     private void CloseTutorial(bool markCompleted)
@@ -399,7 +363,7 @@ public class TutorialManager : MonoBehaviour
         tutorialOpen = false;
         lastClosedTime = Time.unscaledTime;
 
-        panel.Hide();
+        Panel?.Hide();
 
         if (pauseGameWhileTutorialIsOpen)
             Time.timeScale = previousTimeScale;
@@ -489,26 +453,12 @@ public class TutorialManager : MonoBehaviour
 
     private void RefreshInfoButton()
     {
-        if (panel == null)
+        if (Panel == null)
             return;
 
-        string sceneName = SceneManager.GetActiveScene().name;
-
-        // A scene with its own InfoButton doesn't need the floating one.
-        bool sceneHasOwnButton = FindAnyObjectByType<InfoButton>() != null;
-
-        foreach (InfoButtonPlacement placement in infoButtonPlacements)
-        {
-            if (placement != null && SceneIs(sceneName, placement.sceneName))
-            {
-                panel.SetInfoButton(
-                    placement.show && !sceneHasOwnButton,
-                    placement.anchor, placement.position, placement.size);
-                return;
-            }
-        }
-
-        panel.SetInfoButton(false, Vector2.zero, Vector2.zero, 0f);
+        // A scene with its own InfoButton doesn't need the guide's one.
+        // Where the i button sits is set on its RectTransform in each scene.
+        Panel.SetInfoButtonVisible(FindAnyObjectByType<InfoButton>() == null);
     }
 
     private static void PlayClick()

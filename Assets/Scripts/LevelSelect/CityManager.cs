@@ -19,6 +19,19 @@ public class CityManager : MonoBehaviour
         [Tooltip("Population required in the previous city to unlock this city. City 1 is unlocked automatically.")]
         public int unlockPopulationRequirement = 0;
 
+        [Header("Paid Unlock")]
+        [Tooltip("Lets players buy this city straight away from its preview. " +
+                 "Off: it unlocks by population only.")]
+        public bool allowPaidUnlock = true;
+
+        [Tooltip("Google Play product ID (one-time, non-consumable). Empty uses " +
+                 "\"unlock_\" + City ID, e.g. unlock_city_2. Must match Play Console.")]
+        public string unlockProductId = "";
+
+        [Tooltip("Shown on the Unlock button until the store returns the real, " +
+                 "localised price.")]
+        public string fallbackPriceText = "Unlock";
+
         [Tooltip("Population this city needs for each reward. Sized to the " +
                  "city's number of cells.")]
         public RewardThresholds rewardThresholds = new RewardThresholds();
@@ -102,6 +115,9 @@ public class CityManager : MonoBehaviour
     [SerializeField] private Image nextCityButtonImage;
     [SerializeField] private Sprite nextEnabledSprite;
     [SerializeField] private Sprite nextDisabledSprite;
+    [Tooltip("Shown on the Next button when the next city is locked and the " +
+             "button opens its preview. Falls back to the enabled sprite.")]
+    [SerializeField] private Sprite nextPreviewSprite;
 
     [Header("Grid Transition")]
     [SerializeField] private bool fadeGridOnSwitch = true;
@@ -115,7 +131,17 @@ public class CityManager : MonoBehaviour
     private int queuedCityIndex = -1;
     private bool isCheckingUnlocks;
 
+    // Preview: a locked city's grid is shown but cannot be played. The
+    // city before it is where its population requirement is earned.
+    private bool isPreviewing;
+    private int previewSourcePopulation;
+
     public event Action<int, int> OnCityChanged;
+
+    /// <summary>Raised when a preview starts (true) or ends (false).</summary>
+    public event Action<bool> OnPreviewChanged;
+
+    public bool IsPreviewing => isPreviewing;
 
     public int CityCount => cities == null ? 0 : cities.Length;
     public int ActiveCityIndex => activeCityIndex;
@@ -136,6 +162,17 @@ public class CityManager : MonoBehaviour
         Instance = this;
         FindReferences();
         EnsureStartingCityUnlocked();
+        RegisterUnlockProducts();
+    }
+
+    private void OnEnable()
+    {
+        PurchaseService.OnProductOwned += HandleProductOwned;
+    }
+
+    private void OnDisable()
+    {
+        PurchaseService.OnProductOwned -= HandleProductOwned;
     }
 
     private void Start()
@@ -194,8 +231,8 @@ public class CityManager : MonoBehaviour
     private void Update()
     {
         // Population can change after any building placement, so check unlocks
-        // while gameplay is active.
-        if (activeCityIndex >= 0 && !isCheckingUnlocks)
+        // while gameplay is active. A previewed city has no population.
+        if (activeCityIndex >= 0 && !isCheckingUnlocks && !isPreviewing)
             CheckPopulationUnlocks();
     }
 
@@ -233,6 +270,10 @@ public class CityManager : MonoBehaviour
         if (index == Mathf.Clamp(startingCityIndex, 0, Mathf.Max(0, CityCount - 1)))
             return true;
 
+        // Bought cities stay unlocked even if the unlock key was lost.
+        if (PurchaseService.IsOwned(GetUnlockProductId(index)))
+            return true;
+
         return PlayerPrefs.GetInt(CityUnlockedPrefix + GetCityId(index), 0) == 1;
     }
 
@@ -254,15 +295,28 @@ public class CityManager : MonoBehaviour
         // Only new unlocks get here (already-unlocked cities return above).
         InfoPanelUI infoPanel = FindAnyObjectByType<InfoPanelUI>();
 
+        // Unlocked while previewing it: the preview becomes the real city.
+        bool unlockedInPreview = isPreviewing && index == activeCityIndex;
+
+        if (unlockedInPreview)
+            EndPreviewInPlace();
+
         if (infoPanel != null)
-            infoPanel.ShowNextMapUnlocked(cities[index].displayName);
+        {
+            if (unlockedInPreview)
+                infoPanel.ShowMessage(
+                    cities[index].displayName + " unlocked! Start building.",
+                    InfoPanelUI.MessageType.ImportantReward);
+            else
+                infoPanel.ShowNextMapUnlocked(cities[index].displayName);
+        }
 
         UpdateNavigationButtonStates();
     }
 
     private void CheckPopulationUnlocks()
     {
-        if (isCheckingUnlocks || boardManager == null ||
+        if (isCheckingUnlocks || isPreviewing || boardManager == null ||
             !IsValidCityIndex(activeCityIndex))
             return;
 
@@ -313,12 +367,196 @@ public class CityManager : MonoBehaviour
 
     public void PreviousCity()
     {
+        // From a preview, Previous goes back to the city it was opened from.
         RequestCitySwitch(activeCityIndex - 1);
     }
 
     public void NextCity()
     {
-        RequestCitySwitch(activeCityIndex + 1);
+        int nextIndex = activeCityIndex + 1;
+
+        if (IsValidCityIndex(nextIndex) && !IsCityUnlocked(nextIndex))
+        {
+            PreviewNextCity();
+            return;
+        }
+
+        RequestCitySwitch(nextIndex);
+    }
+
+    // =========================================================
+    // PREVIEW
+    // =========================================================
+
+    /// <summary>True when the next city is locked and can be previewed.</summary>
+    public bool CanPreviewNextCity
+    {
+        get
+        {
+            int nextIndex = activeCityIndex + 1;
+
+            return !isPreviewing &&
+                   IsValidCityIndex(nextIndex) &&
+                   cities[nextIndex] != null &&
+                   cities[nextIndex].gridRoot != null &&
+                   !IsCityUnlocked(nextIndex);
+        }
+    }
+
+    /// <summary>
+    /// Shows the next (locked) city's grid without letting the player
+    /// build in it. Previous, or ExitPreview, goes back.
+    /// </summary>
+    public void PreviewNextCity()
+    {
+        if (!CanPreviewNextCity || switchRoutine != null || boardManager == null)
+        {
+            UpdateNavigationButtonStates();
+            return;
+        }
+
+        // The requirement is met in the city being left, so remember how
+        // far along it is for the preview panel.
+        previewSourcePopulation = Mathf.Max(0, boardManager.GetTotalPopulation());
+
+        switchRoutine = StartCoroutine(SwitchCityRoutine(activeCityIndex + 1, preview: true));
+    }
+
+    public void ExitPreview()
+    {
+        if (isPreviewing)
+            RequestCitySwitch(activeCityIndex - 1);
+    }
+
+    /// <summary>Everything the preview panel shows. Only valid while previewing.</summary>
+    public bool TryGetPreviewInfo(
+        out string cityName,
+        out string previousCityName,
+        out int requiredPopulation,
+        out int currentPopulation)
+    {
+        cityName = string.Empty;
+        previousCityName = string.Empty;
+        requiredPopulation = 0;
+        currentPopulation = previewSourcePopulation;
+
+        if (!isPreviewing || !IsValidCityIndex(activeCityIndex) || cities[activeCityIndex] == null)
+            return false;
+
+        cityName = cities[activeCityIndex].displayName;
+        requiredPopulation = cities[activeCityIndex].unlockPopulationRequirement;
+
+        int previousIndex = activeCityIndex - 1;
+        if (IsValidCityIndex(previousIndex) && cities[previousIndex] != null)
+            previousCityName = cities[previousIndex].displayName;
+
+        return true;
+    }
+
+    /// <summary>True when the previewed city has a product to buy.</summary>
+    public bool CanBuyPreviewedCity =>
+        isPreviewing &&
+        IsValidCityIndex(activeCityIndex) &&
+        cities[activeCityIndex] != null &&
+        GetUnlockProductId(activeCityIndex) != null;
+
+    public string GetPreviewedCityPriceText()
+    {
+        if (!CanBuyPreviewedCity)
+            return string.Empty;
+
+        return PurchaseService.GetPriceText(
+            GetUnlockProductId(activeCityIndex),
+            cities[activeCityIndex].fallbackPriceText);
+    }
+
+    /// <summary>
+    /// The store product that unlocks a city, or null if it can't be bought
+    /// (paid unlock off, or the starting city).
+    /// </summary>
+    public string GetUnlockProductId(int index)
+    {
+        if (!IsValidCityIndex(index) || cities[index] == null || !cities[index].allowPaidUnlock ||
+            index == Mathf.Clamp(startingCityIndex, 0, Mathf.Max(0, CityCount - 1)))
+        {
+            return null;
+        }
+
+        string id = cities[index].unlockProductId;
+
+        return string.IsNullOrWhiteSpace(id)
+            ? "unlock_" + GetCityId(index).ToLowerInvariant()
+            : id.Trim();
+    }
+
+    /// <summary>
+    /// Buys the previewed city. On success it unlocks and the preview
+    /// becomes the playable city. onFailed gets a message for the player,
+    /// or null if they cancelled.
+    /// </summary>
+    public void BuyPreviewedCity(Action onSucceeded = null, Action<string> onFailed = null)
+    {
+        if (!CanBuyPreviewedCity)
+        {
+            onFailed?.Invoke("This city can't be bought.");
+            return;
+        }
+
+        int index = activeCityIndex;
+
+        PurchaseService.Buy(
+            GetUnlockProductId(index),
+            () =>
+            {
+                UnlockCity(index);
+                onSucceeded?.Invoke();
+            },
+            onFailed);
+    }
+
+    private void RegisterUnlockProducts()
+    {
+        if (cities == null)
+            return;
+
+        var productIds = new System.Collections.Generic.List<string>();
+
+        for (int i = 0; i < CityCount; i++)
+        {
+            string id = GetUnlockProductId(i);
+
+            if (id != null)
+                productIds.Add(id);
+        }
+
+        PurchaseService.RegisterProducts(productIds);
+    }
+
+    // A purchase completed or was restored from the store.
+    private void HandleProductOwned(string productId)
+    {
+        for (int i = 0; i < CityCount; i++)
+        {
+            if (string.Equals(GetUnlockProductId(i), productId, StringComparison.Ordinal))
+            {
+                UnlockCity(i);
+            }
+        }
+
+        UpdateNavigationButtonStates();
+    }
+
+    // The previewed city was unlocked: keep its map loaded and make it
+    // the real active city.
+    private void EndPreviewInPlace()
+    {
+        isPreviewing = false;
+
+        SaveStore.SetInt(ActiveCityKey, activeCityIndex);
+        SaveStore.Save();
+
+        OnPreviewChanged?.Invoke(false);
+        UpdateNavigationButtonStates();
     }
 
     public void RequestCitySwitch(int newIndex)
@@ -343,12 +581,12 @@ public class CityManager : MonoBehaviour
             return;
         }
 
-        switchRoutine = StartCoroutine(SwitchCityRoutine(newIndex, true));
+        switchRoutine = StartCoroutine(SwitchCityRoutine(newIndex));
     }
 
-    private IEnumerator SwitchCityRoutine(int newIndex, bool savePrevious)
+    private IEnumerator SwitchCityRoutine(int newIndex, bool preview = false)
     {
-        if (!IsValidCityIndex(newIndex) || !IsCityUnlocked(newIndex))
+        if (!IsValidCityIndex(newIndex) || (!preview && !IsCityUnlocked(newIndex)))
         {
             FinishSwitchRoutine();
             yield break;
@@ -367,7 +605,10 @@ public class CityManager : MonoBehaviour
             ? cities[previousIndex].gridRoot
             : null;
 
-        if (savePrevious && previousIndex >= 0 && mapSaveManager != null)
+        // A previewed city is never saved.
+        bool wasPreviewing = isPreviewing;
+
+        if (!wasPreviewing && previousIndex >= 0 && mapSaveManager != null)
             mapSaveManager.SaveCurrentCity();
 
         if (previousRoot != null && previousRoot != destination.gridRoot)
@@ -390,10 +631,12 @@ public class CityManager : MonoBehaviour
 
         destination.gridRoot.gameObject.SetActive(true);
         activeCityIndex = newIndex;
+        isPreviewing = preview;
 
         if (!boardManager.SetGridRoot(destination.gridRoot))
         {
             activeCityIndex = previousIndex;
+            isPreviewing = wasPreviewing;
             destination.gridRoot.gameObject.SetActive(false);
 
             if (previousRoot != null)
@@ -406,8 +649,12 @@ public class CityManager : MonoBehaviour
             yield break;
         }
 
-        SaveStore.SetInt(ActiveCityKey, activeCityIndex);
-        SaveStore.Save();
+        // Never reopen the game on a city the player can't play.
+        if (!preview)
+        {
+            SaveStore.SetInt(ActiveCityKey, activeCityIndex);
+            SaveStore.Save();
+        }
 
         if (mapSaveManager != null)
             mapSaveManager.LoadMapForActiveCity();
@@ -416,6 +663,10 @@ public class CityManager : MonoBehaviour
             yield return FadeGrid(destination.gridRoot, 0f, 1f);
 
         OnCityChanged?.Invoke(previousIndex, newIndex);
+
+        if (wasPreviewing != preview)
+            OnPreviewChanged?.Invoke(preview);
+
         CheckPopulationUnlocks();
         UpdateNavigationButtonStates();
 
@@ -436,7 +687,7 @@ public class CityManager : MonoBehaviour
             queuedCityIndex = -1;
 
             if (queuedIndex != activeCityIndex && IsCityUnlocked(queuedIndex))
-                switchRoutine = StartCoroutine(SwitchCityRoutine(queuedIndex, true));
+                switchRoutine = StartCoroutine(SwitchCityRoutine(queuedIndex));
         }
     }
 
@@ -447,9 +698,13 @@ public class CityManager : MonoBehaviour
             IsValidCityIndex(activeCityIndex - 1) &&
             IsCityUnlocked(activeCityIndex - 1);
 
-        bool canGoNext =
+        bool nextUnlocked =
+            !isPreviewing &&
             IsValidCityIndex(activeCityIndex + 1) &&
             IsCityUnlocked(activeCityIndex + 1);
+
+        // A locked next city can still be opened as a preview.
+        bool canPreviewNext = !nextUnlocked && CanPreviewNextCity;
 
         SetNavigationButton(
             previousCityButton,
@@ -461,8 +716,8 @@ public class CityManager : MonoBehaviour
         SetNavigationButton(
             nextCityButton,
             nextCityButtonImage,
-            canGoNext,
-            nextEnabledSprite,
+            nextUnlocked || canPreviewNext,
+            canPreviewNext && nextPreviewSprite != null ? nextPreviewSprite : nextEnabledSprite,
             nextDisabledSprite);
     }
 

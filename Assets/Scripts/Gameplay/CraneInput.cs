@@ -18,6 +18,12 @@ public class CraneInput : MonoBehaviour
         if (tutorials != null && tutorials.BlocksGameplayInput(pressPosition))
             return;
 
+        // ...nor are taps on the pause button or settings panel.
+        GameplaySettingsUI settings = GameplaySettingsUI.Instance;
+
+        if (settings != null && settings.BlocksGameplayInput(pressPosition))
+            return;
+
         CraneController crane = CraneController.Instance;
 
         if (crane == null)

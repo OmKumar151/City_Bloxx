@@ -78,8 +78,15 @@ public class MapSaveManager : MonoBehaviour
     // SAVE
     // =========================================================
 
+    private static bool IsPreviewing =>
+        CityManager.Instance != null && CityManager.Instance.IsPreviewing;
+
     public void SaveMap()
     {
+        // A previewed (locked) city is look-only: nothing to save.
+        if (IsPreviewing)
+            return;
+
         FindReferences();
 
         if (boardManager == null)
@@ -239,6 +246,9 @@ public class MapSaveManager : MonoBehaviour
 
     public void ResetMap()
     {
+        if (IsPreviewing)
+            return;
+
         FindReferences();
 
         if (boardManager == null)

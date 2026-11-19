@@ -52,7 +52,10 @@ public class NavigationManager : MonoBehaviour
     private void OnDisable()
     {
         if (CityManager.Instance != null)
+        {
             CityManager.Instance.OnCityChanged -= HandleCityChanged;
+            CityManager.Instance.OnPreviewChanged -= HandlePreviewChanged;
+        }
     }
 
     private void FindReferences()
@@ -74,6 +77,14 @@ public class NavigationManager : MonoBehaviour
 
         CityManager.Instance.OnCityChanged -= HandleCityChanged;
         CityManager.Instance.OnCityChanged += HandleCityChanged;
+        CityManager.Instance.OnPreviewChanged -= HandlePreviewChanged;
+        CityManager.Instance.OnPreviewChanged += HandlePreviewChanged;
+    }
+
+    private void HandlePreviewChanged(bool previewing)
+    {
+        if (infoPanel != null)
+            infoPanel.RefreshIdleHint();
     }
 
     private void HandleCityChanged(int previousCityIndex, int newCityIndex)
@@ -429,6 +440,17 @@ public class NavigationManager : MonoBehaviour
 
     public void OK()
     {
+        // A previewed city can be looked at, not built in.
+        if (CityManager.Instance != null && CityManager.Instance.IsPreviewing)
+        {
+            if (infoPanel != null)
+                infoPanel.ShowMessage(
+                    "This is a preview of " + CityManager.Instance.ActiveCityName +
+                    ". Unlock it to start building here.");
+
+            return;
+        }
+
         if (currentMode == NavigationMode.BuildingSelection)
         {
             // An earned building must be placed before playing again.
@@ -887,6 +909,16 @@ public class NavigationManager : MonoBehaviour
     /// </summary>
     private string GetNextStepHint()
     {
+        if (CityManager.Instance != null &&
+            CityManager.Instance.TryGetPreviewInfo(
+                out string previewName, out string fromCity,
+                out int previewNeeded, out int previewHave))
+        {
+            return "Previewing " + previewName + ". Reach " + previewNeeded.ToString("N0") +
+                   " residents in " + fromCity + " to unlock it (you have " +
+                   previewHave.ToString("N0") + ").";
+        }
+
         if (currentMode == NavigationMode.BoardPlacement)
         {
             return "Arrows: pick a square. OK: place it. " +
