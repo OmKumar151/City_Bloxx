@@ -61,6 +61,11 @@ public class GameManager : MonoBehaviour
              "on this object automatically if left empty.")]
     public TowerSway towerSway;
 
+    [Header("Perfect Landing FX")]
+    [Tooltip("Glow and stars on perfect landings. Found or added on this " +
+             "object automatically if left empty.")]
+    public PerfectLandingFX perfectLandingFX;
+
     [Header("Scenes")]
     public string levelSelectScene = "LevelSelect";
     [Tooltip("Where the fail panel's exit button goes in Quick Play.")]
@@ -122,6 +127,12 @@ public class GameManager : MonoBehaviour
 
         if (towerSway == null)
             towerSway = gameObject.AddComponent<TowerSway>();
+
+        if (perfectLandingFX == null)
+            perfectLandingFX = FindObjectOfType<PerfectLandingFX>();
+
+        if (perfectLandingFX == null)
+            perfectLandingFX = gameObject.AddComponent<PerfectLandingFX>();
 
         ApplySelectedBuilding();
 
@@ -311,6 +322,9 @@ public class GameManager : MonoBehaviour
         // The roof is special: a perfect one adds a bonus that grows with
         // the building's height.
         bool isRoof = floorsBuilt >= floorsToComplete;
+
+        if (isPerfect && perfectLandingFX != null)
+            perfectLandingFX.Play(LastPlacedBlock, comboCount, isRoof && !IsEndless);
 
         if (isRoof && isPerfect)
         {

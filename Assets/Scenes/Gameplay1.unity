@@ -5843,6 +5843,7 @@ GameObject:
   - component: {fileID: 1834082809}
   - component: {fileID: 1834082808}
   - component: {fileID: 1834082810}
+  - component: {fileID: 1834082811}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -5850,6 +5851,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &1834082811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834082807}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c5e3a1d4b6f4e7a8d2c0b1a2f3e4d5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  glowSprite: {fileID: 21300000, guid: 7a3c1e9b2f4d4c5e8b6a0d1f2e3c4b5a, type: 3}
+  starSprite: {fileID: 21300000, guid: 8b4d2f0c3a5e4d6f9c7b1e2a3f4d5c6b, type: 3}
 --- !u!114 &1834082808
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5876,6 +5891,7 @@ MonoBehaviour:
   startingBuilding: {fileID: 1728915540}
   perfectStreakTimer: {fileID: 1614594905}
   towerSway: {fileID: 1834082810}
+  perfectLandingFX: {fileID: 1834082811}
   levelSelectScene: LevelSelect
   mainMenuScene: Main Menu
   endlessMissDepth: 3

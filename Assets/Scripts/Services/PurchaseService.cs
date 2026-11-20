@@ -1,19 +1,28 @@
+// Real Google Play billing only on the phone. In the Editor, purchases
+// stay simulated (instant unlock) even with CITYBLOXX_IAP set, so the
+// flow can be tested on the laptop without the store.
+#if CITYBLOXX_IAP && !UNITY_EDITOR
+#define CITYBLOXX_REAL_STORE
+#endif
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-#if CITYBLOXX_IAP
+#if CITYBLOXX_REAL_STORE
 using UnityEngine.Purchasing;
+using Unity.Services.Core;
 #endif
 
 /// <summary>
 /// In-app purchases (Unity IAP 5, Google Play Billing). Used to unlock a
 /// city straight away instead of reaching its population requirement.
 ///
-/// Created automatically; nothing needs adding to a scene. Without the
-/// In-App Purchasing package and the CITYBLOXX_IAP scripting define:
-///   - in the Editor, purchases succeed instantly (for testing the flow);
-///   - in a build, purchases report "store unavailable".
+/// Created automatically; nothing needs adding to a scene.
+///   - In the Editor, purchases always succeed instantly (for testing).
+///   - In an Android build with the CITYBLOXX_IAP define (set in Player
+///     Settings) and the In-App Purchasing package, Google Play billing.
+///   - In a build without the define, purchases report "store unavailable".
 ///
 /// Every product here is a non-consumable: bought once, owned forever.
 /// Ownership is saved through SaveStore (so Play Games cloud save keeps it)
@@ -42,7 +51,7 @@ public class PurchaseService : MonoBehaviour
     private Action<string> onBuyFailed;
     private string buyingProductId;
 
-#if CITYBLOXX_IAP
+#if CITYBLOXX_REAL_STORE
     private StoreController store;
     private bool connected;
     private readonly HashSet<string> fetchedProducts = new HashSet<string>();
@@ -72,7 +81,7 @@ public class PurchaseService : MonoBehaviour
 
     private void Start()
     {
-#if CITYBLOXX_IAP
+#if CITYBLOXX_REAL_STORE
         Connect();
 #endif
     }
@@ -86,7 +95,7 @@ public class PurchaseService : MonoBehaviour
     {
         get
         {
-#if CITYBLOXX_IAP
+#if CITYBLOXX_REAL_STORE
             return Instance != null && Instance.connected;
 #elif UNITY_EDITOR
             return true;
@@ -121,7 +130,7 @@ public class PurchaseService : MonoBehaviour
                 added = true;
         }
 
-#if CITYBLOXX_IAP
+#if CITYBLOXX_REAL_STORE
         if (added && Instance != null)
             Instance.FetchRegisteredProducts();
 #else
@@ -135,7 +144,7 @@ public class PurchaseService : MonoBehaviour
     /// </summary>
     public static string GetPriceText(string productId, string fallback)
     {
-#if CITYBLOXX_IAP
+#if CITYBLOXX_REAL_STORE
         if (Instance != null && Instance.store != null && !string.IsNullOrWhiteSpace(productId))
         {
             Product product = Instance.store.GetProductById(productId.Trim());
@@ -191,7 +200,7 @@ public class PurchaseService : MonoBehaviour
             return;
         }
 
-#if CITYBLOXX_IAP
+#if CITYBLOXX_REAL_STORE
         if (!connected || store == null)
         {
             onFailed?.Invoke("Can't reach Google Play. Check your connection and try again.");
@@ -215,7 +224,7 @@ public class PurchaseService : MonoBehaviour
         store.PurchaseProduct(product);
 #elif UNITY_EDITOR
         Debug.Log("PurchaseService: Simulated purchase of '" + productId +
-                  "' (Editor, no CITYBLOXX_IAP define).");
+                  "' (Editor test purchase, no money taken).");
         Grant(productId);
         onSucceeded?.Invoke();
 #else
@@ -258,7 +267,7 @@ public class PurchaseService : MonoBehaviour
             failure?.Invoke(failureMessage);
     }
 
-#if CITYBLOXX_IAP
+#if CITYBLOXX_REAL_STORE
     // =========================================================
     // UNITY IAP 5
     // =========================================================
@@ -270,6 +279,21 @@ public class PurchaseService : MonoBehaviour
 
         try
         {
+            // Unity Gaming Services first. Not linking a cloud project only
+            // logs a warning; Google Play billing still connects.
+            if (UnityServices.State == ServicesInitializationState.Uninitialized)
+            {
+                try
+                {
+                    await UnityServices.InitializeAsync();
+                }
+                catch (Exception servicesException)
+                {
+                    Debug.LogWarning("PurchaseService: Unity Services init failed: " +
+                                     servicesException.Message);
+                }
+            }
+
             if (store == null)
             {
                 store = UnityIAPServices.StoreController();
