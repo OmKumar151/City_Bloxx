@@ -242,7 +242,6 @@ public class PopulationProgressionManager : MonoBehaviour
             {
                 checkpoint.unlocked = true;
                 OnRewardUnlocked?.Invoke(reward);
-
             }
         }
     }
@@ -259,7 +258,6 @@ public class PopulationProgressionManager : MonoBehaviour
         suppressZeroPopulationCheckpoints = true;
 
         OnProgressionReset?.Invoke();
-
     }
 
     public int GetNextCheckpointPopulation()

@@ -25,11 +25,15 @@ public class SettingsPanelUI : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float vibrationPreviewInterval = 0.12f;
 
+    [Header("Privacy")]
+    [Tooltip("Opens the ad consent form. Shown only where the law requires " +
+             "it (EEA, UK, Switzerland); hidden everywhere else.")]
+    [SerializeField] private GameObject privacyOptionsButton;
+
     private float lastVibrationPreview = -1f;
 
     private void Awake()
     {
-
         if (musicSlider != null)
             musicSlider.onValueChanged.AddListener(
                 OnMusicSliderChanged
@@ -84,7 +88,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     public void OpenSettings()
     {
-
         if (settingsPanel == null)
         {
             Debug.LogError(
@@ -97,13 +100,25 @@ public class SettingsPanelUI : MonoBehaviour
         PlayButtonSound();
 
         LoadCurrentAudioSettings();
+        RefreshPrivacyOptionsButton();
 
         settingsPanel.SetActive(true);
     }
 
+    public void OpenPrivacyOptions()
+    {
+        PlayButtonSound();
+        AdsService.ShowPrivacyOptions();
+    }
+
+    private void RefreshPrivacyOptionsButton()
+    {
+        if (privacyOptionsButton != null)
+            privacyOptionsButton.SetActive(AdsService.PrivacyOptionsRequired);
+    }
+
     public void CloseSettings()
     {
-
         if (settingsPanel == null)
             return;
 
@@ -114,7 +129,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     public void OnMusicSliderChanged(float value)
     {
-
         if (AudioManager.Instance == null)
         {
             Debug.LogError(
@@ -130,7 +144,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     public void OnSFXSliderChanged(float value)
     {
-
         if (AudioManager.Instance == null)
         {
             Debug.LogError(
@@ -146,7 +159,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     public void OnMuteToggleChanged(bool value)
     {
-
         if (AudioManager.Instance == null)
         {
             Debug.LogError(
@@ -243,12 +255,10 @@ public class SettingsPanelUI : MonoBehaviour
         }
 
         RefreshMutedLook(AudioManager.Instance.IsMuted);
-
     }
 
     public void ResetSettings()
     {
-
         if (AudioManager.Instance == null)
         {
             Debug.LogError(

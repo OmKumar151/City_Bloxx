@@ -17,7 +17,7 @@ public class BuildingUnlockUI : MonoBehaviour
     private void Start()
     {
         if (infoPanelUI == null)
-            infoPanelUI = FindObjectOfType<InfoPanelUI>();
+            infoPanelUI = FindAnyObjectByType<InfoPanelUI>();
 
         SubscribeToProgressionManager();
         UpdateUnlockState();

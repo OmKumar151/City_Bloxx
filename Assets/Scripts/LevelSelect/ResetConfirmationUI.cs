@@ -33,7 +33,6 @@ public class ResetConfirmationUI : MonoBehaviour
         }
 
         confirmationPanel.SetActive(true);
-
     }
 
     // =========================================================
@@ -46,7 +45,6 @@ public class ResetConfirmationUI : MonoBehaviour
         {
             confirmationPanel.SetActive(false);
         }
-
     }
 
     // =========================================================
@@ -77,6 +75,5 @@ public class ResetConfirmationUI : MonoBehaviour
         {
             confirmationPanel.SetActive(false);
         }
-
     }
 }

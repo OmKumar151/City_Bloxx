@@ -984,7 +984,6 @@ public class GridCell : MonoBehaviour
 
         IsOccupied =
             true;
-
     }
 
     // =========================================================

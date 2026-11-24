@@ -113,7 +113,6 @@ public class MapSaveManager : MonoBehaviour
 
         SaveStore.SetString(ActiveSaveKey, JsonUtility.ToJson(data));
         SaveStore.Save();
-
     }
 
     // =========================================================
@@ -222,7 +221,6 @@ public class MapSaveManager : MonoBehaviour
         }
 
         RefreshProgression();
-
     }
 
     // =========================================================
@@ -263,7 +261,6 @@ public class MapSaveManager : MonoBehaviour
 
         if (infoPanel != null)
             infoPanel.ShowMapReset();
-
     }
 
     private void ClearGridAndResetPopulation()
@@ -293,7 +290,6 @@ public class MapSaveManager : MonoBehaviour
     {
         SaveStore.DeleteKey(ActiveSaveKey);
         SaveStore.Save();
-
     }
 
     public bool HasSavedMap()

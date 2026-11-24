@@ -245,10 +245,10 @@ public class CityManager : MonoBehaviour
     private void FindReferences()
     {
         if (boardManager == null)
-            boardManager = FindFirstObjectByType<BoardManager>();
+            boardManager = FindAnyObjectByType<BoardManager>();
 
         if (mapSaveManager == null)
-            mapSaveManager = FindFirstObjectByType<MapSaveManager>();
+            mapSaveManager = FindAnyObjectByType<MapSaveManager>();
     }
 
     private void EnsureStartingCityUnlocked()

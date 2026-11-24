@@ -45,7 +45,6 @@ public static class PopulationBonusStore
         long total = (long)PlayerPrefs.GetInt(key, 0) + amount;
         SaveStore.SetInt(key, (int)Mathf.Min(total, int.MaxValue));
         SaveStore.Save();
-
     }
 
     public static void Subtract(string cityId, int amount)
@@ -58,7 +57,6 @@ public static class PopulationBonusStore
         int total = Mathf.Max(0, PlayerPrefs.GetInt(key, 0) - amount);
         SaveStore.SetInt(key, total);
         SaveStore.Save();
-
     }
 
     public static void Clear(string cityId)

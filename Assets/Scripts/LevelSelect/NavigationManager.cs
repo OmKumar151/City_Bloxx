@@ -159,7 +159,6 @@ public class NavigationManager : MonoBehaviour
 
         if (currentMode == NavigationMode.BoardPlacement)
         {
-
             if (infoPanel != null)
                 infoPanel.ShowPlacingBuilding(buildingIndex, PendingPlacementStore.Score);
 
@@ -232,7 +231,6 @@ public class NavigationManager : MonoBehaviour
         // panel shows what to do next.
         if (infoPanel != null)
             infoPanel.RefreshIdleHint();
-
     }
 
     // =========================================================

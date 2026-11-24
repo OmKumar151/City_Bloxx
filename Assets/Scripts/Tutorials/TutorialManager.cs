@@ -85,7 +85,7 @@ public class TutorialManager : MonoBehaviour
     private bool currentIsGuide;
     private float previousTimeScale = 1f;
     private float lastClosedTime = float.NegativeInfinity;
-    private int lastProcessedSceneHandle = -1;
+    private Scene lastProcessedScene;
 
     private readonly Queue<KeyValuePair<string, int>> pendingTutorials =
         new Queue<KeyValuePair<string, int>>();
@@ -156,10 +156,10 @@ public class TutorialManager : MonoBehaviour
 
     private void ProcessScene(Scene scene)
     {
-        if (!scene.IsValid() || lastProcessedSceneHandle == scene.handle)
+        if (!scene.IsValid() || lastProcessedScene == scene)
             return;
 
-        lastProcessedSceneHandle = scene.handle;
+        lastProcessedScene = scene;
         StartCoroutine(HandleSceneLoaded(scene));
     }
 
@@ -331,7 +331,6 @@ public class TutorialManager : MonoBehaviour
             SaveStore.DeleteKey(CompletedPrefix + id);
 
         SaveStore.Save();
-
     }
 
     // =========================================================

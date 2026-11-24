@@ -45,7 +45,6 @@ public class ResetPanelUI : MonoBehaviour
         {
             resetPanel.SetActive(true);
         }
-
     }
 
     // =========================================================
@@ -63,7 +62,6 @@ public class ResetPanelUI : MonoBehaviour
         }
 
         resetPanel.SetActive(false);
-
     }
 
     // =========================================================
@@ -89,6 +87,5 @@ public class ResetPanelUI : MonoBehaviour
         {
             resetPanel.SetActive(false);
         }
-
     }
 }

@@ -113,6 +113,40 @@ public class AdsService : MonoBehaviour
     }
 
     // =========================================================
+    // PRIVACY OPTIONS (GDPR)
+    // =========================================================
+
+    /// <summary>
+    /// True where the player must be able to change their ad consent
+    /// (EEA, UK, Switzerland). The settings panel shows its Privacy
+    /// Options button only then.
+    /// </summary>
+    public static bool PrivacyOptionsRequired
+    {
+        get
+        {
+#if CITYBLOXX_ADMOB
+            return ConsentInformation.PrivacyOptionsRequirementStatus ==
+                   PrivacyOptionsRequirementStatus.Required;
+#else
+            return false;
+#endif
+        }
+    }
+
+    /// <summary>Opens Google's form for changing ad consent.</summary>
+    public static void ShowPrivacyOptions()
+    {
+#if CITYBLOXX_ADMOB
+        ConsentForm.ShowPrivacyOptionsForm(error =>
+        {
+            if (error != null)
+                Debug.LogWarning("AdsService: Privacy options form failed: " + error.Message);
+        });
+#endif
+    }
+
+    // =========================================================
     // RESTART AD
     // =========================================================
 

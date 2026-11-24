@@ -196,7 +196,7 @@ public class CraneController : MonoBehaviour
 
     private IEnumerator SpawnFirstBlockAfterOpeningPan()
     {
-        CameraFollow cameraFollow = FindObjectOfType<CameraFollow>();
+        CameraFollow cameraFollow = FindAnyObjectByType<CameraFollow>();
 
         if (cameraFollow != null)
         {
@@ -293,7 +293,6 @@ public class CraneController : MonoBehaviour
         landing.MarkAsReleased();
 
         ConfigureRope();
-
     }
 
     // A block can drop only once it has been swinging for a moment and
@@ -450,7 +449,6 @@ public class CraneController : MonoBehaviour
         {
             StartBlockSwing();
         }
-
     }
 
     private IEnumerator StartInitialSwingAfterDelay()

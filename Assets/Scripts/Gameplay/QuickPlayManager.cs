@@ -468,7 +468,7 @@ public class QuickPlayManager : MonoBehaviour
     // The picker needs an EventSystem to receive clicks.
     private static void EnsureEventSystem()
     {
-        if (EventSystem.current != null || FindObjectOfType<EventSystem>() != null)
+        if (EventSystem.current != null || FindAnyObjectByType<EventSystem>() != null)
             return;
 
         new GameObject(

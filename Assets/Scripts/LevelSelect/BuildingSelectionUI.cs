@@ -105,7 +105,6 @@ public class BuildingSelectionUI : MonoBehaviour
         }
 
         SetSelectedBuildingVisualOnly(BlueBuildingIndex);
-
     }
 
     private bool IsValidBuildingIndex(int buildingIndex)

@@ -113,7 +113,6 @@ public class BoardManager : MonoBehaviour
         // ShowPlacementHighlights does not reset a valid,
         // already selected cursor, so movement remains intact.
         ShowPlacementHighlights(buildingIndex);
-
     }
 
     /// <summary>
@@ -133,7 +132,6 @@ public class BoardManager : MonoBehaviour
                 cell.HidePlacementIndicator();
             }
         }
-
     }
 
     // =========================================================
@@ -152,7 +150,6 @@ public class BoardManager : MonoBehaviour
         if (gridObject != null)
         {
             gridRoot = gridObject.transform;
-
         }
         else
         {
@@ -204,7 +201,6 @@ public class BoardManager : MonoBehaviour
 
             gridCells.Add(position, cell);
         }
-
     }
 
     // =========================================================
@@ -214,7 +210,6 @@ public class BoardManager : MonoBehaviour
     public void RefreshBoardAnalysis()
     {
         BuildGridReference();
-
     }
 
     // =========================================================
@@ -329,7 +324,6 @@ public class BoardManager : MonoBehaviour
 
         if (cell == null)
         {
-
             return;
         }
 
@@ -385,7 +379,6 @@ public class BoardManager : MonoBehaviour
         int score = currentlySelectedCell.BuildingPopulation;
 
         BuildingScoreManager.Instance.SetExistingBuildingScore(score);
-
     }
 
     // =========================================================
@@ -718,7 +711,6 @@ public class BoardManager : MonoBehaviour
 
         if (HasValidPlacement(buildingIndex))
         {
-
             return true;
         }
 
@@ -731,7 +723,6 @@ public class BoardManager : MonoBehaviour
 
             if (CanReplaceBuildingAtCell(cell, buildingType))
             {
-
                 return true;
             }
         }
@@ -760,7 +751,6 @@ public class BoardManager : MonoBehaviour
 
         if (!CanPlaceBuilding(buildingIndex))
         {
-
             return false;
         }
 
@@ -938,7 +928,6 @@ public class BoardManager : MonoBehaviour
             currentlySelectedCell,
             replacementType))
         {
-
             return false;
         }
 
@@ -1135,7 +1124,6 @@ public class BoardManager : MonoBehaviour
         {
             BuildingScoreManager.Instance.ClearScores();
         }
-
     }
 
     // =========================================================
@@ -1429,5 +1417,4 @@ public class BoardManager : MonoBehaviour
 
         return count;
     }
-
 }

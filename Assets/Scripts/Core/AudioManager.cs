@@ -66,7 +66,6 @@ public class AudioManager : MonoBehaviour
 
     private void Awake()
     {
-
         if (Instance != null && Instance != this)
         {
             Debug.LogWarning(
@@ -91,7 +90,6 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-
         PlayMusicForCurrentScene();
     }
 
@@ -115,7 +113,6 @@ public class AudioManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-
         if (Instance != this)
         {
             Debug.LogError(
@@ -168,7 +165,6 @@ public class AudioManager : MonoBehaviour
             MuteKey,
             0
         ) == 1;
-
     }
 
     private void ApplyAudioSettings()
@@ -208,7 +204,6 @@ public class AudioManager : MonoBehaviour
 
     public void PlayMusicForScene(string sceneName)
     {
-
         if (sceneName == mainMenuSceneName)
         {
             PlayMainMenuMusic();
@@ -254,7 +249,6 @@ public class AudioManager : MonoBehaviour
 
         if (musicSource.clip == newClip && musicSource.isPlaying)
         {
-
             return;
         }
 
@@ -310,7 +304,6 @@ public class AudioManager : MonoBehaviour
         }
 
         musicSource.volume = isMuted ? 0f : musicVolume;
-
     }
 
     // =========================================================
@@ -413,7 +406,6 @@ public class AudioManager : MonoBehaviour
 
     private void PlaySFX(AudioClip clip)
     {
-
         if (clip == null)
         {
             Debug.LogError("SFX REQUEST FAILED: AudioClip is NULL!");
@@ -427,7 +419,6 @@ public class AudioManager : MonoBehaviour
         }
 
         sfxSource.PlayOneShot(clip);
-
     }
 
     // =========================================================
@@ -446,7 +437,6 @@ public class AudioManager : MonoBehaviour
         SaveStore.Save();
 
         ApplyMusicSettings();
-
     }
 
     public void SetSFXVolume(float value)
@@ -461,7 +451,6 @@ public class AudioManager : MonoBehaviour
         SaveStore.Save();
 
         ApplySFXSettings();
-
     }
 
     public void SetMuted(bool muted)
@@ -476,7 +465,6 @@ public class AudioManager : MonoBehaviour
         SaveStore.Save();
 
         ApplyAudioSettings();
-
     }
 
     public void ResetAudioSettings()
@@ -503,7 +491,6 @@ public class AudioManager : MonoBehaviour
         SaveStore.Save();
 
         ApplyAudioSettings();
-
     }
 
     // =========================================================

@@ -112,7 +112,6 @@ public class GuidePanel : MonoBehaviour
 
         GameObject eventSystem = new GameObject(
             "EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-
     }
 
     // =========================================================
@@ -340,7 +339,7 @@ public class GuidePanel : MonoBehaviour
         if (string.IsNullOrWhiteSpace(targetId))
             return null;
 
-        TutorialTarget[] targets = FindObjectsByType<TutorialTarget>(FindObjectsSortMode.None);
+        TutorialTarget[] targets = FindObjectsByType<TutorialTarget>();
 
         foreach (TutorialTarget target in targets)
         {

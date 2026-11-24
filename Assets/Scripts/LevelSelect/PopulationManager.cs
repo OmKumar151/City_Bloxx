@@ -31,7 +31,6 @@ public class PopulationManager : MonoBehaviour
         }
 
         TotalPopulation += amount;
-
     }
 
     public void RemovePopulation(int amount)
@@ -48,7 +47,6 @@ public class PopulationManager : MonoBehaviour
 
         if (TotalPopulation < 0)
             TotalPopulation = 0;
-
     }
 
     public void SetPopulation(int amount)
@@ -57,7 +55,6 @@ public class PopulationManager : MonoBehaviour
             amount = 0;
 
         TotalPopulation = amount;
-
     }
 
     public void ResetPopulation()

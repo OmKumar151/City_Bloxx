@@ -120,16 +120,16 @@ public class GameManager : MonoBehaviour
         Instance = this;
 
         if (perfectStreakTimer == null)
-            perfectStreakTimer = FindObjectOfType<PerfectStreakTimer>();
+            perfectStreakTimer = FindAnyObjectByType<PerfectStreakTimer>();
 
         if (towerSway == null)
-            towerSway = FindObjectOfType<TowerSway>();
+            towerSway = FindAnyObjectByType<TowerSway>();
 
         if (towerSway == null)
             towerSway = gameObject.AddComponent<TowerSway>();
 
         if (perfectLandingFX == null)
-            perfectLandingFX = FindObjectOfType<PerfectLandingFX>();
+            perfectLandingFX = FindAnyObjectByType<PerfectLandingFX>();
 
         if (perfectLandingFX == null)
             perfectLandingFX = gameObject.AddComponent<PerfectLandingFX>();
@@ -166,7 +166,6 @@ public class GameManager : MonoBehaviour
 
         floorsToComplete = Mathf.Max(1, GameplaySelection.FloorsToComplete);
         SpecialRoofUnlocked = GameplaySelection.SpecialRoofUnlocked;
-
     }
 
     public void ResetGameState()
@@ -324,7 +323,6 @@ public class GameManager : MonoBehaviour
         {
             PerfectRoofBonus = perfectRoofBonusPerFloor * floorsToComplete;
             score += PerfectRoofBonus;
-
         }
 
         if (isPerfect && UIManager.Instance != null)

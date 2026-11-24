@@ -41,7 +41,6 @@ public class BlockLanding : MonoBehaviour
         unresolvedContactTimer = 0f;
         stationaryTimer = 0f;
         hasUnresolvedContact = false;
-
     }
 
     private void Update()
@@ -344,7 +343,6 @@ public class BlockLanding : MonoBehaviour
 
         hasUnresolvedContact = true;
         unresolvedContactTimer = 0f;
-
     }
 
     private bool IsCollisionWithTarget(
