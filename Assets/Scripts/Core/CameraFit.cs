@@ -18,6 +18,16 @@ public class CameraFit : MonoBehaviour
     [Tooltip("Screen shape the scene was designed for (width / height).")]
     public float designAspect = 1080f / 1920f;
 
+    [Tooltip("On screens wider than designed (tablets), how much to zoom " +
+             "out. 0 = keep the designed height (the world looks big on " +
+             "a tablet). 1 = keep the designed screen area. 0.5 sits " +
+             "between, like a Canvas Scaler match of 0.5.")]
+    [Range(0f, 1f)] public float wideScreenZoomOut = 0f;
+
+    [Tooltip("Widest view allowed in world units, so the camera never " +
+             "zooms out past the edges of the background. 0 = no limit.")]
+    [Min(0f)] public float maxVisibleWidth = 0f;
+
     private Camera cam;
     private float designSize;
     private int lastWidth;
@@ -62,8 +72,19 @@ public class CameraFit : MonoBehaviour
         float aspect = (float)lastWidth / lastHeight;
 
         // Narrower than designed: grow the size so the width still fits.
-        cam.orthographicSize = aspect < designAspect
-            ? designSize * designAspect / aspect
-            : designSize;
+        if (aspect < designAspect)
+        {
+            cam.orthographicSize = designSize * designAspect / aspect;
+            return;
+        }
+
+        // Wider than designed: zoom out part of the way.
+        float size = designSize *
+            Mathf.Pow(aspect / designAspect, wideScreenZoomOut);
+
+        if (maxVisibleWidth > 0f)
+            size = Mathf.Min(size, maxVisibleWidth / (2f * aspect));
+
+        cam.orthographicSize = Mathf.Max(size, designSize);
     }
 }

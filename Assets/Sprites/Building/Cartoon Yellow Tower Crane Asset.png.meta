@@ -121,6 +121,72 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Crane_Top
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1244
+        width: 1005
+        height: 292
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1c3e5f7092b4d6f8a1c3e5f7092b4d1
+      internalID: 4718300219915520001
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Crane_MastSegment
+      rect:
+        serializedVersion: 2
+        x: 230
+        y: 217
+        width: 150
+        height: 112
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1c3e5f7092b4d6f8a1c3e5f7092b4d2
+      internalID: 4718300219915520002
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Crane_Base
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 15
+        width: 1005
+        height: 202
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a1c3e5f7092b4d6f8a1c3e5f7092b4d3
+      internalID: 4718300219915520003
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
@@ -136,6 +202,9 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       Cartoon Yellow Tower Crane Asset_0: 2239503019978857710
+      Crane_Top: 4718300219915520001
+      Crane_MastSegment: 4718300219915520002
+      Crane_Base: 4718300219915520003
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
