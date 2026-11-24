@@ -21,8 +21,14 @@ public class AdsService : MonoBehaviour
     public static AdsService Instance { get; private set; }
 
     // ---- Replace with your AdMob ad unit IDs before release. ----
+    // These are Google's public test units: they always fill, never pay.
+#if UNITY_IOS
+    private const string BannerUnitId = "ca-app-pub-3940256099942544/2934735716";   // test
+    private const string RewardedUnitId = "ca-app-pub-3940256099942544/1712485313"; // test
+#else
     private const string BannerUnitId = "ca-app-pub-3940256099942544/6300978111";   // test
     private const string RewardedUnitId = "ca-app-pub-3940256099942544/5224354917"; // test
+#endif
 
     // Static so a request made before this object exists still counts.
     private static bool wantBanner;
@@ -73,7 +79,7 @@ public class AdsService : MonoBehaviour
                     Debug.LogWarning("AdsService: Consent form failed: " + formError.Message);
 
                 if (ConsentInformation.CanRequestAds())
-                    Initialise();
+                    TrackingPermission.Request(Initialise);
             });
         });
 #endif

@@ -1,4 +1,4 @@
-# City_Bloxx (working title)
+# Stackhaven City
 
 A portrait mobile tower-stacking and city-building game made with Unity.
 
@@ -105,7 +105,7 @@ Android isn't being published yet. When it is, create an upload keystore, set it
 
 ## Release checklist
 
-- [ ] Final app name and bundle identifier
+- [x] App name (**Stackhaven City**) and bundle identifier (`com.oda.stackhavencity`)
 - [ ] Real AdMob app ID and ad unit IDs (replace Google's test IDs in `AdsService.cs`)
 - [ ] IAP products created in App Store Connect with matching product IDs
 - [ ] App icons and launch screen

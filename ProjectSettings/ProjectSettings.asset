@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: ODA
-  productName: City_Bloxx
+  productName: Stackhaven City
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -165,7 +165,9 @@ PlayerSettings:
   androidMaxAspectRatio: 2.4
   androidMinAspectRatio: 1
   applicationIdentifier:
-    Standalone: com.DefaultCompany.2D-Project
+    Android: com.oda.stackhavencity
+    Standalone: com.oda.stackhavencity
+    iPhone: com.oda.stackhavencity
   buildNumber:
     Standalone: 0
     VisionOS: 0
@@ -815,7 +817,7 @@ PlayerSettings:
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
     Android: CITYBLOXX_IAP
-    iPhone: CITYBLOXX_IAP
+    iPhone: CITYBLOXX_IAP;CITYBLOXX_ADMOB
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
