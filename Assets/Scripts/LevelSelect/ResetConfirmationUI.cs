@@ -34,9 +34,6 @@ public class ResetConfirmationUI : MonoBehaviour
 
         confirmationPanel.SetActive(true);
 
-        Debug.Log(
-            "Reset confirmation opened."
-        );
     }
 
     // =========================================================
@@ -50,9 +47,6 @@ public class ResetConfirmationUI : MonoBehaviour
             confirmationPanel.SetActive(false);
         }
 
-        Debug.Log(
-            "Reset cancelled."
-        );
     }
 
     // =========================================================
@@ -84,8 +78,5 @@ public class ResetConfirmationUI : MonoBehaviour
             confirmationPanel.SetActive(false);
         }
 
-        Debug.Log(
-            "Reset confirmed."
-        );
     }
 }

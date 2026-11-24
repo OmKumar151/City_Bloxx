@@ -332,7 +332,6 @@ public class TutorialManager : MonoBehaviour
 
         SaveStore.Save();
 
-        Debug.Log("TutorialManager: All tutorials reset.");
     }
 
     // =========================================================

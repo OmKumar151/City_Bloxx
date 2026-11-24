@@ -131,7 +131,6 @@ public class PlayGamesService : MonoBehaviour
             return;
 
         dirty = false;
-        Debug.Log("PlayGamesService: Progress restored from the cloud.");
 
         // Managers read their data on load, so reload to pick it up.
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
@@ -148,8 +147,6 @@ public class PlayGamesService : MonoBehaviour
     {
         IsSignedIn = status == SignInStatus.Success;
         SignInChanged?.Invoke(IsSignedIn);
-
-        Debug.Log("PlayGamesService: Sign-in " + status);
 
         if (IsSignedIn)
             Download();

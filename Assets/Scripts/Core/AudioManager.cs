@@ -66,10 +66,6 @@ public class AudioManager : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Log("========== AUDIO MANAGER AWAKE ==========");
-        Debug.Log("AudioManager GameObject: " + gameObject.name);
-        Debug.Log("AudioManager Scene: " + gameObject.scene.name);
-        Debug.Log("AudioManager Is Root: " + (transform.root == transform));
 
         if (Instance != null && Instance != this)
         {
@@ -86,9 +82,6 @@ public class AudioManager : MonoBehaviour
 
         DontDestroyOnLoad(gameObject);
 
-        Debug.Log("AudioManager.Instance assigned.");
-        Debug.Log("DontDestroyOnLoad called.");
-
         SetupAudioSources();
         LoadAudioSettings();
         ApplyAudioSettings();
@@ -98,9 +91,6 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        Debug.Log("========== AUDIO MANAGER START ==========");
-        Debug.Log("Instance exists: " + (Instance != null));
-        Debug.Log("Current Scene: " + SceneManager.GetActiveScene().name);
 
         PlayMusicForCurrentScene();
     }
@@ -125,9 +115,6 @@ public class AudioManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        Debug.Log("========== AUDIO MANAGER SCENE LOADED ==========");
-        Debug.Log("Scene: " + scene.name);
-        Debug.Log("AudioManager.Instance exists: " + (Instance != null));
 
         if (Instance != this)
         {
@@ -182,12 +169,6 @@ public class AudioManager : MonoBehaviour
             0
         ) == 1;
 
-        Debug.Log(
-            "Audio Settings Loaded | " +
-            "Music: " + musicVolume +
-            " | SFX: " + sfxVolume +
-            " | Muted: " + isMuted
-        );
     }
 
     private void ApplyAudioSettings()
@@ -227,10 +208,6 @@ public class AudioManager : MonoBehaviour
 
     public void PlayMusicForScene(string sceneName)
     {
-        Debug.Log(
-            "AudioManager: Selecting music for scene: " +
-            sceneName
-        );
 
         if (sceneName == mainMenuSceneName)
         {
@@ -243,13 +220,6 @@ public class AudioManager : MonoBehaviour
         else if (sceneName == gameplaySceneName)
         {
             PlayGameplayMusic();
-        }
-        else
-        {
-            Debug.Log(
-                "AudioManager: No music assigned for scene: " +
-                sceneName
-            );
         }
     }
 
@@ -284,18 +254,9 @@ public class AudioManager : MonoBehaviour
 
         if (musicSource.clip == newClip && musicSource.isPlaying)
         {
-            Debug.Log(
-                "AudioManager: Music already playing: " +
-                newClip.name
-            );
 
             return;
         }
-
-        Debug.Log(
-            "AudioManager: Switching music to: " +
-            newClip.name
-        );
 
         if (musicFadeCoroutine != null)
         {
@@ -350,10 +311,6 @@ public class AudioManager : MonoBehaviour
 
         musicSource.volume = isMuted ? 0f : musicVolume;
 
-        Debug.Log(
-            "AudioManager: Music Playing: " +
-            newClip.name
-        );
     }
 
     // =========================================================
@@ -456,7 +413,6 @@ public class AudioManager : MonoBehaviour
 
     private void PlaySFX(AudioClip clip)
     {
-        Debug.Log("========== SFX REQUEST ==========");
 
         if (clip == null)
         {
@@ -464,21 +420,14 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        Debug.Log("SFX Clip: " + clip.name);
-        Debug.Log("SFX Source exists: " + (sfxSource != null));
-
         if (sfxSource == null)
         {
             Debug.LogError("SFX REQUEST FAILED: SFX AudioSource is NULL!");
             return;
         }
 
-        Debug.Log("SFX Source Volume: " + sfxSource.volume);
-        Debug.Log("SFX Source Mute: " + sfxSource.mute);
-
         sfxSource.PlayOneShot(clip);
 
-        Debug.Log("SFX PLAYED: " + clip.name);
     }
 
     // =========================================================
@@ -498,10 +447,6 @@ public class AudioManager : MonoBehaviour
 
         ApplyMusicSettings();
 
-        Debug.Log(
-            "AudioManager: Music Volume = " +
-            musicVolume
-        );
     }
 
     public void SetSFXVolume(float value)
@@ -517,10 +462,6 @@ public class AudioManager : MonoBehaviour
 
         ApplySFXSettings();
 
-        Debug.Log(
-            "AudioManager: SFX Volume = " +
-            sfxVolume
-        );
     }
 
     public void SetMuted(bool muted)
@@ -536,10 +477,6 @@ public class AudioManager : MonoBehaviour
 
         ApplyAudioSettings();
 
-        Debug.Log(
-            "AudioManager: Muted = " +
-            isMuted
-        );
     }
 
     public void ResetAudioSettings()
@@ -567,9 +504,6 @@ public class AudioManager : MonoBehaviour
 
         ApplyAudioSettings();
 
-        Debug.Log(
-            "AudioManager: Audio settings reset."
-        );
     }
 
     // =========================================================
@@ -607,28 +541,24 @@ public class AudioManager : MonoBehaviour
     [ContextMenu("TEST - Play Button")]
     private void TestButtonSound()
     {
-        Debug.Log("TEST: Play Button SFX");
         PlayButtonClick();
     }
 
     [ContextMenu("TEST - Play Navigation")]
     private void TestNavigationSound()
     {
-        Debug.Log("TEST: Play Navigation SFX");
         PlayNavigationButton();
     }
 
     [ContextMenu("TEST - Play Denied")]
     private void TestDeniedSound()
     {
-        Debug.Log("TEST: Play Denied SFX");
         PlayDenied();
     }
 
     [ContextMenu("TEST - Play Placement Confirmed")]
     private void TestPlacementConfirmedSound()
     {
-        Debug.Log("TEST: Play Placement Confirmed SFX");
         PlayPlacementConfirmed();
     }
 

@@ -161,26 +161,12 @@ public class GameManager : MonoBehaviour
         {
             SpecialRoofUnlocked = false;
 
-            Debug.Log(
-                "GameManager: No building selected. Using Inspector " +
-                "floors (" + floorsToComplete + ") and fallback sprites.",
-                this
-            );
-
             return;
         }
 
         floorsToComplete = Mathf.Max(1, GameplaySelection.FloorsToComplete);
         SpecialRoofUnlocked = GameplaySelection.SpecialRoofUnlocked;
 
-        Debug.Log(
-            "GameManager: Building '" + GameplaySelection.BuildingId +
-            "' | Floors: " + floorsToComplete +
-            " | Special roof unlocked: " + SpecialRoofUnlocked +
-            " (needs " + ActiveConfiguration.specialRoofScoreThreshold +
-            " points)",
-            this
-        );
     }
 
     public void ResetGameState()
@@ -339,10 +325,6 @@ public class GameManager : MonoBehaviour
             PerfectRoofBonus = perfectRoofBonusPerFloor * floorsToComplete;
             score += PerfectRoofBonus;
 
-            Debug.Log(
-                "GameManager: Perfect roof! +" + PerfectRoofBonus + " residents.",
-                this
-            );
         }
 
         if (isPerfect && UIManager.Instance != null)

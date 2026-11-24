@@ -193,15 +193,6 @@ public class BuildingTier : MonoBehaviour
                         manager != null &&
                         manager.IsSpecialRoofEarned;
                 }
-
-                if (useSpecialRoof && specialTopSprite != null)
-                {
-                    Debug.Log(
-                        "BuildingTier: Special roof earned with score " +
-                        (manager != null ? manager.score : 0) + ".",
-                        this
-                    );
-                }
             }
 
             selectedSprite = useSpecialRoof && specialTopSprite != null

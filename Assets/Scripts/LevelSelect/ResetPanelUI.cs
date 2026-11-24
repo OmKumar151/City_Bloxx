@@ -46,7 +46,6 @@ public class ResetPanelUI : MonoBehaviour
             resetPanel.SetActive(true);
         }
 
-        Debug.Log("Reset confirmation panel opened.");
     }
 
     // =========================================================
@@ -65,7 +64,6 @@ public class ResetPanelUI : MonoBehaviour
 
         resetPanel.SetActive(false);
 
-        Debug.Log("Reset cancelled.");
     }
 
     // =========================================================
@@ -92,6 +90,5 @@ public class ResetPanelUI : MonoBehaviour
             resetPanel.SetActive(false);
         }
 
-        Debug.Log("Reset confirmed. Map returned to state 0.");
     }
 }

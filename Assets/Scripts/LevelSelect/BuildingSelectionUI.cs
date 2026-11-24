@@ -106,10 +106,6 @@ public class BuildingSelectionUI : MonoBehaviour
 
         SetSelectedBuildingVisualOnly(BlueBuildingIndex);
 
-        Debug.Log(
-            "BuildingSelectionUI: Selection returned to Blue. " +
-            "Placement mode was not started."
-        );
     }
 
     private bool IsValidBuildingIndex(int buildingIndex)

@@ -12,25 +12,20 @@ public class GridCell : MonoBehaviour
         Yellow
     }
 
-
     [Header("Grid Position")]
     [SerializeField] private int x;
     [SerializeField] private int y;
 
-
     [Header("Selection")]
     [SerializeField] private GameObject highlight;
-
 
     [Header("Building")]
     [SerializeField] private GameObject buildingHolder;
     [SerializeField] private Image buildingImage;
 
-
     [Header("Placement Glow")]
     [SerializeField]
     private float defaultGlowPadding = 6f;
-
 
     private Image highlightImage;
 
@@ -38,13 +33,11 @@ public class GridCell : MonoBehaviour
 
     private RectTransform cellRectTransform;
 
-
     private static Sprite glowSprite;
     private static Texture2D glowTexture;
 
     private static Sprite cursorSprite;
     private static Texture2D cursorTexture;
-
 
     private Image placementCursorImage;
     private Image placementPreviewImage;
@@ -52,18 +45,15 @@ public class GridCell : MonoBehaviour
     private RectTransform placementCursorRectTransform;
     private RectTransform placementPreviewRectTransform;
 
-
     public int X => x;
 
     public int Y => y;
-
 
     public bool IsOccupied
     {
         get;
         private set;
     }
-
 
     public BuildingType CurrentBuilding
     {
@@ -72,13 +62,11 @@ public class GridCell : MonoBehaviour
     } =
         BuildingType.None;
 
-
     public int BuildingPopulation
     {
         get;
         private set;
     }
-
 
     // =========================================================
     // BUILDING SCORES
@@ -115,7 +103,6 @@ public class GridCell : MonoBehaviour
         }
     }
 
-
     // =========================================================
     // UNITY
     // =========================================================
@@ -136,7 +123,6 @@ public class GridCell : MonoBehaviour
         ClearBuilding();
     }
 
-
     // =========================================================
     // HIGHLIGHT SETUP
     // =========================================================
@@ -148,7 +134,6 @@ public class GridCell : MonoBehaviour
             return;
         }
 
-
         highlightImage =
             highlight.GetComponent<Image>();
 
@@ -158,7 +143,6 @@ public class GridCell : MonoBehaviour
                 highlight.AddComponent<Image>();
         }
 
-
         highlightRectTransform =
             highlight.GetComponent<RectTransform>();
 
@@ -166,7 +150,6 @@ public class GridCell : MonoBehaviour
         {
             return;
         }
-
 
         // -----------------------------------------------------
         // GLOW SPRITE
@@ -184,7 +167,6 @@ public class GridCell : MonoBehaviour
         highlightImage.raycastTarget =
             false;
 
-
         // -----------------------------------------------------
         // INITIAL SIZE
         // -----------------------------------------------------
@@ -197,7 +179,6 @@ public class GridCell : MonoBehaviour
         Vector2 cellSize =
             GetCellSize();
 
-
         highlightRectTransform.sizeDelta =
             cellSize +
             new Vector2(
@@ -205,14 +186,12 @@ public class GridCell : MonoBehaviour
                 defaultGlowPadding
             );
 
-
         // -----------------------------------------------------
         // GLOW MUST BE BEHIND THE CELL
         // -----------------------------------------------------
 
         highlight.transform.SetAsFirstSibling();
     }
-
 
     // =========================================================
     // GET ACTUAL CELL SIZE
@@ -226,7 +205,6 @@ public class GridCell : MonoBehaviour
                 GetComponent<RectTransform>();
         }
 
-
         if (cellRectTransform == null)
         {
             return new Vector2(
@@ -235,10 +213,8 @@ public class GridCell : MonoBehaviour
             );
         }
 
-
         Vector2 size =
             cellRectTransform.rect.size;
-
 
         // Safety fallback in case the RectTransform
         // has not calculated its size yet.
@@ -249,22 +225,18 @@ public class GridCell : MonoBehaviour
                 cellRectTransform.sizeDelta;
         }
 
-
         if (size.x <= 0f)
         {
             size.x = 50f;
         }
-
 
         if (size.y <= 0f)
         {
             size.y = 50f;
         }
 
-
         return size;
     }
-
 
     // =========================================================
     // SQUARE GLOW / HALO
@@ -290,9 +262,7 @@ public class GridCell : MonoBehaviour
             return glowSprite;
         }
 
-
         const int textureSize = 128;
-
 
         glowTexture =
             new Texture2D(
@@ -302,18 +272,14 @@ public class GridCell : MonoBehaviour
                 false
             );
 
-
         glowTexture.name =
             "GridCell_SquarePlacementGlow";
-
 
         glowTexture.wrapMode =
             TextureWrapMode.Clamp;
 
-
         glowTexture.filterMode =
             FilterMode.Bilinear;
-
 
         Color[] pixels =
             new Color[
@@ -321,15 +287,12 @@ public class GridCell : MonoBehaviour
                 textureSize
             ];
 
-
         float center =
             (textureSize - 1) *
             0.5f;
 
-
         float halfSize =
             center;
-
 
         // -----------------------------------------------------
         // GLOW PROFILE
@@ -349,7 +312,6 @@ public class GridCell : MonoBehaviour
 
         const float outerEdge = 1.0f;
 
-
         for (int py = 0;
              py < textureSize;
              py++)
@@ -364,13 +326,11 @@ public class GridCell : MonoBehaviour
                         halfSize
                     );
 
-
                 float normalizedY =
                     Mathf.Abs(
                         (py - center) /
                         halfSize
                     );
-
 
                 float squareDistance =
                     Mathf.Max(
@@ -378,10 +338,8 @@ public class GridCell : MonoBehaviour
                         normalizedY
                     );
 
-
                 float alpha =
                     0f;
-
 
                 // -------------------------------------------------
                 // TRANSPARENT CENTER
@@ -391,7 +349,6 @@ public class GridCell : MonoBehaviour
                 {
                     alpha = 0f;
                 }
-
 
                 // -------------------------------------------------
                 // SOFT INNER GLOW
@@ -406,7 +363,6 @@ public class GridCell : MonoBehaviour
                             squareDistance
                         );
 
-
                     alpha =
                         Mathf.SmoothStep(
                             0f,
@@ -414,7 +370,6 @@ public class GridCell : MonoBehaviour
                             t
                         );
                 }
-
 
                 // -------------------------------------------------
                 // BRIGHT EDGE
@@ -424,7 +379,6 @@ public class GridCell : MonoBehaviour
                 {
                     alpha = 1f;
                 }
-
 
                 // -------------------------------------------------
                 // SOFT OUTER FADE
@@ -439,7 +393,6 @@ public class GridCell : MonoBehaviour
                             squareDistance
                         );
 
-
                     alpha =
                         Mathf.SmoothStep(
                             1f,
@@ -447,7 +400,6 @@ public class GridCell : MonoBehaviour
                             t
                         );
                 }
-
 
                 // -------------------------------------------------
                 // OUTSIDE
@@ -457,7 +409,6 @@ public class GridCell : MonoBehaviour
                 {
                     alpha = 0f;
                 }
-
 
                 pixels[
                     py * textureSize +
@@ -472,13 +423,11 @@ public class GridCell : MonoBehaviour
             }
         }
 
-
         glowTexture.SetPixels(
             pixels
         );
 
         glowTexture.Apply();
-
 
         glowSprite =
             Sprite.Create(
@@ -496,14 +445,11 @@ public class GridCell : MonoBehaviour
                 100f
             );
 
-
         glowSprite.name =
             "GridCell_SquarePlacementGlow";
 
-
         return glowSprite;
     }
-
 
     // =========================================================
     // PLACEMENT INDICATOR SETUP
@@ -524,36 +470,28 @@ public class GridCell : MonoBehaviour
                     typeof(Image)
                 );
 
-
             cursorObject.transform.SetParent(
                 transform,
                 false
             );
 
-
             placementCursorImage =
                 cursorObject.GetComponent<Image>();
-
 
             placementCursorRectTransform =
                 cursorObject.GetComponent<RectTransform>();
 
-
             placementCursorImage.sprite =
                 GetCursorSprite();
-
 
             placementCursorImage.type =
                 Image.Type.Simple;
 
-
             placementCursorImage.preserveAspect =
                 false;
 
-
             placementCursorImage.raycastTarget =
                 false;
-
 
             placementCursorRectTransform.anchorMin =
                 new Vector2(
@@ -561,13 +499,11 @@ public class GridCell : MonoBehaviour
                     0.5f
                 );
 
-
             placementCursorRectTransform.anchorMax =
                 new Vector2(
                     0.5f,
                     0.5f
                 );
-
 
             placementCursorRectTransform.pivot =
                 new Vector2(
@@ -575,11 +511,9 @@ public class GridCell : MonoBehaviour
                     0.5f
                 );
 
-
             placementCursorRectTransform.anchoredPosition =
                 Vector2.zero;
         }
-
 
         // -----------------------------------------------------
         // BUILDING PREVIEW
@@ -594,32 +528,25 @@ public class GridCell : MonoBehaviour
                     typeof(Image)
                 );
 
-
             previewObject.transform.SetParent(
                 transform,
                 false
             );
 
-
             placementPreviewImage =
                 previewObject.GetComponent<Image>();
-
 
             placementPreviewRectTransform =
                 previewObject.GetComponent<RectTransform>();
 
-
             placementPreviewImage.type =
                 Image.Type.Simple;
-
 
             placementPreviewImage.preserveAspect =
                 true;
 
-
             placementPreviewImage.raycastTarget =
                 false;
-
 
             placementPreviewRectTransform.anchorMin =
                 new Vector2(
@@ -627,13 +554,11 @@ public class GridCell : MonoBehaviour
                     0.5f
                 );
 
-
             placementPreviewRectTransform.anchorMax =
                 new Vector2(
                     0.5f,
                     0.5f
                 );
-
 
             placementPreviewRectTransform.pivot =
                 new Vector2(
@@ -641,17 +566,14 @@ public class GridCell : MonoBehaviour
                     0.5f
                 );
 
-
             placementPreviewRectTransform.anchoredPosition =
                 Vector2.zero;
         }
-
 
         UpdatePlacementIndicatorOrder();
 
         HidePlacementIndicator();
     }
-
 
     // =========================================================
     // UI ORDER
@@ -668,7 +590,6 @@ public class GridCell : MonoBehaviour
             highlight.transform.SetAsFirstSibling();
         }
 
-
         // -----------------------------------------------------
         // CURSOR
         // -----------------------------------------------------
@@ -677,7 +598,6 @@ public class GridCell : MonoBehaviour
         {
             placementCursorImage.transform.SetAsLastSibling();
         }
-
 
         // -----------------------------------------------------
         // BUILDING PREVIEW
@@ -688,7 +608,6 @@ public class GridCell : MonoBehaviour
             placementPreviewImage.transform.SetAsLastSibling();
         }
     }
-
 
     // =========================================================
     // CURSOR SPRITE
@@ -701,11 +620,9 @@ public class GridCell : MonoBehaviour
             return cursorSprite;
         }
 
-
         const int textureSize = 64;
 
         const int borderSize = 4;
-
 
         cursorTexture =
             new Texture2D(
@@ -715,25 +632,20 @@ public class GridCell : MonoBehaviour
                 false
             );
 
-
         cursorTexture.name =
             "GridCell_PlacementCursor";
-
 
         cursorTexture.wrapMode =
             TextureWrapMode.Clamp;
 
-
         cursorTexture.filterMode =
             FilterMode.Bilinear;
-
 
         Color[] pixels =
             new Color[
                 textureSize *
                 textureSize
             ];
-
 
         for (int y = 0;
              y < textureSize;
@@ -749,7 +661,6 @@ public class GridCell : MonoBehaviour
                     y < borderSize ||
                     y >= textureSize - borderSize;
 
-
                 pixels[
                     y * textureSize +
                     x
@@ -760,13 +671,11 @@ public class GridCell : MonoBehaviour
             }
         }
 
-
         cursorTexture.SetPixels(
             pixels
         );
 
         cursorTexture.Apply();
-
 
         cursorSprite =
             Sprite.Create(
@@ -784,14 +693,11 @@ public class GridCell : MonoBehaviour
                 100f
             );
 
-
         cursorSprite.name =
             "GridCell_PlacementCursor";
 
-
         return cursorSprite;
     }
-
 
     // =========================================================
     // PLACEMENT INDICATOR
@@ -806,13 +712,11 @@ public class GridCell : MonoBehaviour
     {
         PreparePlacementIndicator();
 
-
         if (!visible)
         {
             HidePlacementIndicator();
             return;
         }
-
 
         // -----------------------------------------------------
         // CURSOR
@@ -827,7 +731,6 @@ public class GridCell : MonoBehaviour
                 color;
         }
 
-
         if (placementCursorRectTransform != null)
         {
             placementCursorRectTransform.sizeDelta =
@@ -836,7 +739,6 @@ public class GridCell : MonoBehaviour
                     cursorSize
                 );
         }
-
 
         // -----------------------------------------------------
         // BUILDING PREVIEW
@@ -847,25 +749,20 @@ public class GridCell : MonoBehaviour
             placementPreviewImage.sprite =
                 buildingSprite;
 
-
             placementPreviewImage.enabled =
                 buildingSprite != null;
 
-
             Color previewColor =
                 Color.white;
-
 
             previewColor.a =
                 Mathf.Clamp01(
                     previewAlpha
                 );
 
-
             placementPreviewImage.color =
                 previewColor;
         }
-
 
         if (placementPreviewRectTransform != null)
         {
@@ -876,10 +773,8 @@ public class GridCell : MonoBehaviour
                 );
         }
 
-
         UpdatePlacementIndicatorOrder();
     }
-
 
     public void HidePlacementIndicator()
     {
@@ -888,7 +783,6 @@ public class GridCell : MonoBehaviour
             placementCursorImage.enabled =
                 false;
         }
-
 
         if (placementPreviewImage != null)
         {
@@ -899,7 +793,6 @@ public class GridCell : MonoBehaviour
                 null;
         }
     }
-
 
     // =========================================================
     // NORMAL HIGHLIGHT
@@ -913,17 +806,14 @@ public class GridCell : MonoBehaviour
             return;
         }
 
-
         if (selected)
         {
             PrepareHighlight();
         }
 
-
         highlight.SetActive(
             selected
         );
-
 
         if (selected &&
             highlightImage != null)
@@ -937,7 +827,6 @@ public class GridCell : MonoBehaviour
                 );
         }
     }
-
 
     // =========================================================
     // PLACEMENT GLOW
@@ -972,9 +861,7 @@ public class GridCell : MonoBehaviour
             return;
         }
 
-
         PrepareHighlight();
-
 
         // -----------------------------------------------------
         // TURN GLOW OFF
@@ -984,13 +871,11 @@ public class GridCell : MonoBehaviour
             selected
         );
 
-
         if (!selected ||
             highlightImage == null)
         {
             return;
         }
-
 
         // -----------------------------------------------------
         // GET ACTUAL GRID CELL SIZE
@@ -998,7 +883,6 @@ public class GridCell : MonoBehaviour
 
         Vector2 cellSize =
             GetCellSize();
-
 
         // -----------------------------------------------------
         // ADD ONLY A SMALL AMOUNT AROUND THE CELL
@@ -1010,7 +894,6 @@ public class GridCell : MonoBehaviour
                 glowPadding
             );
 
-
         highlightRectTransform.sizeDelta =
             cellSize +
             new Vector2(
@@ -1018,13 +901,11 @@ public class GridCell : MonoBehaviour
                 padding
             );
 
-
         // -----------------------------------------------------
         // KEEP GLOW DIRECTLY BEHIND CELL
         // -----------------------------------------------------
 
         highlight.transform.SetAsFirstSibling();
-
 
         // -----------------------------------------------------
         // APPLY COLOUR + INTENSITY
@@ -1033,18 +914,15 @@ public class GridCell : MonoBehaviour
         Color glowColor =
             color;
 
-
         glowColor.a =
             Mathf.Clamp01(
                 glowColor.a *
                 intensity
             );
 
-
         highlightImage.color =
             glowColor;
     }
-
 
     // =========================================================
     // BUILDING
@@ -1066,7 +944,6 @@ public class GridCell : MonoBehaviour
             return;
         }
 
-
         if (buildingImage == null)
         {
             Debug.LogWarning(
@@ -1077,7 +954,6 @@ public class GridCell : MonoBehaviour
 
             return;
         }
-
 
         if (buildingSprite == null)
         {
@@ -1090,44 +966,26 @@ public class GridCell : MonoBehaviour
             return;
         }
 
-
         buildingImage.sprite =
             buildingSprite;
 
-
         buildingImage.enabled =
             true;
-
 
         buildingHolder.SetActive(
             true
         );
 
-
         CurrentBuilding =
             buildingType;
-
 
         BuildingPopulation =
             population;
 
-
         IsOccupied =
             true;
 
-
-        Debug.Log(
-            "Building placed on Cell (" +
-            x +
-            ", " +
-            y +
-            "): " +
-            buildingType +
-            " | Population: " +
-            population
-        );
     }
-
 
     // =========================================================
     // CLEAR BUILDING
@@ -1137,14 +995,12 @@ public class GridCell : MonoBehaviour
     {
         HidePlacementIndicator();
 
-
         if (buildingHolder != null)
         {
             buildingHolder.SetActive(
                 false
             );
         }
-
 
         if (buildingImage != null)
         {
@@ -1155,14 +1011,11 @@ public class GridCell : MonoBehaviour
                 false;
         }
 
-
         IsOccupied =
             false;
 
-
         CurrentBuilding =
             BuildingType.None;
-
 
         BuildingPopulation =
             0;

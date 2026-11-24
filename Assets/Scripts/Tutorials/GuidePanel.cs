@@ -113,7 +113,6 @@ public class GuidePanel : MonoBehaviour
         GameObject eventSystem = new GameObject(
             "EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
-        Debug.Log("GuidePanel: Added an EventSystem so the guide can be used.", eventSystem);
     }
 
     // =========================================================

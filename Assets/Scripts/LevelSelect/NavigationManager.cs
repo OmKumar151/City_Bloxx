@@ -91,10 +91,6 @@ public class NavigationManager : MonoBehaviour
     {
         ResetNavigationToBlue();
 
-        Debug.Log(
-            "NavigationManager: Navigation reset after switching city."
-        );
-
         // The new city's map is loaded during the switch; if a building
         // was earned for this city, go straight to placing it.
         StartCoroutine(OpenPendingPlacementNextFrame());
@@ -109,8 +105,6 @@ public class NavigationManager : MonoBehaviour
 
         if (infoPanel != null)
             infoPanel.SetIdleHint(GetNextStepHint);
-
-        Debug.Log("Navigation started. Building Selection Mode.");
 
         StartCoroutine(OpenPendingPlacementNextFrame());
     }
@@ -165,10 +159,6 @@ public class NavigationManager : MonoBehaviour
 
         if (currentMode == NavigationMode.BoardPlacement)
         {
-            Debug.Log(
-                "NavigationManager: Placing earned " +
-                GetBuildingName(buildingIndex) + " building."
-            );
 
             if (infoPanel != null)
                 infoPanel.ShowPlacingBuilding(buildingIndex, PendingPlacementStore.Score);
@@ -243,9 +233,6 @@ public class NavigationManager : MonoBehaviour
         if (infoPanel != null)
             infoPanel.RefreshIdleHint();
 
-        Debug.Log(
-            "NavigationManager: Reset to Blue and Building Selection Mode."
-        );
     }
 
     // =========================================================
@@ -531,12 +518,6 @@ public class NavigationManager : MonoBehaviour
             configuration,
             specialRoofUnlocked,
             PopulationBonusStore.ActiveCityId
-        );
-
-        Debug.Log(
-            "NavigationManager: Launching " + configuration.buildingId +
-            " | Floors: " + configuration.floorsToComplete +
-            " | Special roof unlocked: " + specialRoofUnlocked
         );
 
         SaveMap();
@@ -844,11 +825,6 @@ public class NavigationManager : MonoBehaviour
 
         PendingPlacementStore.Clear();
         SaveMap();
-
-        Debug.Log(
-            "NavigationManager: Earned " + GetBuildingName(selectedBuilding) +
-            " building discarded with its " + lostScore + " population."
-        );
 
         return true;
     }

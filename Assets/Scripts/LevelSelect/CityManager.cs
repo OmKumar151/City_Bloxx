@@ -289,9 +289,6 @@ public class CityManager : MonoBehaviour
         SaveStore.SetInt(key, 1);
         SaveStore.Save();
 
-        Debug.Log("CityManager: Unlocked city '" + cities[index].displayName +
-                  "' (ID: " + GetCityId(index) + ").", this);
-
         // Only new unlocks get here (already-unlocked cities return above).
         InfoPanelUI infoPanel = FindAnyObjectByType<InfoPanelUI>();
 
@@ -669,9 +666,6 @@ public class CityManager : MonoBehaviour
 
         CheckPopulationUnlocks();
         UpdateNavigationButtonStates();
-
-        Debug.Log("CityManager: Active city is '" + destination.displayName +
-                  "' (ID: " + ActiveCityId + ").", this);
 
         FinishSwitchRoutine();
     }

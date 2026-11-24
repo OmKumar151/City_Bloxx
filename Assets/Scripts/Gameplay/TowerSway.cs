@@ -62,9 +62,6 @@ public class TowerSway : MonoBehaviour
     [Tooltip("How quickly the sway grows or shrinks to its new size.")]
     [Min(0.01f)] public float responseSpeed = 3f;
 
-    [Header("Debugging")]
-    public bool logChanges = true;
-
     [Header("Runtime (read only)")]
     [SerializeField, Range(0f, 1f)] private float instability;
     [SerializeField, Range(0f, 1f)] private float currentSway;
@@ -113,19 +110,9 @@ public class TowerSway : MonoBehaviour
         if (floor <= swayStartFloor)
             return;
 
-        float previous = instability;
         float change = GetInstabilityChange(accuracy, isPerfect);
 
         instability = Mathf.Clamp01(instability + change);
-
-        if (logChanges)
-        {
-            Debug.Log(
-                $"TowerSway: Floor {floor} landed {(isPerfect ? "PERFECT" : "off-centre")} " +
-                $"(accuracy {accuracy:F2}). Instability {previous:F2} -> {instability:F2}.",
-                this
-            );
-        }
     }
 
     // Makes the landed block part of the tower so it leans with the rest.

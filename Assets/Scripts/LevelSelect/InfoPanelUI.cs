@@ -159,8 +159,6 @@ public class InfoPanelUI : MonoBehaviour
             }
         }
 
-        Debug.Log("Info Panel: " + message);
-
         // Automatically hide the message after the duration.
         hideCoroutine = StartCoroutine(HideAfterDelay());
     }

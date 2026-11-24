@@ -32,10 +32,6 @@ public class PopulationManager : MonoBehaviour
 
         TotalPopulation += amount;
 
-        Debug.Log(
-            "Population added: " + amount +
-            " | Total Population: " + TotalPopulation
-        );
     }
 
     public void RemovePopulation(int amount)
@@ -53,10 +49,6 @@ public class PopulationManager : MonoBehaviour
         if (TotalPopulation < 0)
             TotalPopulation = 0;
 
-        Debug.Log(
-            "Population removed: " + amount +
-            " | Total Population: " + TotalPopulation
-        );
     }
 
     public void SetPopulation(int amount)
@@ -66,12 +58,10 @@ public class PopulationManager : MonoBehaviour
 
         TotalPopulation = amount;
 
-        Debug.Log("Population set to: " + TotalPopulation);
     }
 
     public void ResetPopulation()
     {
         TotalPopulation = 0;
-        Debug.Log("Population reset.");
     }
 }

@@ -46,10 +46,6 @@ public static class PopulationBonusStore
         SaveStore.SetInt(key, (int)Mathf.Min(total, int.MaxValue));
         SaveStore.Save();
 
-        Debug.Log(
-            "PopulationBonusStore: +" + amount + " population for city '" +
-            Normalize(cityId) + "'. Bonus total: " + Get(cityId)
-        );
     }
 
     public static void Subtract(string cityId, int amount)
@@ -63,10 +59,6 @@ public static class PopulationBonusStore
         SaveStore.SetInt(key, total);
         SaveStore.Save();
 
-        Debug.Log(
-            "PopulationBonusStore: -" + amount + " population for city '" +
-            Normalize(cityId) + "'. Bonus total: " + total
-        );
     }
 
     public static void Clear(string cityId)

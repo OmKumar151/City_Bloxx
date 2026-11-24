@@ -114,10 +114,6 @@ public class MapSaveManager : MonoBehaviour
         SaveStore.SetString(ActiveSaveKey, JsonUtility.ToJson(data));
         SaveStore.Save();
 
-        Debug.Log(
-            "MapSaveManager: Saved city '" + GetCurrentCityId() +
-            "' with " + data.buildings.Count + " buildings."
-        );
     }
 
     // =========================================================
@@ -152,11 +148,6 @@ public class MapSaveManager : MonoBehaviour
         if (!PlayerPrefs.HasKey(key))
         {
             ClearGridAndResetPopulation();
-
-            Debug.Log(
-                "MapSaveManager: No saved map for city '" +
-                GetCurrentCityId() + "'. Started empty."
-            );
 
             return;
         }
@@ -232,12 +223,6 @@ public class MapSaveManager : MonoBehaviour
 
         RefreshProgression();
 
-        Debug.Log(
-            "MapSaveManager: Loaded city '" + GetCurrentCityId() +
-            "' with " +
-            (data.buildings == null ? 0 : data.buildings.Count) +
-            " saved building entries."
-        );
     }
 
     // =========================================================
@@ -279,10 +264,6 @@ public class MapSaveManager : MonoBehaviour
         if (infoPanel != null)
             infoPanel.ShowMapReset();
 
-        Debug.Log(
-            "MapSaveManager: Reset city '" + GetCurrentCityId() +
-            "'. The map was saved empty."
-        );
     }
 
     private void ClearGridAndResetPopulation()
@@ -313,10 +294,6 @@ public class MapSaveManager : MonoBehaviour
         SaveStore.DeleteKey(ActiveSaveKey);
         SaveStore.Save();
 
-        Debug.Log(
-            "MapSaveManager: Deleted save for city '" +
-            GetCurrentCityId() + "'."
-        );
     }
 
     public bool HasSavedMap()

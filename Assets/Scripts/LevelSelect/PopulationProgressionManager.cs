@@ -243,10 +243,6 @@ public class PopulationProgressionManager : MonoBehaviour
                 checkpoint.unlocked = true;
                 OnRewardUnlocked?.Invoke(reward);
 
-                Debug.Log(
-                    "PopulationProgressionManager: Unlocked " +
-                    reward + " at population " + population
-                );
             }
         }
     }
@@ -264,10 +260,6 @@ public class PopulationProgressionManager : MonoBehaviour
 
         OnProgressionReset?.Invoke();
 
-        Debug.Log(
-            "PopulationProgressionManager: Progression reset. " +
-            "Only the Blue building remains unlocked."
-        );
     }
 
     public int GetNextCheckpointPopulation()

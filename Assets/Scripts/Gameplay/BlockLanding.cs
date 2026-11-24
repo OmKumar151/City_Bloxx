@@ -16,9 +16,6 @@ public class BlockLanding : MonoBehaviour
     [Min(0.1f)] public float stationaryMissTimeout = 0.5f;
     [Min(0f)] public float stationaryVelocityThreshold = 0.15f;
 
-    [Header("Debugging")]
-    public bool enableDebugLogs = true;
-
     private bool resolved;
     private bool hasBeenReleased;
 
@@ -45,7 +42,6 @@ public class BlockLanding : MonoBehaviour
         stationaryTimer = 0f;
         hasUnresolvedContact = false;
 
-        Log("Block released. Waiting for a valid landing.");
     }
 
     private void Update()
@@ -108,7 +104,6 @@ public class BlockLanding : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        LogCollision(collision, "Enter");
         TryResolveLanding(collision);
     }
 
@@ -200,13 +195,6 @@ public class BlockLanding : MonoBehaviour
             }
         }
 
-        Log(
-            $"Landing check: ContactNearTop={contactNearTop}, " +
-            $"CorrectHeight={correctHeight}, " +
-            $"Overlap={overlapWidth:F3}, " +
-            $"RequiredOverlap={minOverlap:F3}"
-        );
-
         if (contactNearTop &&
             correctHeight &&
             overlapWidth >= minOverlap)
@@ -254,18 +242,6 @@ public class BlockLanding : MonoBehaviour
             position.x += targetBounds.center.x - blockBounds.center.x;
 
             transform.position = position;
-
-            Log(
-                $"Auto-centering applied. Offset={horizontalOffset:F3}, " +
-                $"Threshold={allowedCenteringDistance:F3}"
-            );
-        }
-        else
-        {
-            Log(
-                $"Auto-centering skipped. Offset={horizontalOffset:F3}, " +
-                $"Threshold={allowedCenteringDistance:F3}"
-            );
         }
 
         // Physics bounds don't update when the transform is moved in code,
@@ -311,13 +287,6 @@ public class BlockLanding : MonoBehaviour
 
         if (tier != null)
             tier.ApplyTierForFloor(manager.floorsBuilt + 1);
-
-        Log(
-            $"LANDING SUCCESS. Accuracy={accuracy:F2}, " +
-            $"HorizontalOffset={horizontalOffset:F3}, " +
-            $"Centered={shouldAutoCenter}, " +
-            $"PerfectThreshold={manager.perfectAccuracyThreshold:F2}"
-        );
 
         manager.AddFloor(accuracy);
 
@@ -376,7 +345,6 @@ public class BlockLanding : MonoBehaviour
         hasUnresolvedContact = true;
         unresolvedContactTimer = 0f;
 
-        Log("Contact detected, but it has not qualified as a valid landing.");
     }
 
     private bool IsCollisionWithTarget(
@@ -414,8 +382,6 @@ public class BlockLanding : MonoBehaviour
 
         resolved = true;
 
-        Log($"BLOCK MISSED: {reason}");
-
         gameObject.tag = "Untagged";
 
         if (blockCollider != null)
@@ -448,23 +414,5 @@ public class BlockLanding : MonoBehaviour
 
         if (CraneController.Instance != null)
             CraneController.Instance.PrepareNextBlock();
-    }
-
-    private void LogCollision(Collision2D collision, string phase)
-    {
-        if (!enableDebugLogs || collision == null)
-            return;
-
-        Log(
-            $"Collision {phase} with '{collision.gameObject.name}'. " +
-            $"Released={hasBeenReleased}, " +
-            $"Target={GameManager.Instance?.LastPlacedBlock?.name ?? "NULL"}"
-        );
-    }
-
-    private void Log(string message)
-    {
-        if (enableDebugLogs)
-            Debug.Log($"[BlockLanding: {gameObject.name}] {message}", this);
     }
 }

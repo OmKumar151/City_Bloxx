@@ -136,11 +136,6 @@ public class QuickPlayManager : MonoBehaviour
 
         GameplaySelection.SelectQuickPlayBuilding(config);
 
-        Debug.Log(
-            "QuickPlayManager: Endless " + config.displayName + ".",
-            this
-        );
-
         // Reload so every system starts with the chosen building.
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);

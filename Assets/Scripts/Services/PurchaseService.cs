@@ -38,6 +38,12 @@ public class PurchaseService : MonoBehaviour
 
     private const string OwnedPrefix = "CityBloxx_Purchased_";
 
+#if UNITY_IOS
+    private const string StoreName = "the App Store";
+#else
+    private const string StoreName = "Google Play";
+#endif
+
     /// <summary>Raised when a product becomes owned (bought or restored).</summary>
     public static event Action<string> OnProductOwned;
 
@@ -203,7 +209,7 @@ public class PurchaseService : MonoBehaviour
 #if CITYBLOXX_REAL_STORE
         if (!connected || store == null)
         {
-            onFailed?.Invoke("Can't reach Google Play. Check your connection and try again.");
+            onFailed?.Invoke($"Can't reach {StoreName}. Check your connection and try again.");
             Connect();
             return;
         }
@@ -223,8 +229,6 @@ public class PurchaseService : MonoBehaviour
 
         store.PurchaseProduct(product);
 #elif UNITY_EDITOR
-        Debug.Log("PurchaseService: Simulated purchase of '" + productId +
-                  "' (Editor test purchase, no money taken).");
         Grant(productId);
         onSucceeded?.Invoke();
 #else
@@ -245,7 +249,6 @@ public class PurchaseService : MonoBehaviour
         SaveStore.SetInt(key, 1);
         SaveStore.Save();
 
-        Debug.Log("PurchaseService: Granted '" + productId + "'.");
         OnProductOwned?.Invoke(productId.Trim());
     }
 
@@ -417,7 +420,7 @@ public class PurchaseService : MonoBehaviour
         Debug.LogWarning("PurchaseService: Store disconnected: " + description);
 
         if (buyingProductId != null)
-            FinishBuy(buyingProductId, false, "Lost connection to Google Play. Try again.");
+            FinishBuy(buyingProductId, false, $"Lost connection to {StoreName}. Try again.");
 
         OnStoreUpdated?.Invoke();
     }

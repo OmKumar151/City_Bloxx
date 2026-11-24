@@ -294,11 +294,6 @@ public class CraneController : MonoBehaviour
 
         ConfigureRope();
 
-        Debug.Log(
-            $"CraneController: Released '{releasedBlock.name}'. " +
-            "Block rotation reset to zero.",
-            releasedBlock
-        );
     }
 
     // A block can drop only once it has been swinging for a moment and
@@ -456,12 +451,6 @@ public class CraneController : MonoBehaviour
             StartBlockSwing();
         }
 
-        Debug.Log(
-            $"CraneController: Spawned '{block.name}'. " +
-            $"Transform Z: {block.transform.eulerAngles.z}, " +
-            $"Rigidbody2D rotation: {rb.rotation}.",
-            block
-        );
     }
 
     private IEnumerator StartInitialSwingAfterDelay()

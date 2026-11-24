@@ -29,10 +29,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Log(
-            "SettingsPanelUI Awake | AudioManager.Instance = " +
-            (AudioManager.Instance != null)
-        );
 
         if (musicSlider != null)
             musicSlider.onValueChanged.AddListener(
@@ -59,11 +55,6 @@ public class SettingsPanelUI : MonoBehaviour
     {
         if (settingsPanel != null)
             settingsPanel.SetActive(false);
-
-        Debug.Log(
-            "SettingsPanelUI Start | AudioManager.Instance = " +
-            (AudioManager.Instance != null)
-        );
 
         LoadCurrentAudioSettings();
     }
@@ -93,9 +84,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     public void OpenSettings()
     {
-        Debug.Log(
-            "SettingsPanelUI: OpenSettings called."
-        );
 
         if (settingsPanel == null)
         {
@@ -106,11 +94,6 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
-        Debug.Log(
-            "AudioManager.Instance exists = " +
-            (AudioManager.Instance != null)
-        );
-
         PlayButtonSound();
 
         LoadCurrentAudioSettings();
@@ -120,9 +103,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     public void CloseSettings()
     {
-        Debug.Log(
-            "SettingsPanelUI: CloseSettings called."
-        );
 
         if (settingsPanel == null)
             return;
@@ -134,10 +114,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     public void OnMusicSliderChanged(float value)
     {
-        Debug.Log(
-            "SettingsPanelUI: Music slider changed to " +
-            value
-        );
 
         if (AudioManager.Instance == null)
         {
@@ -154,10 +130,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     public void OnSFXSliderChanged(float value)
     {
-        Debug.Log(
-            "SettingsPanelUI: SFX slider changed to " +
-            value
-        );
 
         if (AudioManager.Instance == null)
         {
@@ -174,10 +146,6 @@ public class SettingsPanelUI : MonoBehaviour
 
     public void OnMuteToggleChanged(bool value)
     {
-        Debug.Log(
-            "SettingsPanelUI: Mute toggle changed to " +
-            value
-        );
 
         if (AudioManager.Instance == null)
         {
@@ -276,16 +244,10 @@ public class SettingsPanelUI : MonoBehaviour
 
         RefreshMutedLook(AudioManager.Instance.IsMuted);
 
-        Debug.Log(
-            "SettingsPanelUI: Current audio settings loaded."
-        );
     }
 
     public void ResetSettings()
     {
-        Debug.Log(
-            "SettingsPanelUI: ResetSettings called."
-        );
 
         if (AudioManager.Instance == null)
         {
