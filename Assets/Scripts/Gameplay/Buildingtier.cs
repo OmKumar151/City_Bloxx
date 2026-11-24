@@ -26,6 +26,10 @@ public class BuildingTier : MonoBehaviour
     private BuildingGameplayConfig configuration;
     private BuildingGameplayConfig.StackInsets insets;
 
+    // Roof choice, locked the first time this block is made the roof.
+    private bool roofChosen;
+    private bool useSpecialRoof;
+
     // World-space edges of the solid wall (sprite outline minus the soft
     // fringe / corner caps). Blocks stack wall-on-wall using these.
     public float SolidTop =>
@@ -172,20 +176,35 @@ public class BuildingTier : MonoBehaviour
         }
         else if (floorNumber >= totalFloors)
         {
-            bool specialRoofAllowed = useSpecialTop;
-
-            // With a selected building, the special roof needs BOTH the
-            // LevelSelect unlock flag and the score threshold. GameManager
-            // re-applies this tier when the building completes, so the
-            // final score (including the roof floor) is what counts.
-            if (configuration != null)
+            // Decided once, when the roof block is first given its sprite
+            // (on the crane hook), so the player sees the special roof
+            // while it hangs. Later calls (e.g. on landing) keep the same
+            // roof even though the roof's own points raise the score.
+            if (!roofChosen)
             {
-                specialRoofAllowed =
-                    manager != null &&
-                    manager.IsSpecialRoofEarned;
+                roofChosen = true;
+                useSpecialRoof = useSpecialTop;
+
+                // With a selected building, the special roof needs BOTH the
+                // LevelSelect unlock flag and the score threshold.
+                if (configuration != null)
+                {
+                    useSpecialRoof =
+                        manager != null &&
+                        manager.IsSpecialRoofEarned;
+                }
+
+                if (useSpecialRoof && specialTopSprite != null)
+                {
+                    Debug.Log(
+                        "BuildingTier: Special roof earned with score " +
+                        (manager != null ? manager.score : 0) + ".",
+                        this
+                    );
+                }
             }
 
-            selectedSprite = specialRoofAllowed && specialTopSprite != null
+            selectedSprite = useSpecialRoof && specialTopSprite != null
                 ? specialTopSprite
                 : topSprite;
         }

@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce7ee5bcdbbf444287e869c7e20cc622, type: 3}
+  m_Name: HapticsConfig
+  m_EditorClassIdentifier: 
+  defaultIntensity: 1
+  blockReleased:
+    androidTap: -1
+    buzzMilliseconds: 25
+    buzzStrength: 140
+    iosKind: 0
+    iosImpactStyle: 0
+    iosIntensity: 0.7
+    iosNotification: 2
+  perfectLanding:
+    androidTap: -1
+    buzzMilliseconds: 40
+    buzzStrength: 200
+    iosKind: 0
+    iosImpactStyle: 3
+    iosIntensity: 1
+    iosNotification: 2
+  offCentreLanding:
+    androidTap: -1
+    buzzMilliseconds: 70
+    buzzStrength: 255
+    iosKind: 0
+    iosImpactStyle: 2
+    iosIntensity: 1
+    iosNotification: 2
+  scaleOffCentreByAccuracy: 1
+  nearCentreBuzzMilliseconds: 40
+  nearCentreBuzzStrength: 170
+  nearCentreIosIntensity: 0.7
+  blockMissed:
+    androidTap: -1
+    buzzMilliseconds: 300
+    buzzStrength: 255
+    iosKind: 1
+    iosImpactStyle: 1
+    iosIntensity: 1
+    iosNotification: 2
+  togglePreview:
+    androidTap: -1
+    buzzMilliseconds: 50
+    buzzStrength: 255
+    iosKind: 0
+    iosImpactStyle: 1
+    iosIntensity: 1
+    iosNotification: 2

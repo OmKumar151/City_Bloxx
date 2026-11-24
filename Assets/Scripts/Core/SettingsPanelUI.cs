@@ -11,9 +11,21 @@ public class SettingsPanelUI : MonoBehaviour
     [SerializeField] private Slider sfxSlider;
     [SerializeField] private Toggle muteToggle;
 
+    [Tooltip("Faded while muted (the Music and SFX rows).")]
+    [SerializeField] private CanvasGroup[] dimWhenMuted;
+
+    [Range(0f, 1f)]
+    [SerializeField] private float mutedAlpha = 0.45f;
+
     [Header("Haptics")]
-    [Tooltip("On = vibration enabled.")]
-    [SerializeField] private Toggle vibrationToggle;
+    [Tooltip("Vibration strength: 0 = off, 1 = full.")]
+    [SerializeField] private Slider vibrationSlider;
+
+    [Tooltip("Shortest gap between test buzzes while dragging the slider.")]
+    [Min(0f)]
+    [SerializeField] private float vibrationPreviewInterval = 0.12f;
+
+    private float lastVibrationPreview = -1f;
 
     private void Awake()
     {
@@ -37,9 +49,9 @@ public class SettingsPanelUI : MonoBehaviour
                 OnMuteToggleChanged
             );
 
-        if (vibrationToggle != null)
-            vibrationToggle.onValueChanged.AddListener(
-                OnVibrationToggleChanged
+        if (vibrationSlider != null)
+            vibrationSlider.onValueChanged.AddListener(
+                OnVibrationSliderChanged
             );
     }
 
@@ -73,9 +85,9 @@ public class SettingsPanelUI : MonoBehaviour
                 OnMuteToggleChanged
             );
 
-        if (vibrationToggle != null)
-            vibrationToggle.onValueChanged.RemoveListener(
-                OnVibrationToggleChanged
+        if (vibrationSlider != null)
+            vibrationSlider.onValueChanged.RemoveListener(
+                OnVibrationSliderChanged
             );
     }
 
@@ -136,6 +148,7 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
+        UnmuteForVolumeChange();
         AudioManager.Instance.SetMusicVolume(value);
     }
 
@@ -155,6 +168,7 @@ public class SettingsPanelUI : MonoBehaviour
             return;
         }
 
+        UnmuteForVolumeChange();
         AudioManager.Instance.SetSFXVolume(value);
     }
 
@@ -175,22 +189,60 @@ public class SettingsPanelUI : MonoBehaviour
         }
 
         AudioManager.Instance.SetMuted(value);
+        RefreshMutedLook(value);
+
+        // Let the player hear that sound is back.
+        if (!value)
+            PlayButtonSound();
     }
 
-    public void OnVibrationToggleChanged(bool value)
+    public void OnVibrationSliderChanged(float value)
     {
-        Haptics.Enabled = value;
+        Haptics.Intensity = value;
 
-        // A short buzz so the player feels it was switched on.
-        if (value)
-            Haptics.BlockLanded(0f, false);
+        // A buzz at the new strength, not on every drag step.
+        float now = Time.unscaledTime;
+
+        if (lastVibrationPreview >= 0f &&
+            now - lastVibrationPreview < vibrationPreviewInterval)
+            return;
+
+        lastVibrationPreview = now;
+        Haptics.Preview();
+    }
+
+    // Moving a volume slider while muted turns sound back on, so the
+    // player hears the change.
+    private void UnmuteForVolumeChange()
+    {
+        if (AudioManager.Instance == null || !AudioManager.Instance.IsMuted)
+            return;
+
+        AudioManager.Instance.SetMuted(false);
+
+        if (muteToggle != null)
+            muteToggle.SetIsOnWithoutNotify(false);
+
+        RefreshMutedLook(false);
+    }
+
+    private void RefreshMutedLook(bool muted)
+    {
+        if (dimWhenMuted == null)
+            return;
+
+        foreach (CanvasGroup group in dimWhenMuted)
+        {
+            if (group != null)
+                group.alpha = muted ? mutedAlpha : 1f;
+        }
     }
 
     private void LoadCurrentAudioSettings()
     {
         // Haptics don't depend on AudioManager, so load them first.
-        if (vibrationToggle != null)
-            vibrationToggle.SetIsOnWithoutNotify(Haptics.Enabled);
+        if (vibrationSlider != null)
+            vibrationSlider.SetValueWithoutNotify(Haptics.Intensity);
 
         if (AudioManager.Instance == null)
         {
@@ -222,6 +274,8 @@ public class SettingsPanelUI : MonoBehaviour
             );
         }
 
+        RefreshMutedLook(AudioManager.Instance.IsMuted);
+
         Debug.Log(
             "SettingsPanelUI: Current audio settings loaded."
         );
@@ -246,7 +300,7 @@ public class SettingsPanelUI : MonoBehaviour
 
         AudioManager.Instance.ResetAudioSettings();
 
-        Haptics.Enabled = true;
+        Haptics.Intensity = Haptics.DefaultIntensity;
 
         LoadCurrentAudioSettings();
     }

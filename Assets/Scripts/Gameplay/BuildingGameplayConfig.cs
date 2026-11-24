@@ -28,7 +28,8 @@ public class BuildingGameplayConfig : ScriptableObject
     public Sprite specialRoofSprite;
 
     [Min(0)]
-    [Tooltip("Gameplay score needed at completion to show the special roof.")]
+    [Tooltip("Score needed when the roof block is hung on the crane for it " +
+             "to be the special roof.")]
     public int specialRoofScoreThreshold = 500;
 
     [Tooltip("LevelSelect reward that unlocks the special roof for this building.")]

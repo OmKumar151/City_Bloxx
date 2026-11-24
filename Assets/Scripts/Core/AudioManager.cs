@@ -33,6 +33,18 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip unlockingSound;
     [SerializeField] private AudioClip windowSwitchSound;
 
+    [Header("Gameplay SFX")]
+    [Tooltip("Block let go from the crane hook.")]
+    [SerializeField] private AudioClip blockDropSound;
+    [Tooltip("Block lands on the tower. Louder the further off-centre.")]
+    [SerializeField] private AudioClip blockLandSound;
+    [Tooltip("Block missed the tower (a life lost).")]
+    [SerializeField] private AudioClip blockMissSound;
+    [Tooltip("Perfect landing chimes, one per step of the perfect streak: " +
+             "element 0 for the first perfect, 1 for two in a row, and so on. " +
+             "Longer streaks keep using the last one.")]
+    [SerializeField] private AudioClip[] perfectStreakSounds;
+
     [Header("Settings")]
     [SerializeField] private float musicFadeDuration = 0.35f;
     [SerializeField] private float defaultMusicVolume = 1f;
@@ -401,6 +413,45 @@ public class AudioManager : MonoBehaviour
     public void PlayWindowSwitch()
     {
         PlaySFX(windowSwitchSound);
+    }
+
+    // =========================================================
+    // GAMEPLAY SFX
+    // =========================================================
+
+    public void PlayBlockDrop()
+    {
+        PlayGameplaySFX(blockDropSound, 0.8f);
+    }
+
+    /// <param name="accuracy">0 = barely on, 1 = dead centre.</param>
+    public void PlayBlockLanded(float accuracy)
+    {
+        PlayGameplaySFX(blockLandSound, Mathf.Lerp(1f, 0.7f, Mathf.Clamp01(accuracy)));
+    }
+
+    /// <param name="streak">Perfects in a row, including this one (1+).</param>
+    public void PlayPerfect(int streak)
+    {
+        if (perfectStreakSounds == null || perfectStreakSounds.Length == 0)
+            return;
+
+        int index = Mathf.Clamp(streak - 1, 0, perfectStreakSounds.Length - 1);
+        PlayGameplaySFX(perfectStreakSounds[index], 1f);
+    }
+
+    public void PlayBlockMiss()
+    {
+        PlayGameplaySFX(blockMissSound, 1f);
+    }
+
+    // Played on every block, so no logging (keeps the phone log quiet).
+    private void PlayGameplaySFX(AudioClip clip, float volumeScale)
+    {
+        if (clip == null || sfxSource == null)
+            return;
+
+        sfxSource.PlayOneShot(clip, volumeScale);
     }
 
     private void PlaySFX(AudioClip clip)

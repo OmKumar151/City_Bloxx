@@ -22,6 +22,10 @@ public class UIManager : MonoBehaviour
     [Header("Floor UI")]
     [SerializeField] private TMP_Text floorText;
 
+    [Header("Perfect Popup")]
+    [Tooltip("\"PERFECT!\" text shown over the tower after a perfect landing.")]
+    [SerializeField] private PerfectPopupUI perfectPopup;
+
     [Header("Game Over (Fail) UI")]
     [SerializeField] private GameObject gameOverPanel;
     [SerializeField] private TMP_Text gameOverText;
@@ -196,10 +200,20 @@ public class UIManager : MonoBehaviour
     }
 
     // Kept for compatibility with any older scripts that call UpdateCombo.
-    // Combo information is intentionally not displayed to the player.
+    // The perfect streak is shown through ShowPerfect instead.
     public void UpdateCombo(int comboCount, int maxCombo, bool wasPerfect)
     {
         // Intentionally empty.
+    }
+
+    /// <summary>
+    /// Pops up "PERFECT!" (with the streak multiplier from the second
+    /// perfect in a row, or the perfect roof bonus).
+    /// </summary>
+    public void ShowPerfect(int streak, int maxStreak, float multiplier, int roofBonus)
+    {
+        if (perfectPopup != null)
+            perfectPopup.Show(streak, maxStreak, multiplier, roofBonus);
     }
 
     public void HideEndPanels()

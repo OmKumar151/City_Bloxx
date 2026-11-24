@@ -319,6 +319,14 @@ public class GameManager : MonoBehaviour
 
         Haptics.BlockLanded(accuracy, isPerfect);
 
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayBlockLanded(accuracy);
+
+            if (isPerfect)
+                AudioManager.Instance.PlayPerfect(comboCount);
+        }
+
         // The roof is special: a perfect one adds a bonus that grows with
         // the building's height.
         bool isRoof = floorsBuilt >= floorsToComplete;
@@ -336,6 +344,10 @@ public class GameManager : MonoBehaviour
                 this
             );
         }
+
+        if (isPerfect && UIManager.Instance != null)
+            UIManager.Instance.ShowPerfect(comboCount, maxCombo, multiplier,
+                isRoof ? PerfectRoofBonus : 0);
 
         RefreshUI();
 
@@ -357,6 +369,9 @@ public class GameManager : MonoBehaviour
             CameraShake.Instance.ShakeForRelease();
 
         Haptics.BlockReleased();
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayBlockDrop();
 
         if (perfectStreakTimer != null)
             perfectStreakTimer.PauseTimer();
@@ -382,6 +397,9 @@ public class GameManager : MonoBehaviour
 
         Haptics.BlockMissed();
 
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayBlockMiss();
+
         ResetPerfectStreak();
 
         RefreshUI();
@@ -400,8 +418,6 @@ public class GameManager : MonoBehaviour
         if (perfectStreakTimer != null)
             perfectStreakTimer.StopTimer();
 
-        RefreshRoofSprite();
-
         if (CraneController.Instance != null)
             CraneController.Instance.StopCrane();
 
@@ -417,35 +433,13 @@ public class GameManager : MonoBehaviour
         if (winPanelDelay > 0f)
             yield return new WaitForSecondsRealtime(winPanelDelay);
 
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayGameWon();
+
         if (UIManager.Instance != null)
             UIManager.Instance.ShowBuildingComplete(score);
 
         Time.timeScale = 0f;
-    }
-
-    // The roof block lands before its floor points are added, so the
-    // roof is re-evaluated here against the final score. If the special
-    // roof is unlocked and the threshold was reached, the roof sprite
-    // is swapped for the special roof sprite.
-    private void RefreshRoofSprite()
-    {
-        if (LastPlacedBlock == null)
-            return;
-
-        BuildingTier roofTier = LastPlacedBlock.GetComponent<BuildingTier>();
-
-        if (roofTier == null)
-            return;
-
-        roofTier.ApplyTierForFloor(floorsToComplete);
-
-        if (IsSpecialRoofEarned)
-        {
-            Debug.Log(
-                "GameManager: Special roof earned with score " + score + ".",
-                this
-            );
-        }
     }
 
     public void GameOver()
@@ -454,6 +448,9 @@ public class GameManager : MonoBehaviour
             return;
 
         isGameOver = true;
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayGameOver();
 
         ResetPerfectStreak();
 

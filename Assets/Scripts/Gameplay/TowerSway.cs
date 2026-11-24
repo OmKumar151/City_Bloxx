@@ -8,9 +8,12 @@ using UnityEngine;
 /// Every landing above Sway Start Floor changes the tower's instability:
 /// non-perfect landings raise it (the further off-centre, the more) and
 /// perfect landings lower it. Instability sets both how far
-/// and how fast the tower sways. Only the top few landed blocks (just
-/// under the hanging block) sway: the highest moves most, the ones under
-/// it less, and everything below stays still.
+/// and how fast the tower sways.
+///
+/// The tower sways as ONE piece: every landed block is parented to a
+/// pivot at the base of the first floor, and the pivot leans left and
+/// right. Blocks never slide over each other; the top moves the most
+/// because it is furthest from the base.
 /// </summary>
 public class TowerSway : MonoBehaviour
 {
@@ -21,20 +24,15 @@ public class TowerSway : MonoBehaviour
     [Min(0)] public int swayStartFloor = 3;
 
     [Header("Sway Size")]
-    [Tooltip("Max sway range: the furthest any floor can ever move from " +
-             "its resting spot, in world units (blocks are 1 unit wide). " +
-             "This is a hard limit: tower height and the number of " +
-             "imperfect landings never push the sway past it.")]
+    [Tooltip("Max sway range: the furthest the TOP of the tower can ever " +
+             "move from its resting spot, in world units (blocks are 1 " +
+             "unit wide). Lower floors move less, the base not at all.")]
     [Min(0f)] public float maxSwayDistance = 1f;
 
-    [Tooltip("How many of the highest landed blocks sway. The top one " +
-             "moves the full amount, each one below it a little less; " +
-             "blocks lower down stay still.")]
-    [Min(1)] public int swayingTopBlocks = 3;
-
-    [Tooltip("How quickly a block eases in or out of the sway when a new " +
-             "block lands and the swaying top moves up.")]
-    [Min(0.01f)] public float handoverSpeed = 2f;
+    [Tooltip("Max lean of the whole tower, in degrees. Keeps short towers " +
+             "from tipping over-dramatically: they lean at most this much, " +
+             "so a short tower's top moves less than Max Sway Distance.")]
+    [Range(0f, 20f)] public float maxLeanAngle = 5f;
 
     [Header("Sway Speed")]
     [Tooltip("Sway speed when the tower has only just started swaying " +
@@ -71,17 +69,12 @@ public class TowerSway : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float instability;
     [SerializeField, Range(0f, 1f)] private float currentSway;
 
-    private class SwayingBlock
-    {
-        public Transform transform;
-        public float restX;
+    // Every landed block is a child of this; rotating it leans the tower.
+    private Transform pivot;
+    private BuildingTier topBlock;
 
-        // Share of the sway this block shows (1 = top block), eased so a
-        // block leaving or joining the swaying top never jumps.
-        public float weight;
-    }
-
-    private readonly List<SwayingBlock> blocks = new List<SwayingBlock>();
+    // Base of the tower to the top of the highest block, tower upright.
+    private float towerHeight;
     private float phase;
 
     public float Instability => instability;
@@ -115,14 +108,7 @@ public class TowerSway : MonoBehaviour
         if (block == null)
             return;
 
-        // The new block becomes the top: it sways fully from where it
-        // landed. Store where it would be with the tower standing straight.
-        blocks.Add(new SwayingBlock
-        {
-            transform = block.transform,
-            restX = block.transform.position.x - GetOffset(1f),
-            weight = 1f
-        });
+        AttachToTower(block);
 
         if (floor <= swayStartFloor)
             return;
@@ -140,6 +126,59 @@ public class TowerSway : MonoBehaviour
                 this
             );
         }
+    }
+
+    // Makes the landed block part of the tower so it leans with the rest.
+    private void AttachToTower(GameObject block)
+    {
+        Transform blockTransform = block.transform;
+        BuildingTier tier = block.GetComponent<BuildingTier>();
+
+        if (pivot == null)
+        {
+            // Pivot at the bottom centre of the first floor: the base
+            // stays put and everything above it leans.
+            float baseY = tier != null && tier.HasSprite
+                ? tier.SolidBottom
+                : blockTransform.position.y;
+
+            pivot = new GameObject("TowerSwayPivot").transform;
+            pivot.position = new Vector3(
+                blockTransform.position.x,
+                baseY,
+                blockTransform.position.z
+            );
+        }
+
+        // Do the stacking with the tower standing straight, so the new
+        // block sits squarely on the one below in the tower's own frame.
+        Quaternion lean = pivot.rotation;
+        pivot.rotation = Quaternion.identity;
+
+        Vector3 fromPivot = blockTransform.position - pivot.position;
+        blockTransform.position = pivot.position + Quaternion.Inverse(lean) * fromPivot;
+        blockTransform.rotation = Quaternion.identity;
+
+        if (tier != null && tier.HasSprite &&
+            topBlock != null && topBlock.HasSprite)
+        {
+            blockTransform.position +=
+                Vector3.up * (topBlock.SolidTop - tier.SolidBottom);
+        }
+
+        blockTransform.SetParent(pivot, true);
+
+        if (tier != null)
+        {
+            topBlock = tier;
+
+            if (tier.HasSprite)
+                towerHeight = tier.SolidTop - pivot.position.y;
+        }
+
+        // Lean back to where the tower was, now carrying the new block.
+        pivot.rotation = lean;
+        Physics2D.SyncTransforms();
     }
 
     // Perfect landings calm the tower. Every other landing makes it sway
@@ -176,60 +215,27 @@ public class TowerSway : MonoBehaviour
         if (phase > Mathf.PI * 2f)
             phase -= Mathf.PI * 2f;
 
-        MoveBlocks(deltaTime);
+        // Rotating the pivot moves every landed block together. Setting the
+        // Transform works with the blocks' kinematic Rigidbody2Ds: Unity
+        // copies moved transforms into physics before each physics step.
+        if (pivot != null)
+            pivot.rotation = Quaternion.Euler(0f, 0f, -GetLeanAngle());
     }
 
-    private void MoveBlocks(float deltaTime)
+    // Lean of the whole tower right now, in degrees (positive = top to
+    // the right). Chosen so the top moves by the sway offset, but never
+    // past Max Lean Angle.
+    private float GetLeanAngle()
     {
-        blocks.RemoveAll(b => b == null || b.transform == null);
-
-        int top = blocks.Count - 1;
-        int swaying = Mathf.Max(1, swayingTopBlocks);
-
-        for (int i = top; i >= 0; i--)
-        {
-            SwayingBlock block = blocks[i];
-
-            // Top block 1, then e.g. 2/3, 1/3, then 0 for the rest.
-            int rank = top - i;
-            float targetWeight = rank < swaying
-                ? 1f - rank / (float)swaying
-                : 0f;
-
-            // Blocks below the top that had already settled stay put, and so
-            // does everything under them.
-            if (rank >= swaying && block.weight <= 0f)
-                break;
-
-            // Updated after the check so a block reaching 0 this frame is
-            // still placed exactly back on its resting spot.
-            block.weight = Mathf.MoveTowards(
-                block.weight,
-                targetWeight,
-                handoverSpeed * deltaTime
-            );
-
-            // Set the Transform's X directly. The blocks' Rigidbody2D has
-            // Freeze Position X (so dropped blocks fall straight down),
-            // which blocks Rigidbody2D.MovePosition sideways; that is why
-            // the tower never moved before.
-            Vector3 position = block.transform.position;
-            position.x = block.restX + GetOffset(block.weight);
-            block.transform.position = position;
-        }
-    }
-
-    // Sideways offset right now for a block with this share of the sway.
-    // The foundation is never registered, so it never moves.
-    private float GetOffset(float weight)
-    {
-        if (weight <= 0f || currentSway <= 0f)
+        if (currentSway <= 0f || towerHeight <= 0.01f)
             return 0f;
 
-        float offset = Mathf.Sin(phase) * maxSwayDistance *
-                       Mathf.Clamp01(currentSway) * Mathf.Clamp01(weight);
+        float topOffset = Mathf.Sin(phase) * maxSwayDistance *
+                          Mathf.Clamp01(currentSway);
 
-        // Hard limit, whatever the other settings are.
-        return Mathf.Clamp(offset, -maxSwayDistance, maxSwayDistance);
+        float maxSin = Mathf.Sin(maxLeanAngle * Mathf.Deg2Rad);
+        float sin = Mathf.Clamp(topOffset / towerHeight, -maxSin, maxSin);
+
+        return Mathf.Asin(sin) * Mathf.Rad2Deg;
     }
 }
