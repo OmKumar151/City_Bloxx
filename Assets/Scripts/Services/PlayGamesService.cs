@@ -248,7 +248,7 @@ public class PlayGamesService : MonoBehaviour
         Open(metadata =>
         {
             SavedGameMetadataUpdate update = new SavedGameMetadataUpdate.Builder()
-                .WithUpdatedDescription("City Bloxx progress")
+                .WithUpdatedDescription("Stackhaven City progress")
                 .Build();
 
             Client.CommitUpdate(metadata, update, data, (status, _) =>

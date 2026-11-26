@@ -3,7 +3,7 @@ using UnityEngine;
 
 [CreateAssetMenu(
     fileName = "BuildingGameplayConfig",
-    menuName = "City Bloxx/Building Gameplay Configuration"
+    menuName = "Stackhaven/Building Gameplay Configuration"
 )]
 public class BuildingGameplayConfig : ScriptableObject
 {

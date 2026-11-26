@@ -103,10 +103,10 @@ TextureImporter:
       name: Red_building_GridIcon_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 174
-        height: 194
+        x: 69
+        y: 76
+        width: 1051
+        height: 1228
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

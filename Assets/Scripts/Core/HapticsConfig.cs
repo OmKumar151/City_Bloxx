@@ -94,7 +94,7 @@ public class HapticEvent
 /// </summary>
 [CreateAssetMenu(
     fileName = "HapticsConfig",
-    menuName = "City Bloxx/Haptics Configuration"
+    menuName = "Stackhaven/Haptics Configuration"
 )]
 public class HapticsConfig : ScriptableObject
 {
