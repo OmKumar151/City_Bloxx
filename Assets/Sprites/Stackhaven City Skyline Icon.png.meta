@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f5fd136b173f7aa4bb375df388f445f6
+guid: cb406e6c0d8f9c146bf4b6ae51204e44
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 5764256941565024411
-    second: Stackhaven City Construction Icon_0
+      213: 2142678472259752997
+    second: Stackhaven City Skyline Icon_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,7 +126,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Stackhaven City Construction Icon_0
+      name: Stackhaven City Skyline Icon_0
       rect:
         serializedVersion: 2
         x: 0
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b981014e521ceff40800000000000000
-      internalID: 5764256941565024411
+      spriteID: 5245be6d7b25cbd10800000000000000
+      internalID: 2142678472259752997
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Stackhaven City Construction Icon_0: 5764256941565024411
+      Stackhaven City Skyline Icon_0: 2142678472259752997
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
